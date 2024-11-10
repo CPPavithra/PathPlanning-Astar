@@ -1,6 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <unordered_map>
+#include <queue>
+#include "a_star.h"
+
 using namespace std;
 struct Node
 {
@@ -26,19 +30,45 @@ struct Node
         bool operator>(const Node& other) const {
             return f > other.f;
          }*/
-}
+};
 
-}
+struct comparenode {
+    bool operator()(Node*a, Node*b)
+    {
+            return *a>*b;
+    }
+};
+
 double heuristic(int x1, int y1, int x2, int y2)
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
-struct CompareNode {
-    bool operator()(Node*a, Node*b)
-    { 
-	    return *a>*b;
-    }
-};
+vector<Node>astar(Node start, Node goal)
+{
+   priority_map<Node*,vector<Node*>,comparenode>openlist;
+   unordered_map<int, Node*>allNodes;
+   start.h = heuristic(start.x, start.y, goal.x, goal.y);
+   start.f_cost = start.g_cost + start.h_cost;
+   openList.push(&start);
+
+   while(!openList.empty())
+   {
+     //stack
+     Node*current=openList.top();
+     openList.pop();//read one by one
+     if(current->x==goal.x && current->y==goal.y)
+     {
+	     vector <Node> path;
+	     for(Node *n=current;n!=NULL;n=n->parent)
+	     {
+		     path.push_back(n);
+	     }
+	     return path;
+     }
+   }
+
+
+}
 int main(){
 
 vector<Node>path = astar(grid,start,goal)
