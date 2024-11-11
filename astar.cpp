@@ -66,7 +66,14 @@ vector<Node>astar(Node start, Node goal)
 	     return path;
      }
    }
-
+   int dx[] = {1, -1, 0, 0, 1, -1, 1, -1};
+   int dy[] = {0, 0, 1, -1, 1, -1, -1, 1}; //for the directions 
+   int i;
+   for(i=0;i<8;i++)
+   {
+	   int newx=current->x+dx[i];
+	   int newy=current->y+dy[i];
+   }
 
 }
 int main(){
