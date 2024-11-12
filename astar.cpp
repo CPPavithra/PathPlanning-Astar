@@ -88,7 +88,7 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
              //newx+newy shows collision
 	     int key=newx*grid[0].size()+newy;
 	     
-	     if(allNodes.find(key)==allNodes.end()||neighbour->g_cost<allNodes.find(key)->g_cost)//newx+newy is the unique key for map
+	     if(allNodes.find(key)==allNodes.end() || neighbour -> g_cost<allNodes.find(key) -> second -> g_cost)//newx+newy is the unique key for map
 	     {
                neighbour->f_cost=neighbour->g_cost+neighbour->h_cost;
 	       openlist.push(neighbour);
