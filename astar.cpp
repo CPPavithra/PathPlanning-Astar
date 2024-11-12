@@ -45,8 +45,8 @@ double heuristic(int x1, int y1, int x2, int y2)
 }
 vector<Node>astar(Node start, Node goal)
 {
-   priority_map<Node*,vector<Node*>,comparenode>openlist;
-   unordered_map<int, Node*>allNodes;
+   priority_map<Node*,vector<Node*>,comparenode>openlist;//priority list for 
+   unordered_map<int, Node*>allNodes;//map for all the nodes
    start.h_cost = heuristic(start.x, start.y, goal.x, goal.y);//euclidean distance function h cost
    start.f_cost = start.g_cost + start.h_cost;
    openList.push(&start);
@@ -86,9 +86,18 @@ vector<Node>astar(Node start, Node goal)
 	     }
 	     Node* neighbor = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
 
+	     if(allNodes.find(newx+newy)==allNodes.end()||neighbout->g_cost<allNodes.find(newx+newy)->g_cost)//newx+newy is the unique key for map
+	     {
+               neighbour->f_cost=neighbour->g_cost+neighbour->h_cost;
+	       openList.push(neighbour);
+	       //update all nodes
+	       allNodes[newx+newy]=neighbour;
+	     }
+
      } 
    }
-
+}
+return{}; //return empty if not found in while loop
 }
 int main(){
 
