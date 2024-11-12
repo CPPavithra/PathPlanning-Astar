@@ -47,7 +47,7 @@ vector<Node>astar(Node start, Node goal)
 {
    priority_map<Node*,vector<Node*>,comparenode>openlist;
    unordered_map<int, Node*>allNodes;
-   start.h = heuristic(start.x, start.y, goal.x, goal.y);
+   start.h_cost = heuristic(start.x, start.y, goal.x, goal.y);//euclidean distance function h cost
    start.f_cost = start.g_cost + start.h_cost;
    openList.push(&start);
 
@@ -68,14 +68,24 @@ vector<Node>astar(Node start, Node goal)
    }
    int dx[] = {1, -1, 0, 0, 1, -1, 1, -1};
    int dy[] = {0, 0, 1, -1, 1, -1, -1, 1}; //for the directions 
-   int i;
+   int i; double newg_cost;
    for(i=0;i<8;i++)
    {
 	   int newx=current->x+dx[i];
 	   int newy=current->y+dy[i];
+
      if(newx>=0 && newx<grid.size() && grid[newx][newy]==0 && newy>=0 && newy<grid[0].size())//boundary condition checking
      {
-	     
+	     if(i<4)//frist 4 in the array is for straight movements
+	     {
+		     newg_cost=current->g_cost+1.0;
+	     }
+	     else
+	     {
+                    newg_cost=current->g_cost+1.414;
+	     }
+	     Node* neighbor = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
+
      } 
    }
 
