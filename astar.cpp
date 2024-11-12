@@ -3,7 +3,6 @@
 #include <cmath>
 #include <unordered_map>
 #include <queue>
-#include "a_star.h"
 
 using namespace std;
 struct Node
@@ -12,7 +11,7 @@ struct Node
 	double g_cost,h_cost,f_cost;
 	Node *parent;
 	//using an initialiser list instead of this keyword
-	Node(int x,int y, double g_cost=0;double h_cost=0;Node *parent=NULL): x(x), y(y), g_cost(g_cost), h(h_cost), f_cost(g_cost+h_cost), parent(parent) {}
+	Node(int x,int y, double g_cost=0,double h_cost=0,Node *parent=NULL): x(x), y(y), g_cost(g_cost), h(h_cost), f_cost(g_cost+h_cost), parent(parent) {}
         bool operator>(const Node& other) const
        	{ 
 		return f_cost > other.f_cost;
@@ -45,7 +44,7 @@ double heuristic(int x1, int y1, int x2, int y2)
 }
 vector<Node>astar(Node start, Node goal)
 {
-   priority_map<Node*,vector<Node*>,comparenode>openlist;//priority list for 
+   priority_queue<Node*,vector<Node*>,comparenode>openlist;//priority list for 
    unordered_map<int, Node*>allNodes;//map for all the nodes
    start.h_cost = heuristic(start.x, start.y, goal.x, goal.y);//euclidean distance function h cost
    start.f_cost = start.g_cost + start.h_cost;
@@ -63,6 +62,7 @@ vector<Node>astar(Node start, Node goal)
 	     {
 		     path.push_back(n);
 	     }
+	     reverse(path.begin(), path.end()); //reverse path
 	     return path;
      }
    }
@@ -84,9 +84,9 @@ vector<Node>astar(Node start, Node goal)
 	     {
                     newg_cost=current->g_cost+1.414;
 	     }
-	     Node* neighbor = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
+	     Node* neighbour = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
 
-	     if(allNodes.find(newx+newy)==allNodes.end()||neighbout->g_cost<allNodes.find(newx+newy)->g_cost)//newx+newy is the unique key for map
+	     if(allNodes.find(newx+newy)==allNodes.end()||neighbour->g_cost<allNodes.find(newx+newy)->g_cost)//newx+newy is the unique key for map
 	     {
                neighbour->f_cost=neighbour->g_cost+neighbour->h_cost;
 	       openList.push(neighbour);
@@ -100,7 +100,6 @@ vector<Node>astar(Node start, Node goal)
 return{}; //return empty if not found in while loop
 }
 int main(){
-
 vector<Node>path = astar(grid,start,goal)
 if(path.empty())
 {
