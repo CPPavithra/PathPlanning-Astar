@@ -73,6 +73,10 @@ vector<Node>astar(Node start, Node goal)
    {
 	   int newx=current->x+dx[i];
 	   int newy=current->y+dy[i];
+     if(newx>=0 && newx<grid.size() && grid[newx][newy]==0 && newy>=0 && newy<grid[0].size())//boundary condition checking
+     {
+	     
+     } 
    }
 
 }
