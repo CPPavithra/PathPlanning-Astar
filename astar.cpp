@@ -3,6 +3,7 @@
 #include <cmath>
 #include <unordered_map>
 #include <queue>
+#include <algorithm>
 
 using namespace std;
 struct Node
@@ -11,7 +12,7 @@ struct Node
 	double g_cost,h_cost,f_cost;
 	Node *parent;
 	//using an initialiser list instead of this keyword
-	Node(int x,int y, double g_cost=0,double h_cost=0,Node *parent=NULL): x(x), y(y), g_cost(g_cost), h(h_cost), f_cost(g_cost+h_cost), parent(parent) {}
+	Node(int x,int y, double g_cost=0,double h_cost=0,Node *parent=NULL): x(x), y(y), g_cost(g_cost), h_cost(h_cost), f_cost(g_cost+h_cost), parent(parent) {}
         bool operator>(const Node& other) const
        	{ 
 		return f_cost > other.f_cost;
@@ -50,7 +51,7 @@ vector<Node>astar(Node start, Node goal)
    start.f_cost = start.g_cost + start.h_cost;
    openList.push(&start);
 
-   while(!openList.empty())
+   while(!openlist.empty())
    {
      //stack
      Node*current=openList.top();
@@ -65,7 +66,6 @@ vector<Node>astar(Node start, Node goal)
 	     reverse(path.begin(), path.end()); //reverse path
 	     return path;
      }
-   }
    int dx[] = {1, -1, 0, 0, 1, -1, 1, -1};
    int dy[] = {0, 0, 1, -1, 1, -1, -1, 1}; //for the directions 
    int i; double newg_cost;
@@ -85,11 +85,13 @@ vector<Node>astar(Node start, Node goal)
                     newg_cost=current->g_cost+1.414;
 	     }
 	     Node* neighbour = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
-
-	     if(allNodes.find(newx+newy)==allNodes.end()||neighbour->g_cost<allNodes.find(newx+newy)->g_cost)//newx+newy is the unique key for map
+             //newx+newy shows collision
+	     int key=newx*grid[0].size+newy;
+	     
+	     if(allNodes.find(key)==allNodes.end()||neighbour->g_cost<allNodes.find(key)->g_cost)//newx+newy is the unique key for map
 	     {
                neighbour->f_cost=neighbour->g_cost+neighbour->h_cost;
-	       openList.push(neighbour);
+	       openlist.push(neighbour);
 	       //update all nodes
 	       allNodes[newx+newy]=neighbour;
 	     }
@@ -100,6 +102,17 @@ vector<Node>astar(Node start, Node goal)
 return{}; //return empty if not found in while loop
 }
 int main(){
+//SAMPLE GRID
+vector<vector<int>> grid = {
+  {0, 0, 0, 0, 0},
+  {0, 1, 1, 1, 0},
+  {0, 0, 0, 0, 0},
+  {0, 1, 1, 1, 0},
+  {0, 0, 0, 0, 0}
+};
+
+Node start(0, 0);
+Node goal(4, 4);
 vector<Node>path = astar(grid,start,goal)
 if(path.empty())
 {
