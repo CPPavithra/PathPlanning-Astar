@@ -43,7 +43,7 @@ double heuristic(int x1, int y1, int x2, int y2)
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
-vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
+vector<Node>astar(const vector<vector<float>>& grid, Node start, Node goal,float squaresize)
 {
    priority_queue<Node*,vector<Node*>,comparenode>openlist;//priority list for 
    unordered_map<int, Node*>allNodes;//map for all the nodes
@@ -66,8 +66,11 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 	     reverse(path.begin(), path.end()); //reverse path
 	     return path;
      }
-   int dx[] = {1, -1, 0, 0, 1, -1, 1, -1};
-   int dy[] = {0, 0, 1, -1, 1, -1, -1, 1}; //for the directions 
+   int dx[] = {squaresize, -(squaresize), 0, 0, squaresize, -(squaresize), squaresize, -(squaresize)};
+   int dy[] = {0, 0, squaresize, -(squaresize), squaresize, -(squaresize), -(squaresize), squaresize}; //for variable square grid size
+										  /*int dx[] = {1,-1,0,0,1,-1,1,-1);
+    int dy[] = {0,0,1,-1,1,-1,-1,1}; for 1x1 grid square size*/
+
    int i; double newg_cost;
    for(i=0;i<8;i++)
    {
@@ -102,18 +105,21 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 return{}; //return empty if not found in while loop
 }
 int main(){
+float squaresize;
+cout<<"Enter the single square size for the grid: ";
+cin>>squaresize;
 //SAMPLE GRID
-vector<vector<int>> grid = {
+vector<vector<float>> grid = {
   {0, 0, 0, 0, 0},
-  {0, 1, 1, 1, 1},
-  {1, 0, 0, 0, 0},
-  {0, 1, 1, 1, 0},
+  {0, 1.0, 1.0, 1.0, 1.0},
+  {1.0, 0, 0, 0, 0},
+  {0, 1.0, 1.0, 1.0, 0},
   {0, 0, 0, 0, 0}
 };
 
 Node start(0, 0);
 Node goal(4, 4);
-vector<Node>path = astar(grid,start,goal);
+vector<Node>path = astar(grid,start,goal,squaresize);
 if(path.empty())
 {
 	cout<<"No path found"<<endl;
