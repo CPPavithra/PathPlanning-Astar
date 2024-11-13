@@ -8,17 +8,17 @@
 using namespace std;
 struct Node
 {
-	int x,y;
+	float x,y;
 	double g_cost,h_cost,f_cost;
 	Node *parent;
 	//using an initialiser list instead of this keyword
-	Node(int x,int y, double g_cost=0,double h_cost=0,Node *parent=NULL): x(x), y(y), g_cost(g_cost), h_cost(h_cost), f_cost(g_cost+h_cost), parent(parent) {}
+	Node(float x,float y, double g_cost=0,double h_cost=0,Node *parent=NULL): x(x), y(y), g_cost(g_cost), h_cost(h_cost), f_cost(g_cost+h_cost), parent(parent) {}
         bool operator>(const Node& other) const
        	{ 
 		return f_cost > other.f_cost;
        	}//overloading > to comapre between final cost of the nodes
 
-       /* Node(int x, int y, double g_cost=0, double h_cost=0, Node* parent=NULL) {
+       /* Node(float x, int y, double g_cost=0, double h_cost=0, Node* parent=NULL) {
             this->x = x;            
             this->y = y;           
             this->g_cost = g_cost;            
@@ -39,14 +39,14 @@ struct comparenode {
     }
 };
 
-double heuristic(int x1, int y1, int x2, int y2)
+double heuristic(float x1, float y1, float x2, float y2)
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 vector<Node>astar(const vector<vector<float>>& grid, Node start, Node goal,float squaresize)
 {
    priority_queue<Node*,vector<Node*>,comparenode>openlist;//priority list for 
-   unordered_map<int, Node*>allNodes;//map for all the nodes
+   unordered_map<float, Node*>allNodes;//map for all the nodes
    start.h_cost = heuristic(start.x, start.y, goal.x, goal.y);//euclidean distance function h cost
    start.f_cost = start.g_cost + start.h_cost;
    openlist.push(&start);
@@ -66,30 +66,30 @@ vector<Node>astar(const vector<vector<float>>& grid, Node start, Node goal,float
 	     reverse(path.begin(), path.end()); //reverse path
 	     return path;
      }
-   int dx[] = {squaresize, -(squaresize), 0, 0, squaresize, -(squaresize), squaresize, -(squaresize)};
-   int dy[] = {0, 0, squaresize, -(squaresize), squaresize, -(squaresize), -(squaresize), squaresize}; //for variable square grid size
-										  /*int dx[] = {1,-1,0,0,1,-1,1,-1);
-    int dy[] = {0,0,1,-1,1,-1,-1,1}; for 1x1 grid square size*/
+   float dx[] = {squaresize, -(squaresize), 0, 0, squaresize, -(squaresize), squaresize, -(squaresize)};
+   float dy[] = {0, 0, squaresize, -(squaresize), squaresize, -(squaresize), -(squaresize), squaresize}; //for variable square grid size
+										  /*float dx[] = {1,-1,0,0,1,-1,1,-1);
+    float dy[] = {0,0,1,-1,1,-1,-1,1}; for 1x1 grid square size*/
 
    int i; double newg_cost;
    for(i=0;i<8;i++)
    {
-	   int newx=current->x+dx[i];
-	   int newy=current->y+dy[i];
+	   float newx=current->x+dx[i];
+	   float newy=current->y+dy[i];
 
-     if(newx>=0 && newx<grid.size() && grid[newx][newy]==0 && newy>=0 && newy<grid[0].size())//boundary condition checking
+     if(newx>=0 && newx<grid.size()*squaresize && grid[newx][newy]==0 && newy>=0 && newy<grid[0].size()*squaresize)//boundary condition checking
      {
 	     if(i<4)//frist 4 in the array is for straight movements
 	     {
-		     newg_cost=current->g_cost+1.0;
+		     newg_cost=current->g_cost+1.0*(squaresize);
 	     }
 	     else
 	     {
-                    newg_cost=current->g_cost+1.414;
+                    newg_cost=current->g_cost+1.414*(squaresize);
 	     }
 	     Node* neighbour = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
              //newx+newy shows collision
-	     int key=newx*grid[0].size()+newy;
+	     float key=newx*grid[0].size()*squaresize+newy;
 	     
 	     if(allNodes.find(key)==allNodes.end() || neighbour -> g_cost<allNodes.find(key) -> second -> g_cost)//newx+newy is the unique key for map
 	     {
@@ -108,12 +108,19 @@ int main(){
 float squaresize;
 cout<<"Enter the single square size for the grid: ";
 cin>>squaresize;
-//SAMPLE GRID
+/*SAMPLE GRID
 vector<vector<float>> grid = {
   {0, 0, 0, 0, 0},
-  {0, 1.0, 1.0, 1.0, 1.0},
-  {1.0, 0, 0, 0, 0},
-  {0, 1.0, 1.0, 1.0, 0},
+  {0, 1, 1, 1, 1},
+  {1, 0, 0, 0, 0},
+  {0, 1, 1, 1, 0},
+  {0, 0, 0, 0, 0}
+};*/
+vector<vector<float>> grid = {
+  {0, 0, 0, 0, 0},
+  {0, 1, 1, 1, 1},
+  {1, 0, 0, 0, 0},
+  {0, 1, 1, 1, 0},
   {0, 0, 0, 0, 0}
 };
 
