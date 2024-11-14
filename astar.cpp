@@ -4,8 +4,11 @@
 #include <unordered_map>
 #include <queue>
 #include <algorithm>
+#include "include/json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
+
 struct Node
 {
 	float x,y;
@@ -104,16 +107,40 @@ return{}; //return empty if not found in while loop
 }
 int main(){
 //SAMPLE GRID
-vector<vector<int>> grid = {
- /*(0,0)*/ {0, 0, 0, 0, 0},
+/*vector<vector<int>> grid = {
+ (0,0) {0, 0, 0, 0, 0},
   {0, 1, 1, 1, 1},
   {1, 0, 0, 0, 0},
   {0, 1, 1, 1, 0},
-  {0, 0, 0, 0, 0}/*(4,4)*/
-};
+  {0, 0, 0, 0, 0}(4,4)
+};*/
+cout<<"Reading json file"<<endl;
+ // Read JSON input from stdin (from Python script)
+json input;
+try {
+    cin >> input;
+} catch (const std::exception& e) {
+    cerr << "Error reading input: " << e.what() << endl;
+    return 1;
+}
 
-Node start(0, 0);
-Node goal(4, 4);
+ cout<<"Creating boundaries"<<endl;
+
+// Extract grid and boundaries from the input
+vector<vector<int>> grid = input["grid"];
+auto boundaries = input["boundaries"];
+double min_x = boundaries[0];
+double max_x = boundaries[1];
+double min_y = boundaries[2];
+double max_y = boundaries[3];
+
+cout<<"Setting boundaries"<<endl;
+
+Node start(40, -140);
+Node goal(20, -90);
+
+cout<<"Start and goal node set astar starts"<<endl;
+
 vector<Node>path = astar(grid,start,goal);
 if(path.empty())
 {
