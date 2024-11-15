@@ -4,10 +4,10 @@
 #include <unordered_map>
 #include <queue>
 #include <algorithm>
-#include "include/json.hpp"
+#include <fstream>
+#include <sstream>
 
 using namespace std;
-using json = nlohmann::json;
 
 struct Node
 {
@@ -105,6 +105,27 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 }
 return{}; //return empty if not found in while loop
 }
+
+vector<vector<int>> readGridFromCSV(const string& filename) {
+    vector<vector<int>> grid;
+    ifstream file(filename);
+    if (!file.is_open()) {
+        throw runtime_error("Could not open CSV file.");
+    }
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string value;
+        vector<int> row;
+        while (getline(ss, value, ',')) {
+            row.push_back(stoi(value));
+        }
+        grid.push_back(row);
+    }
+    file.close();
+    return grid;
+}
+
 int main(){
 //SAMPLE GRID
 /*vector<vector<int>> grid = {
@@ -114,30 +135,30 @@ int main(){
   {0, 1, 1, 1, 0},
   {0, 0, 0, 0, 0}(4,4)
 };*/
-cout<<"Reading json file"<<endl;
- // Read JSON input from stdin (from Python script)
-json input;
+
+cout << "Reading grid map from CSV file" << endl;
+
+// Read the grid map from a CSV file
+string filename = "grid_map.csv"; // Replace with your CSV file name
+vector<vector<int>> grid;
 try {
-    cin >> input;
-} catch (const std::exception& e) {
-    cerr << "Error reading input: " << e.what() << endl;
+    grid = readGridFromCSV(filename);
+} catch (const exception& e) {
+    cerr << "Error: " << e.what() << endl;
     return 1;
 }
+cout << "Grid map loaded" << endl;
 
- cout<<"Creating boundaries"<<endl;
-
-// Extract grid and boundaries from the input
-vector<vector<int>> grid = input["grid"];
-auto boundaries = input["boundaries"];
-double min_x = boundaries[0];
-double max_x = boundaries[1];
-double min_y = boundaries[2];
-double max_y = boundaries[3];
+    
+double min_x = 0;
+double max_x = grid[0].size();
+double min_y = 0;
+double max_y = grid.size();
 
 cout<<"Setting boundaries"<<endl;
 
-Node start(40, -140);
-Node goal(20, -90);
+Node start(0,0);
+Node goal(5,6);
 
 cout<<"Start and goal node set astar starts"<<endl;
 
