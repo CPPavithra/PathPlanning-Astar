@@ -47,10 +47,5 @@ if __name__ == "__main__":
 
     save_grid_to_csv(occupancy_grid, "grid_map.csv")  # Save to CSV
     print("Occupancy Grid saved to grid_map.csv")
-    print("Boundaries:", boundaries)
-    output = {
-        "grid": occupancy_grid.tolist(),
-        "boundaries": boundaries
-    }
-    print(json.dumps(output))
+
 
