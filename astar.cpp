@@ -59,7 +59,7 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
      //stack
      Node*current=openlist.top();
      openlist.pop();//read one by one
-     if(current->x==goal.x && current->y==goal.y)
+     if(current->x == goal.x && current->y == goal.y)
      {
 	     vector <Node> path;
 	     for(Node *n=current;n!=NULL;n=n->parent)
@@ -74,10 +74,10 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
     int dy[] = {0,0,1,-1,1,-1,-1,1}; 
 
    int i; double newg_cost;
-   for(i=0;i<8;i++)
+   for(i=0; i<8; i++)
    {
-	   int newx=current->x+dx[i];
-	   int newy=current->y+dy[i];
+	   int newx = current->x+dx[i];
+	   int newy  = current->y+dy[i];
      if(newx>=0 && newx<grid.size() && grid[newx][newy]==0 && newy>=0 && newy<grid[0].size())//boundary condition checking
      {
 	     if(i<4)//frist 4 in the array is for straight movements
@@ -86,7 +86,7 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 	     }
 	     else
 	     {
-                    newg_cost=current->g_cost+1.414;
+                    newg_cost=current->g_cost+1.414;//diagonal cost will be root2
 	     }
 	     Node* neighbour = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
              //newx+newy shows collision
