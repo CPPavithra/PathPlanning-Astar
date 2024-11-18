@@ -16,8 +16,8 @@ find_package(PCL 1.8 REQUIRED)
 find_package(OpenGL REQUIRED)
 
 # Set GLFW include and library paths manually
-set(GLFW_INCLUDE_DIR "/home/pavithra/samplerrtstar/RRT-/Open3D/build/_deps/ext_imgui-src/examples/libs/glfw/include")
-set(GLFW_LIBRARY "/home/pavithra/samplerrtstar/RRT-/Open3D/build/lib/Release/libglfw3.a")
+set(GLFW_INCLUDE_DIR "/usr/include/GLFW")
+set(GLFW_LIBRARY "/usr/lib/x86_64-linux-gnu/libglfw.so")  # Path to your shared GLFW library
 
 # Include directories
 include_directories(
@@ -31,6 +31,7 @@ include_directories(
 # Link directories
 link_directories(
     ${PCL_LIBRARY_DIRS}
+    /usr/lib/x86_64-linux-gnu
     /usr/local/lib  # Include RealSense libraries explicitly
 )
 
