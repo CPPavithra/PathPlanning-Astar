@@ -2,7 +2,7 @@ import numpy as np
 from pyntcloud import PyntCloud
 import json
 
-def create_grid_map(ply_file, grid_resolution, height=0.1):
+def create_grid_map(ply_file, grid_resolution, height=2.0):
     # Load point cloud from PLY file
     cloud = PyntCloud.from_file(ply_file)
     points = cloud.xyz  # Extracting x, y, z coordinates
@@ -41,7 +41,7 @@ def save_grid_to_csv(grid, filename):
     np.savetxt(filename, grid.astype(int), delimiter=",", fmt='%d')
 
 if __name__ == "__main__":
-    ply_file = '3dmap.ply'  # Path to your PLY file
+    ply_file = 'pointcloud_600.ply'  # Path to your PLY file
     grid_resolution = 0.01   # Grid resolution in meters
     occupancy_grid, boundaries = create_grid_map(ply_file, grid_resolution)
 
