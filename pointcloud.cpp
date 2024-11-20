@@ -58,11 +58,11 @@ Gridmap create_gridmap(const vector<Vector3f>& points, float grid_resolution, fl
 
 int main() {
     // Create a RealSense pipeline and start streaming
-    //rs2::pipeline pipe;
+    rs2::pipeline pipe;
     //pipe.start();
     
     rs2::config cfg;
-    cfg.enable_device_from_file(outdoors.bag);
+    cfg.enable_device_from_file("outdoors.bag");
     pipe.start(cfg); // Load from file
 
     // Declare pointcloud object and points for mapping
