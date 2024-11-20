@@ -1,105 +1,117 @@
-#include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
-#include "example.hpp"          // Include short list of convenience functions for rendering
-#include <fstream>
-#include <iomanip>
+#include <librealsense2/rs.hpp> // RealSense Cross Platform API
 #include <iostream>
+#include <vector>
+#include <Eigen/Dense>
+#include <pcl/io/ply_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <thread>
 
-// Helper functions
-void save_pointcloud_to_ply(const rs2::points& points, const std::string& filename)
-{
-    std::ofstream out(filename);
-    if (!out.is_open())
-    {
-        throw std::runtime_error("Failed to open file: " + filename);
+using namespace std;
+using namespace pcl;
+using namespace Eigen;
+
+// Grid map structure to hold occupancy grid and boundaries
+struct Gridmap {
+    vector<vector<bool>> occupancy_grid;
+    float min_x, min_y, max_x, max_y;
+};
+
+// Function to create grid map from point cloud
+Gridmap create_gridmap(const vector<Vector3f>& points, float grid_resolution, float height=2.0) {
+    // Calculate boundaries based on points
+    float min_x = numeric_limits<float>::max();
+    float max_x = numeric_limits<float>::lowest();
+    float min_y = numeric_limits<float>::max();
+    float max_y = numeric_limits<float>::lowest();
+
+    for (const auto& point : points) {
+        min_x = min(min_x, point[0]);
+        max_x = max(max_x, point[0]);
+        min_y = min(min_y, point[1]);
+        max_y = max(max_y, point[1]);
     }
 
-    out << "ply\n";
-    out << "format ascii 1.0\n";
-    out << "element vertex " << points.size() << "\n";
-    out << "property float x\n";
-    out << "property float y\n";
-    out << "property float z\n";
-    out << "end_header\n";
+    // Define grid size
+    int x_bins = static_cast<int>((max_x - min_x) / grid_resolution) + 1;
+    int y_bins = static_cast<int>((max_y - min_y) / grid_resolution) + 1;
 
-    auto vertices = points.get_vertices();
-    for (size_t i = 0; i < points.size(); ++i)
-    {
-        auto& v = vertices[i];
-        if (v.z) // Avoid zero points (invalid)
-        {
-            out << std::fixed << std::setprecision(6) << v.x << " " << v.y << " " << v.z << "\n";
+    // Initialize the occupancy grid
+    vector<vector<bool>> occupancy_grid(x_bins, vector<bool>(y_bins, false));
+
+    // Fill the occupancy grid based on the height of points
+    for (const auto& point : points) {
+        int x_idx = static_cast<int>((point(0) - min_x) / grid_resolution);
+        int y_idx = static_cast<int>((point(1) - min_y) / grid_resolution);
+
+        // Ensure indices are within the valid range
+        if (x_idx >= 0 && x_idx < x_bins && y_idx >= 0 && y_idx < y_bins) {
+            if (point(2) > height) { // Only mark occupied if point is above height threshold
+                occupancy_grid[x_idx][y_idx] = true;
+            }
         }
     }
-    out.close();
-    std::cout << "Saved pointcloud to " << filename << std::endl;
+
+    // Return grid map with boundaries
+    return {occupancy_grid, min_x, min_y, max_x, max_y};
 }
 
-void register_glfw_callbacks(window& app, glfw_state& app_state);
+int main() {
+    // Create a RealSense pipeline and start streaming
+    //rs2::pipeline pipe;
+    //pipe.start();
+    
+    rs2::config cfg;
+    cfg.enable_device_from_file(outdoors.bag);
+    pipe.start(cfg); // Load from file
 
-int main(int argc, char* argv[]) try
-{
-    // Create a simple OpenGL window for rendering:
-    window app(1280, 720, "RealSense Pointcloud Example");
-    // Construct an object to manage view state
-    glfw_state app_state;
-    // Register callbacks to allow manipulation of the pointcloud
-    register_glfw_callbacks(app, app_state);
-
-    // Declare pointcloud object, for calculating pointclouds and texture mappings
+    // Declare pointcloud object and points for mapping
     rs2::pointcloud pc;
-    // We want the points object to be persistent so we can display the last cloud when a frame drops
     rs2::points points;
+    vector<Vector3f> point_vectors; // Vector to hold 3D points
 
-    // Declare RealSense pipeline, encapsulating the actual device and sensors
-    rs2::pipeline pipe;
-    // Start streaming with default recommended configuration
-    pipe.start();
-
-    int frame_count = 0;
-
-    while (app) // Application still alive?
-    {
+    while (true) {
         // Wait for the next set of frames from the camera
         auto frames = pipe.wait_for_frames();
-
         auto color = frames.get_color_frame();
-
-        // For cameras that don't have RGB sensor, we'll map the pointcloud to infrared instead of color
-        if (!color)
-            color = frames.get_infrared_frame();
-
-        // Tell pointcloud object to map to this color frame
-        pc.map_to(color);
-
         auto depth = frames.get_depth_frame();
 
-        // Generate the pointcloud and texture mappings
+        // Map point cloud to color frame
+        pc.map_to(color);
         points = pc.calculate(depth);
 
-        // Upload the color frame to OpenGL
-        app_state.tex.upload(color);
-
-        // Draw the pointcloud in the OpenGL window
-        draw_pointcloud(app.width(), app.height(), app_state, points);
-
-        // Save the point cloud every 30 frames
-        if (++frame_count % 300 == 0)
-        {
-            std::string filename = "pointcloud_" + std::to_string(frame_count) + ".ply";
-            save_pointcloud_to_ply(points, filename);
+        // Collect points from the pointcloud
+        point_vectors.clear(); // Clear previous points
+        for (size_t i = 0; i < points.size(); ++i) {
+            auto point = points.get_vertices()[i];
+            point_vectors.push_back(Vector3f(point.x, point.y, point.z));
         }
+
+        // Define grid resolution
+        float grid_resolution = 0.1f;
+
+        // Generate grid map
+        Gridmap grid_map = create_gridmap(point_vectors, grid_resolution);
+
+        // Output grid boundaries and grid size
+        cout << "Grid boundaries: x(" << grid_map.min_x << " to " << grid_map.max_x << "), "
+             << "y(" << grid_map.min_y << " to " << grid_map.max_y << ")" << endl;
+        cout << "Grid dimensions: " << grid_map.occupancy_grid.size() << "x"
+             << grid_map.occupancy_grid[0].size() << endl;
+
+        // For demonstration purposes, print a portion of the grid map
+        // (to avoid printing too much data, you could improve this logic as needed)
+        for (int i = 0; i < 10; ++i) {
+            for (int j = 0; j < 10; ++j) {
+                cout << grid_map.occupancy_grid[i][j] << " ";
+            }
+            cout << endl;
+        }
+
+        // A small delay (this would be handled by your application, if needed)
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));  // 0.5 seconds
     }
 
-    return EXIT_SUCCESS;
-}
-catch (const rs2::error& e)
-{
-    std::cerr << "RealSense error: " << e.what() << std::endl;
-    return EXIT_FAILURE;
-}
-catch (const std::exception& e)
-{
-    std::cerr << "Error: " << e.what() << std::endl;
-    return EXIT_FAILURE;
+    return 0;
 }
 
