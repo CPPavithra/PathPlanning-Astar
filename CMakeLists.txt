@@ -26,6 +26,7 @@ include_directories(
     ${GLFW_INCLUDE_DIR}
     /usr/local/include  # Include RealSense headers explicitly
     ./include
+    /usr/include/eigen3
 )
 
 # Link directories
@@ -33,6 +34,7 @@ link_directories(
     ${PCL_LIBRARY_DIRS}
     /usr/lib/x86_64-linux-gnu
     /usr/local/lib  # Include RealSense libraries explicitly
+    /home/pavithra/samplerrtstar/RRT-/Open3D/build/eigen/src/ext_eigen/bench/btl/libs/eigen3
 )
 
 # Suppress PCL warnings (optional)
