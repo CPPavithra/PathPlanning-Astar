@@ -56,6 +56,34 @@ Gridmap create_gridmap(const vector<Vector3f>& points, float grid_resolution, fl
     return {occupancy_grid, min_x, min_y, max_x, max_y};
 }
 
+void gridmapglfw(const Gridmap& gridmap)
+{
+	float cellwidth=2.0/occupancy_grid.size();
+	float cellheight=2.0/occupancy_grid[0].size();
+	for(size_t i=0;i<occupancy_grid.size();i++)
+	{
+		for(size_t j=0;j<occupancy_grid[0].size();j++)
+		{
+
+		if(gridmap.occupancy_grid[i][j])
+		{
+
+		}
+		else
+		{
+                 
+		}
+            //to draw a rectangle from the documentation
+            glBegin(GL_QUADS);
+            glVertex2f(x, y);
+            glVertex2f(x + cell_width, y);
+            glVertex2f(x + cell_width, y + cell_height);
+            glVertex2f(x, y + cell_height);
+            glEnd();
+		}
+	}
+}
+
 int main() {
     // Create a RealSense pipeline and start streaming
     rs2::pipeline pipe;
