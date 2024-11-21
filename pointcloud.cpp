@@ -21,21 +21,20 @@ struct Gridmap {
 // Function to create grid map from point cloud
 Gridmap create_gridmap(const vector<Vector3f>& points, float grid_resolution, float height=2.0) {
     // Calculate boundaries based on points
-    float min_x = numeric_limits<float>::max();
-    float max_x = numeric_limits<float>::lowest();
-    float min_y = numeric_limits<float>::max();
-    float max_y = numeric_limits<float>::lowest();
+    float min_x=numeric_limits<float>::max();
+    float max_x=numeric_limits<float>::lowest();
+    float min_y=numeric_limits<float>::max();
+    float max_y=numeric_limits<float>::lowest();
 
     for (const auto& point : points) {
-        min_x = min(min_x, point[0]);
-        max_x = max(max_x, point[0]);
-        min_y = min(min_y, point[1]);
-        max_y = max(max_y, point[1]);
+        min_x=min(min_x, point[0]);
+        max_x=max(max_x, point[0]);
+        min_y=min(min_y, point[1]);
+        max_y=max(max_y, point[1]);
     }
 
-    // Define grid size
-    int x_bins = static_cast<int>((max_x - min_x) / grid_resolution) + 1;
-    int y_bins = static_cast<int>((max_y - min_y) / grid_resolution) + 1;
+    int x_bins = static_cast<int>((max_x-min_x)/grid_resolution)+1;
+    int y_bins = static_cast<int>((max_y-min_y)/grid_resolution)+1;
 
     // Initialize the occupancy grid
     vector<vector<bool>> occupancy_grid(x_bins, vector<bool>(y_bins, false));
@@ -45,45 +44,51 @@ Gridmap create_gridmap(const vector<Vector3f>& points, float grid_resolution, fl
         int x_idx = static_cast<int>((point(0) - min_x) / grid_resolution);
         int y_idx = static_cast<int>((point(1) - min_y) / grid_resolution);
 
-        // Ensure indices are within the valid range
         if (x_idx >= 0 && x_idx < x_bins && y_idx >= 0 && y_idx < y_bins) {
-            if (point(2) > height) { // Only mark occupied if point is above height threshold
+            if (point(2) > height) { 
                 occupancy_grid[x_idx][y_idx] = true;
             }
         }
     }
-
-    // Return grid map with boundaries
     return {occupancy_grid, min_x, min_y, max_x, max_y};
 }
 
 void gridmapglfw(const Gridmap& gridmap)
 {
-	float cellwidth=2.0/occupancy_grid.size();
-	float cellheight=2.0/occupancy_grid[0].size();
-	for(size_t i=0;i<occupancy_grid.size();i++)
+	//float cellwidth=2.0/gridmap.occupancy_grid.size();
+	//float cellheight=2.0/gridmap.occupancy_grid[0].size();
+	float cellwidth=2.0/20;
+	float cellheight=2.0/20;
+	glBegin(GL_POINTS);
+	for(size_t i=0;i<gridmap.occupancy_grid.size();i++)
 	{
-		for(size_t j=0;j<occupancy_grid[0].size();j++)
+		for(size_t j=0;j<gridmap.occupancy_grid[0].size();j++)
 		{
 
 		if(gridmap.occupancy_grid[i][j])
 		{
-                       glColor3f(0.0f,0.0f,0.0f);
+                       glColor3f(1.0f,0.0f,0.0f);
 		}
 		else
 		{  
 			glColor3f(1.0f,1.0f,1.0f);
                  
 		}
-            //to draw a rectangle from the documentation
-            glBegin(GL_QUADS);
-            glVertex2f(x, y);
-            glVertex2f(x + cellwidth, y);
-            glVertex2f(x + cellwidth, y + cellheight);
-            glVertex2f(x, y + cellheight);
-            glEnd();
+		      
+            float x_start=-1.0f+i*cellwidth;
+            float y_start=-1.0f+j*cellheight;
+            float x_end=x_start+cellwidth;
+            float y_end=y_start+cellheight;
+
+            
+            glVertex2f(x_start,y_start); 
+            glVertex2f(x_end,y_start);   
+           glVertex2f(x_end,y_end);     
+            glVertex2f(x_start,y_end);   
+            
 		}
 	}
+	glEnd();
 }
 
 int main() {
