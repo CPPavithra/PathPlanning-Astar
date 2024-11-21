@@ -1,6 +1,7 @@
 #include <librealsense2/rs.hpp> // RealSense Cross Platform API
 #include <iostream>
 #include <vector>
+#include <GLFW/glfw3.h>
 #include <Eigen/Dense>
 #include <pcl/io/ply_io.h>
 #include <pcl/point_cloud.h>
@@ -67,24 +68,40 @@ void gridmapglfw(const Gridmap& gridmap)
 
 		if(gridmap.occupancy_grid[i][j])
 		{
-
+                       glColor3f(0.0f,0.0f,0.0f);
 		}
 		else
-		{
+		{  
+			glColor3f(1.0f,1.0f,1.0f);
                  
 		}
             //to draw a rectangle from the documentation
             glBegin(GL_QUADS);
             glVertex2f(x, y);
-            glVertex2f(x + cell_width, y);
-            glVertex2f(x + cell_width, y + cell_height);
-            glVertex2f(x, y + cell_height);
+            glVertex2f(x + cellwidth, y);
+            glVertex2f(x + cellwidth, y + cellheight);
+            glVertex2f(x, y + cellheight);
             glEnd();
 		}
 	}
 }
 
 int main() {
+    // Initialize GLFW
+    if (!glfwInit()) {
+        cerr << "Failed to initialize GLFW" << endl;
+        return -1;
+    }
+
+    // Create a GLFW window
+    GLFWwindow* window = glfwCreateWindow(800, 800, "Occupancy Grid Map", nullptr, nullptr);
+    if (!window) {
+        cerr << "Failed to create GLFW window" << endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+
     // Create a RealSense pipeline and start streaming
     rs2::pipeline pipe;
     //pipe.start();
@@ -98,48 +115,40 @@ int main() {
     rs2::points points;
     vector<Vector3f> point_vectors; // Vector to hold 3D points
 
-    while (true) {
-        // Wait for the next set of frames from the camera
-        auto frames = pipe.wait_for_frames();
-        auto color = frames.get_color_frame();
-        auto depth = frames.get_depth_frame();
+        while (!glfwWindowShouldClose(window)) {
+        // Clear the screen
+        glClear(GL_COLOR_BUFFER_BIT);
 
-        // Map point cloud to color frame
-        pc.map_to(color);
+        // Get the next frame
+        auto frames = pipe.wait_for_frames();
+        auto depth = frames.get_depth_frame();
+        pc.map_to(frames.get_color_frame());
         points = pc.calculate(depth);
 
-        // Collect points from the pointcloud
-        point_vectors.clear(); // Clear previous points
+        // Collect point cloud data
+        point_vectors.clear();
         for (size_t i = 0; i < points.size(); ++i) {
             auto point = points.get_vertices()[i];
-            point_vectors.push_back(Vector3f(point.x, point.y, point.z));
-        }
-
-        // Define grid resolution
-        float grid_resolution = 0.1f;
-
-        // Generate grid map
-        Gridmap grid_map = create_gridmap(point_vectors, grid_resolution);
-
-        // Output grid boundaries and grid size
-        cout << "Grid boundaries: x(" << grid_map.min_x << " to " << grid_map.max_x << "), "
-             << "y(" << grid_map.min_y << " to " << grid_map.max_y << ")" << endl;
-        cout << "Grid dimensions: " << grid_map.occupancy_grid.size() << "x"
-             << grid_map.occupancy_grid[0].size() << endl;
-
-        // For demonstration purposes, print a portion of the grid map
-        // (to avoid printing too much data, you could improve this logic as needed)
-        for (int i = 0; i < 10; ++i) {
-            for (int j = 0; j < 10; ++j) {
-                cout << grid_map.occupancy_grid[i][j] << " ";
+            if (point.z) {
+                point_vectors.push_back(Vector3f(point.x, point.y, point.z));
             }
-            cout << endl;
         }
 
-        // A small delay (this would be handled by your application, if needed)
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));  // 0.5 seconds
+        // Create grid map
+        float grid_resolution = 0.1f;
+        Gridmap gridmap = create_gridmap(point_vectors, grid_resolution);
+
+        // Render the grid map
+        gridmapglfw(gridmap);
+
+        // Swap buffers and poll events
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
 
+            // Cleanup
+    glfwDestroyWindow(window);
+    glfwTerminate();
     return 0;
 }
 
