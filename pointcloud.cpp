@@ -53,12 +53,25 @@ Gridmap create_gridmap(const vector<Vector3f>& points, float grid_resolution, fl
     return {occupancy_grid, min_x, min_y, max_x, max_y};
 }
 
+void draw_axes(int x_bins, int y_bins, float cellwidth, float cellheight) {
+    glColor3f(0.0f,1.0f,0.0f); //axes green
+    glBegin(GL_LINES);
+    //x axis
+    glVertex2f(-1.0f,0.0f);
+    glVertex2f(1.0f,0.0f);
+    //y axis
+    glVertex2f(0.0f, -1.0f);
+    glVertex2f(0.0f, 1.0f);
+    glEnd();
+
+}
+
 void gridmapglfw(const Gridmap& gridmap)
 {
-	//float cellwidth=2.0/gridmap.occupancy_grid.size();
-	//float cellheight=2.0/gridmap.occupancy_grid[0].size();
-	float cellwidth=2.0/20;
-	float cellheight=2.0/20;
+	float cellwidth=2.0/gridmap.occupancy_grid.size();
+	float cellheight=2.0/gridmap.occupancy_grid[0].size();
+	//float cellwidth=2.0/20;
+	//float cellheight=2.0/20;
 	glBegin(GL_POINTS);
 	for(size_t i=0;i<gridmap.occupancy_grid.size();i++)
 	{
@@ -111,6 +124,7 @@ int main() {
     rs2::pipeline pipe;
     //pipe.start();
     
+    //COMMENT THIS AND UNCOMMENT PIPELINE.START() IF I WANT TO TAKE REALSENSE CAM FOOTAGE
     rs2::config cfg;
     cfg.enable_device_from_file("outdoors.bag");
     pipe.start(cfg); // Load from file
@@ -145,6 +159,8 @@ int main() {
 
         // Render the grid map
         gridmapglfw(gridmap);
+
+	draw_axes(gridmap.occupancy_grid.size(), gridmap.occupancy_grid[0].size(), grid_resolution, grid_resolution);
 
         // Swap buffers and poll events
         glfwSwapBuffers(window);
