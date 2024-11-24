@@ -106,7 +106,7 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 return{}; //return empty if not found in while loop
 }
 
-vector<vector<int>> readGridFromCSV(const string& filename) {
+/*vector<vector<int>> readGridFromCSV(const string& filename) {
     vector<vector<int>> grid;
     ifstream file(filename);
     if (!file.is_open()) {
@@ -124,9 +124,9 @@ vector<vector<int>> readGridFromCSV(const string& filename) {
     }
     file.close();
     return grid;
-}
+}*/
 
-int main(){
+/*int main(){
 //SAMPLE GRID
 /*vector<vector<int>> grid = {
  (0,0) {0, 0, 0, 0, 0},
@@ -136,7 +136,7 @@ int main(){
   {0, 0, 0, 0, 0}(4,4)
 };*/
 
-cout << "Reading grid map from CSV file" << endl;
+/*cout << "Reading grid map from CSV file" << endl;
 
 // Read the grid map from a CSV file
 string filename = "grid_map.csv"; // Replace with your CSV file name
@@ -176,4 +176,4 @@ else
 	}
 	cout<<endl;
 }
-}
+}*/
