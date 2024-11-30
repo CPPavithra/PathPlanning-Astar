@@ -1,5 +1,8 @@
 #include <iostream>
+#include "include/gridmap.h"
 #include <vector>
+#include <string>
+#include <limits>
 #include <fstream>
 #include <Eigen/Dense>
 #include <pcl/io/ply_io.h>
@@ -9,11 +12,6 @@
 using namespace std;
 using namespace pcl;
 using namespace Eigen;
-
-struct Gridmap {
-    vector<vector<bool>> occupancy_grid;
-    float min_x, min_y, max_x, max_y;
-};
 
 Gridmap create_gridmap(const string& ply_file, float grid_resolution, float height = 2.0) {
     PointCloud<PointXYZ>::Ptr cloud(new PointCloud<PointXYZ>);
@@ -71,11 +69,12 @@ Gridmap create_gridmap(const string& ply_file, float grid_resolution, float heig
     }
 
     // Return the grid map and boundaries
-    Gridmap grid_map = {occupancy_grid, min_x, min_y, max_x, max_y};
-    return grid_map;
+    /*Gridmap grid_map = {occupancy_grid, min_x, min_y, max_x, max_y};
+    return grid_map;*/
+    return {occupancy_grid, min_x, min_y, max_x, max_y};
 }
 
-int main() {
+/*int main() {
     // Example usage of the create_gridmap function
     string ply_file = "pointcloud.ply"; // Path to your PLY file
     float grid_resolution = 0.1;           // Define grid resolution
@@ -89,5 +88,4 @@ int main() {
          << grid_map.occupancy_grid[0].size() << endl;
 
     return 0;
-}
-
+}*/
