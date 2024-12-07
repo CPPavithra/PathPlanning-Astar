@@ -14,19 +14,20 @@ using namespace Eigen;
 using namespace rs2;
 
 struct Gridmap {
-    vector<vector<bool>> occupancy_grid;
+    unordered_map<pair<int,int>,float>occupancy_grid;
     float min_x,min_y,max_x,max_y;
 };
 
 struct Pose 
 {
 	Vector3f position;
+	Vector3f velocity;
 	Matrix3f orientation;
 };
 
 /*struct state { double yaw, pitch, last_x, last_y; bool ml; float offset_x, offset_y; texture tex; };*/
 
-Gridmap create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=2.0)
+Gridmap create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=2.0,float proxfactor=0.5)
 {
 	float min_x=roverpose.position[0]-5.0f;
 	float min_y=roverpose.position[0]+5.0f;
@@ -37,19 +38,54 @@ Gridmap create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,flo
    xgridnum=static_cast<int>((max_x-min_x)/grid_resolution)+1; //adding one to ensure that all of the grids are counted
    ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
 
-   vector<vector<bool>>occupancy_grid(xgridnum, vector<bool>(ygridnum,false)); //everything is initialised to be false at the start
-   
+   /*vector<vector<bool>>occupancy_grid(xgridnum, vector<bool>(ygridnum,false))*;/ //everything is initialised to be false at the start*/
+
+   unordered_map<pair<int,int>,float>occupancy_grid;
+   vector<pair<int,int>>obstacles; //to check the proximity
+
    for(const auto& point :points)
    {
 	   int xpos=static_cast<int>((point(0)-min_x)/grid_resolution);
 	   int ypos=static_cast<int>((point(1)-min_y)/grid_resolution); //to check which grid is it currently in
-           
+     
 	   if(xpos>=0 && xpos<xgridnum && ypos>=0 && ypos<ygridnum)
-	   {
+	   { 
+		   float cost=0.0f;
 		   if(point(2)>height)
 		   {
-			   occupancy_grid[xpos][ypos]=true; //height threshhold to be two
+			   cost=10.0f; //very high= cant go cost is from range 0 to 10
 		   }
+		   else if(point(2)>(height/2)&&point(2)<(height))
+		   {
+			   cost=5.0f;
+		   }
+		   else if(point(2)>(height/4) && point(2)<(height/2))
+		   {
+			   cost=1.0f;
+		   }
+
+		   //to add the obstacles to the list
+		   if(cost>0.0f)
+		   {
+		     occupancy_grid[{xpos,ypos}]+=cost;
+		     //if we are not taking proximity then just do occupancy_grid{[xpos,ypos}]=cost
+		   }
+		   for(int dx=-proxradius;dx<=proxradius;++dx)
+		   {
+			   for(int dy=-proxradius;dy<=proxradius;++dy)
+			   {
+				   int nx=xpos+dx;
+				   int ny=ypos+dy;
+				   pair<int,int>neighbour={nx,ny};
+				   float dist=sqrt(dx*dx+dy*dy)*grid_resolution;
+				   if(dist<proxradius*grid_resolution)
+				   {
+					   float proxcost=proxfactor*(1.0f/(distace+0.1f));//add 0.1 to avoid division by zero if ever it happens
+					   occupancy_grid[neighbour]+=proxcost;
+				   }
+			   }
+		   }
+	
 	   }
    }	   
    return Gridmap{occupancy_grid,min_x,min_y,max_x,max_y};
