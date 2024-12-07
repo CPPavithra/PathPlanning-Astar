@@ -6,6 +6,9 @@
 #include <thread>
 #include <mutex>
 #include <chrono>
+#include <unordered_map>
+#include <functional>
+#include <Eigen/Core>
 
 //chrono is for time
 
@@ -13,10 +16,28 @@ using namespace std;
 using namespace Eigen;
 using namespace rs2;
 
+struct pair_hash {
+    template <typename T1, typename T2>
+    std::size_t operator()(const std::pair<T1, T2>& p) const {
+        auto h1 = std::hash<T1>{}(p.first);  // Hash the first element
+        auto h2 = std::hash<T2>{}(p.second); // Hash the second element
+        return h1 ^ (h2 << 1);               // Combine the two hashes
+    }
+}; //READ ABOYT THIS- cant do pair hash in hash table usually so we use this
+
 struct Gridmap {
-    unordered_map<pair<int,int>,float>occupancy_grid;
+    unordered_map<pair<int,int>,float,pair_hash>occupancy_grid;
     float min_x,min_y,max_x,max_y;
+    Gridmap()
+    {
+       //
+    }
+    Gridmap(unordered_map<pair<int, int>, float, pair_hash> grid, float min_x, float min_y, float max_x, float max_y)
+        : occupancy_grid(grid), min_x(min_x), min_y(min_y), max_x(max_x), max_y(max_y) {
+        //
+    }
 };
+
 
 struct Pose 
 {
@@ -27,39 +48,36 @@ struct Pose
 
 /*struct state { double yaw, pitch, last_x, last_y; bool ml; float offset_x, offset_y; texture tex; };*/
 
-Gridmap create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=2.0,float proxfactor=0.5)
+void create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=2.0,float proxfactor=0.5)
 {
 	float min_x=roverpose.position[0]-5.0f;
-	float min_y=roverpose.position[0]+5.0f;
-	float max_x=roverpose.position[1]-5.0f;
+	float max_x=roverpose.position[0]+5.0f;
+	float min_y=roverpose.position[1]-5.0f;
 	float max_y=roverpose.position[1]+5.0f;
-	
+   Gridmap gridmap; 	
    int xgridnum,ygridnum;
    xgridnum=static_cast<int>((max_x-min_x)/grid_resolution)+1; //adding one to ensure that all of the grids are counted
    ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
 
    /*vector<vector<bool>>occupancy_grid(xgridnum, vector<bool>(ygridnum,false))*;/ //everything is initialised to be false at the start*/
+   unordered_map<pair<int,int>,float,pair_hash>updated_occupancy_grid = gridmap.occupancy_grid;
+   int proxradius=3;
 
-   unordered_map<pair<int,int>,float>occupancy_grid;
-   vector<pair<int,int>>obstacles; //to check the proximity
-
-   for(const auto& point :points)
-   {
-	   int xpos=static_cast<int>((point(0)-min_x)/grid_resolution);
-	   int ypos=static_cast<int>((point(1)-min_y)/grid_resolution); //to check which grid is it currently in
+	   int xpos=static_cast<int>((roverpose.position[0]-min_x)/grid_resolution);
+	   int ypos=static_cast<int>((roverpose.position[1]-min_y)/grid_resolution); //to check which grid is it currently in
      
 	   if(xpos>=0 && xpos<xgridnum && ypos>=0 && ypos<ygridnum)
 	   { 
 		   float cost=0.0f;
-		   if(point(2)>height)
+		   if(roverpose.position[2]>height)
 		   {
 			   cost=10.0f; //very high= cant go cost is from range 0 to 10
 		   }
-		   else if(point(2)>(height/2)&&point(2)<(height))
+		   else if(roverpose.position[2]>(height/2)&&roverpose.position[2]<=(height))
 		   {
 			   cost=5.0f;
 		   }
-		   else if(point(2)>(height/4) && point(2)<(height/2))
+		   else if(roverpose.position[2]>(height/4) &&roverpose.position[2]<=(height/2))
 		   {
 			   cost=1.0f;
 		   }
@@ -67,7 +85,7 @@ Gridmap create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,flo
 		   //to add the obstacles to the list
 		   if(cost>0.0f)
 		   {
-		     occupancy_grid[{xpos,ypos}]+=cost;
+		     updated_occupancy_grid[{xpos,ypos}]+=cost;
 		     //if we are not taking proximity then just do occupancy_grid{[xpos,ypos}]=cost
 		   }
 		   for(int dx=-proxradius;dx<=proxradius;++dx)
@@ -80,66 +98,60 @@ Gridmap create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,flo
 				   float dist=sqrt(dx*dx+dy*dy)*grid_resolution;
 				   if(dist<proxradius*grid_resolution)
 				   {
-					   float proxcost=proxfactor*(1.0f/(distace+0.1f));//add 0.1 to avoid division by zero if ever it happens
-					   occupancy_grid[neighbour]+=proxcost;
+					   float proxcost=proxfactor*(1.0f/(dist+0.1f));//add 0.1 to avoid division by zero if ever it happens
+					   updated_occupancy_grid[neighbour]+=proxcost;
 				   }
 			   }
 		   }
 	
 	   }
-   }	   
-   return Gridmap{occupancy_grid,min_x,min_y,max_x,max_y};
+   	   
+   /*Gridmap gridmap(occupancy_grid,min_x,min_y,max_x,max_y);
+   return gridmap;*/
+gridmap.occupancy_grid=updated_occupancy_grid;
 }
 
-void draw_gridmap(const Gridmap& gridmap)
-{
-   float grid_resolution=(gridmap.max_x - gridmap.min_x)/gridmap.occupancy_grid.size();
-
-   for(size_t x=0;x<gridmap.occupancy_grid.size();++x)
-   {
-	   for(size_t y=0;y<gridmap.occupancy_grid[x].size();++y)
-	   {
-		   if(gridmap.occupancy_grid[x][y])
-		   {
-			   float x_pos=gridmap.min_x+x*grid_resolution;
-			   float y_pos=gridmap.min_y+y*grid_resolution;
-
-			   glBegin(GL_QUADS);
-                           glColor3f(1.0f, 0.0f, 0.0f); // Red for occupied
-                           glVertex2f(x_pos, y_pos);
-                           glVertex2f(x_pos + grid_resolution, y_pos);
-                           glVertex2f(x_pos + grid_resolution, y_pos + grid_resolution);
-                           glVertex2f(x_pos, y_pos + grid_resolution);
-                           glEnd();
-		   }
-	   }
-   }
-}
-
-/*void draw_gridmap(const Gridmap& gridmap) {
-    float cell_width = 2.0f / gridmap.occupancy_grid.size();
-    float cell_height = 2.0f / gridmap.occupancy_grid[0].size();
-
-    glBegin(GL_QUADS);
-    for (size_t i = 0; i < gridmap.occupancy_grid.size(); i++) {
-        for (size_t j = 0; j < gridmap.occupancy_grid[0].size(); j++) {
-            if (gridmap.occupancy_grid[i][j]) {
-                glColor3f(1.0f, 0.0f, 0.0f); // Red for occupied
-            } else {
-                glColor3f(1.0f, 1.0f, 1.0f); // White for free
-            }
-
-            float x_start = -1.0f + i * cell_width;
-            float y_start = -1.0f + j * cell_height;
-
-            glVertex2f(x_start, y_start);
-            glVertex2f(x_start + cell_width, y_start);
-            glVertex2f(x_start + cell_width, y_start + cell_height);
-            glVertex2f(x_start, y_start + cell_height);
+void draw_gridmap(const Gridmap& gridmap, float grid_resolution) {
+	    float x_range=gridmap.max_x - gridmap.min_x;
+    float y_range=gridmap.max_y - gridmap.min_y;
+    for (const auto& entry : gridmap.occupancy_grid) {
+        const auto& [coord, cost]=entry;
+        int xpos=coord.first;
+        int ypos=coord.second;
+        //float x_pos=(gridmap.min_x+xpos*grid_resolution - gridmap.min_x)/x_range*2.0f - 1.0f;
+        //float y_pos = gridmap.min_y + ypos * grid_resolution;
+	//float y_pos = (gridmap.min_y + ypos * grid_resolution - gridmap.min_y) / y_range * 2.0f - 1.0f;
+       
+        glBegin(GL_QUADS);
+        if (cost>=10.0f) 
+	{
+            glColor3f(0.0f,0.0f,0.0f); // BLACK=FULLY OCCUPIED
         }
+       	else if (cost>=5.0f) 
+	{
+            glColor3f(1.0f,0.0f,0.0f); // RED=MILD
+        }
+       	else if (cost>=1.0f) 
+	{
+            glColor3f(1.0f,0.8f,0.4f); // ORANGE=CAN GO
+        }
+       	else
+       	{
+            glColor3f(0.6f,1.0f,0.6f); // LIGHT GREEN
+        }
+        /*glVertex2f(x_pos, y_pos);
+        glVertex2f(x_pos + grid_resolution, y_pos);
+        glVertex2f(x_pos + grid_resolution, y_pos + grid_resolution);
+        glVertex2f(x_pos, y_pos + grid_resolution);
+        glEnd();*/
+
+	 glVertex2f(x_pos, y_pos);
+        glVertex2f(x_pos + grid_resolution / x_range * 2.0f, y_pos);
+        glVertex2f(x_pos + grid_resolution / x_range * 2.0f, y_pos + grid_resolution / y_range * 2.0f);
+        glVertex2f(x_pos, y_pos + grid_resolution / y_range * 2.0f);
+        glEnd();
     }
-    glEnd();
-}*/
+}
 
 void draw_axes()
 {
@@ -151,19 +163,23 @@ void draw_axes()
     glVertex2f(0.0f, 1.0f);
     glEnd();
 }
-
+Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
+    return Eigen::Vector3f(rs2_vec.x, rs2_vec.y, rs2_vec.z);
+}//helper function to convert rs2 to eigen vector3f
 void update_rover_pose(Pose& pose,Vector3f &accel_data,Vector3f &gyro_data, float delta_time) {
 
-    pose.velocity+=accel_data*delta_time //assume that the initial velocity can be non zero
+    pose.velocity+=accel_data*delta_time; //assume that the initial velocity can be non zero
     Vector3f del_position = (pose.velocity*delta_time)+(0.5f*accel_data*delta_time*delta_time); //(using the motion eq ut+1/2at^2)
 
-    pose.position=pose.position+del_position; //for position
-					      
+    pose.position+=del_position; //for position
+    cout<<"Position: "<<pose.position<<endl;					      
     Vector3f ang_velocity= gyro_data*delta_time;
-    
+    cout<<"Angular velocity: "<<ang_velocity<<endl;
+
     AngleAxisf roll(ang_velocity.x(), Vector3f::UnitX());
     AngleAxisf pitch(ang_velocity.y(), Vector3f::UnitY());
     AngleAxisf yaw(ang_velocity.z(), Vector3f::UnitZ());
+
     Matrix3f rotation_matrix = (yaw*pitch*roll).toRotationMatrix(); //changing it to a rot matrix
     
     pose.orientation = rotation_matrix * pose.orientation;
@@ -171,117 +187,117 @@ void update_rover_pose(Pose& pose,Vector3f &accel_data,Vector3f &gyro_data, floa
     //FOR INCREASING ACCURACY- but idk if I need to use it yet. Just in case;
     JacobiSVD<Matrix3f> svd(pose.orientation, ComputeFullU | ComputeFullV);
     pose.orientation = svd.matrixU() * svd.matrixV().transpose();
-
 }
 
- int main() {
+int main() {
     if (!glfwInit()) {
-        cerr << "Failed to initialize GLFW" << endl;
+        std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "Dynamic Grid Map", nullptr, nullptr);
     if (!window) {
-        cerr << "Failed to create GLFW window" << endl;
+        std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
 
+    // Initialize the RealSense pipeline
     rs2::pipeline pipe;
     rs2::config cfg;
-    //cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
-    /*cfg.enable_stream(RS2_STREAM_POSE);
-    cfg.enable_stream(RS2_STREAM_DEPTH);
-    cfg.enable_device_from_file("outdoors.bag");
-    pipe.start(cfg);
-    rs2::pointcloud pc;
-    rs2::points points;*/
-
-    cfg.enable_device_from_file("video2.bag");
+    cfg.enable_device_from_file("video1.bag");
     cfg.enable_stream(RS2_STREAM_GYRO);
     cfg.enable_stream(RS2_STREAM_ACCEL);
+    cfg.enable_stream(RS2_STREAM_DEPTH);
+    
+try {
     pipe.start(cfg);
-
+} catch (const rs2::error &e) {
+    cerr << "Error: Failed to start the pipeline: " << e.what() << endl;
+    return -1;
+}
     rs2::pointcloud pc;
     rs2::points points;
 
-    /*Pose rover_pose;
+        // Initialize rover pose
+    Pose rover_pose;
     rover_pose.position = Eigen::Vector3f(0, 0, 0);
-    rover_pose.orientation = Eigen::Matrix3f::Identity();*/
-    
+    rover_pose.orientation = Eigen::Matrix3f::Identity();
+    rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
+
+    // Initialize timing
     auto last_time = std::chrono::high_resolution_clock::now();
 
-
     vector<Vector3f> point_vectors;
+
+    float grid_resolution = 1.0f;
+
     Gridmap gridmap;
 
-    float grid_resolution = 0.1f;
-    //float last_time = glfwGetTime();
-
     while (!glfwWindowShouldClose(window)) {
-        /*float current_time = glfwGetTime();
-        float delta_time = current_time - last_time;
-        last_time = current_time;*/
-
-        glClear(GL_COLOR_BUFFER_BIT);
-        glLoadIdentity();
-
-        // Update rover pose
-        //roverupdate(rover_pose, delta_time);
-
-        // Get the next frame
-        auto frames = pipe.wait_for_frames();
-        auto depth = frames.get_depth_frame();
-	//auto f = frames.first_or_default(RS2_STREAM_POSE); //FROM DOCUMENTATION - Get a frame from the pose stream
-	// Cast the frame to pose_frame and get its data
-        //auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
-	rs2::frameset frameset = pipe.wait_for_frames();
-	    if (rs2::motion_frame accel_frame = frameset.first_or_default(RS2_STREAM_ACCEL))
-    {
-        rs2_vector accel_sample = accel_frame.get_motion_data();
-                        // Print accelerometer data
-                std::cout << std::fixed << std::setprecision(3)
-                          << "Accel [m/s²]: X:" << accel_sample.x
-                          << ", Y:" << accel_sample.y
-                          << ", Z:" << accel_sample.z << std::endl;
-    }
-
-    if (rs2::motion_frame gyro_frame = frameset.first_or_default(RS2_STREAM_GYRO))
-    {
-        rs2_vector gyro_sample = gyro_frame.get_motion_data();
-         // Print gyroscope data
-                std::cout << std::fixed << std::setprecision(3)
-                          << "Gyro [rad/s]: X:" << gyro_sample.x
-                          << ", Y:" << gyro_sample.y
-                          << ", Z:" << gyro_sample.z << std::endl;
-    }
-	//UPDATE
-	auto current_time = std::chrono::high_resolution_clock::now();
+        // Get the current time and compute the delta time
+        auto current_time = std::chrono::high_resolution_clock::now();
         float delta_time = std::chrono::duration<float>(current_time - last_time).count();
         last_time = current_time;
 
-        // Update rover pose
-        //update_rover_pose(rover_pose, pose_data, delta_time);
+        // Clear the window
+        glClear(GL_COLOR_BUFFER_BIT);
+        //glLoadIdentity();
 
-        pc.map_to(frames.get_color_frame());
-        points = pc.calculate(depth);
-      // Collect point cloud data
-        point_vectors.clear();
-        for (size_t i = 0; i < points.size(); ++i) {
-            auto point = points.get_vertices()[i];
-            if (point.z) {
-                Eigen::Vector3f transformed_point = rover_pose.orientation * Vector3f(point.x, point.y, point.z) + rover_pose.position;
-                point_vectors.push_back(transformed_point);
-            }
+        // Declare variables to hold sensor data
+        rs2_vector accel_data = {0.0f, 0.0f, 0.0f};
+        rs2_vector gyro_data = {0.0f, 0.0f, 0.0f};
+
+        // Get frames from the RealSense camera
+        rs2::frameset frameset;
+        try {
+            frameset = pipe.wait_for_frames();
+        } catch (const rs2::error& e) {
+            std::cerr << "RealSense error: " << e.what() << std::endl;
+            continue;  
         }
 
-        // Create gridmap
-        gridmap = create_gridmap(point_vectors, rover_pose, grid_resolution);
+        // Retrieve accelerometer data
+        if (rs2::motion_frame accel_frame = frameset.first_or_default(RS2_STREAM_ACCEL)) {
+            accel_data = accel_frame.get_motion_data();
+        } else {
+            std::cerr << "Failed to retrieve accelerometer data" << std::endl;
+        }
 
-        // Draw gridmap and axes
-        draw_gridmap(gridmap);
-        draw_axes();
+        // Retrieve gyroscope data
+        if (rs2::motion_frame gyro_frame = frameset.first_or_default(RS2_STREAM_GYRO)) {
+            gyro_data = gyro_frame.get_motion_data();
+        } else {
+            std::cerr << "Failed to retrieve gyroscope data" << std::endl;
+        }
+
+        // Convert accelerometer and gyroscope data to Eigen vectors
+        Eigen::Vector3f accel_eigen = convert_to_eigen_vector(accel_data);
+        Eigen::Vector3f gyro_eigen = convert_to_eigen_vector(gyro_data);
+
+        // Update the rover pose with accelerometer and gyroscope data
+        update_rover_pose(rover_pose, accel_eigen, gyro_eigen, delta_time);
+
+        // Process depth data to create point cloud
+        rs2::depth_frame depth_frame = frameset.get_depth_frame();
+            points = pc.calculate(depth_frame);
+
+            // Collect point cloud data
+            point_vectors.clear();
+            for (size_t i = 0; i < points.size(); ++i) {
+                auto point = points.get_vertices()[i];
+                if (point.z) {
+                    Eigen::Vector3f transformed_point = rover_pose.orientation * Eigen::Vector3f(point.x, point.y, point.z) + rover_pose.position;
+                    point_vectors.push_back(transformed_point);
+                }
+           }
+            create_gridmap(point_vectors, rover_pose, grid_resolution);
+
+            cout<<"Generated PointCloud: "<< points.size()<< " points."<< std::endl;
+
+        //gridmap draw
+        draw_gridmap(gridmap, grid_resolution);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -290,5 +306,4 @@ void update_rover_pose(Pose& pose,Vector3f &accel_data,Vector3f &gyro_data, floa
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
-
-}
+    }
