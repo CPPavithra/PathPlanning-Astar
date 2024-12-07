@@ -11,8 +11,7 @@
 
 using namespace std;
 using namespace Eigen;
-using Eigen::Vector3f;
-using Eigen::Matrix3f;
+using namespace rs2;
 
 struct Gridmap {
     vector<vector<bool>> occupancy_grid;
@@ -21,8 +20,8 @@ struct Gridmap {
 
 struct Pose 
 {
-	Eigen::Vector3f position;
-	Eigen::Matrix3f orientation;
+	Vector3f position;
+	Matrix3f orientation;
 };
 
 /*struct state { double yaw, pitch, last_x, last_y; bool ml; float offset_x, offset_y; texture tex; };*/
@@ -117,27 +116,26 @@ void draw_axes()
     glEnd();
 }
 
-void update_rover_pose(Pose& pose, const rs2_pose& pose_data, float delta_time) {
-    // Update position using translation data from pose_data
-    pose.position += Eigen::Vector3f(pose_data.translation.x, 
-                                     pose_data.translation.y, 
-                                     pose_data.translation.z);
+void update_rover_pose(Pose& pose,Vector3f &accel_data,Vector3f &gyro_data, float delta_time) {
 
-    // Update orientation using quaternion rotation from pose_data
-    Eigen::Quaternionf rotation_quat(pose_data.rotation.w, 
-                                      pose_data.rotation.x, 
-                                      pose_data.rotation.y, 
-                                      pose_data.rotation.z);
+    pose.velocity+=accel_data*delta_time //assume that the initial velocity can be non zero
+    Vector3f del_position = (pose.velocity*delta_time)+(0.5f*accel_data*delta_time*delta_time); //(using the motion eq ut+1/2at^2)
 
-    // Convert quaternion to rotation matrix
-    Eigen::Matrix3f rotation_matrix = rotation_quat.toRotationMatrix();
-
-    // Combine the current orientation with the new rotation
+    pose.position=pose.position+del_position; //for position
+					      
+    Vector3f ang_velocity= gyro_data*delta_time;
+    
+    AngleAxisf roll(ang_velocity.x(), Vector3f::UnitX());
+    AngleAxisf pitch(ang_velocity.y(), Vector3f::UnitY());
+    AngleAxisf yaw(ang_velocity.z(), Vector3f::UnitZ());
+    Matrix3f rotation_matrix = (yaw*pitch*roll).toRotationMatrix(); //changing it to a rot matrix
+    
     pose.orientation = rotation_matrix * pose.orientation;
 
-    // Log the updated pose for debugging
-    std::cout << "Updated Position: " << pose.position.transpose() << " (meters)\n";
-    std::cout << "Updated Orientation:\n" << pose.orientation << "\n";
+    //FOR INCREASING ACCURACY- but idk if I need to use it yet. Just in case;
+    JacobiSVD<Matrix3f> svd(pose.orientation, ComputeFullU | ComputeFullV);
+    pose.orientation = svd.matrixU() * svd.matrixV().transpose();
+
 }
 
  int main() {
@@ -164,21 +162,17 @@ void update_rover_pose(Pose& pose, const rs2_pose& pose_data, float delta_time) 
     rs2::pointcloud pc;
     rs2::points points;*/
 
-        // Enable device from file first
-        cfg.enable_device_from_file("outdoors.bag");
+    cfg.enable_device_from_file("video2.bag");
+    cfg.enable_stream(RS2_STREAM_GYRO);
+    cfg.enable_stream(RS2_STREAM_ACCEL);
+    pipe.start(cfg);
 
-        // Then enable the streams you need
-        cfg.enable_stream(RS2_STREAM_POSE);
-        cfg.enable_stream(RS2_STREAM_DEPTH);
+    rs2::pointcloud pc;
+    rs2::points points;
 
-        pipe.start(cfg);
-
-        rs2::pointcloud pc;
-        rs2::points points;
-
-    Pose rover_pose;
+    /*Pose rover_pose;
     rover_pose.position = Eigen::Vector3f(0, 0, 0);
-    rover_pose.orientation = Eigen::Matrix3f::Identity();
+    rover_pose.orientation = Eigen::Matrix3f::Identity();*/
     
     auto last_time = std::chrono::high_resolution_clock::now();
 
@@ -203,17 +197,36 @@ void update_rover_pose(Pose& pose, const rs2_pose& pose_data, float delta_time) 
         // Get the next frame
         auto frames = pipe.wait_for_frames();
         auto depth = frames.get_depth_frame();
-	auto f = frames.first_or_default(RS2_STREAM_POSE); //FROM DOCUMENTATION - Get a frame from the pose stream
+	//auto f = frames.first_or_default(RS2_STREAM_POSE); //FROM DOCUMENTATION - Get a frame from the pose stream
 	// Cast the frame to pose_frame and get its data
-        auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
-	
+        //auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
+	rs2::frameset frameset = pipe.wait_for_frames();
+	    if (rs2::motion_frame accel_frame = frameset.first_or_default(RS2_STREAM_ACCEL))
+    {
+        rs2_vector accel_sample = accel_frame.get_motion_data();
+                        // Print accelerometer data
+                std::cout << std::fixed << std::setprecision(3)
+                          << "Accel [m/s²]: X:" << accel_sample.x
+                          << ", Y:" << accel_sample.y
+                          << ", Z:" << accel_sample.z << std::endl;
+    }
+
+    if (rs2::motion_frame gyro_frame = frameset.first_or_default(RS2_STREAM_GYRO))
+    {
+        rs2_vector gyro_sample = gyro_frame.get_motion_data();
+         // Print gyroscope data
+                std::cout << std::fixed << std::setprecision(3)
+                          << "Gyro [rad/s]: X:" << gyro_sample.x
+                          << ", Y:" << gyro_sample.y
+                          << ", Z:" << gyro_sample.z << std::endl;
+    }
 	//UPDATE
 	auto current_time = std::chrono::high_resolution_clock::now();
         float delta_time = std::chrono::duration<float>(current_time - last_time).count();
         last_time = current_time;
 
         // Update rover pose
-        update_rover_pose(rover_pose, pose_data, delta_time);
+        //update_rover_pose(rover_pose, pose_data, delta_time);
 
         pc.map_to(frames.get_color_frame());
         points = pc.calculate(depth);
