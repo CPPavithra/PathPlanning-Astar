@@ -20,6 +20,32 @@ To disable secure boot, reboot and go to bios by pressing f10
 -> Confirm if ucv can be accessed properly and then patch it to the kernel
 -> Connect the realsense depth cam and then see if it is being recognised by the realsense-viewer
 
+#to use with rerun
+-> Usually rerun is on python/Rust
+-> To run it in C++, in the documentation, a CMakeLists.txt is given with the following command
+include(FetchContent)
+FetchContent_Declare(rerun_sdk URL
+    https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
+FetchContent_MakeAvailable(rerun_sdk)
+-> With this we will have to clone into the repo and build everytime we test or run it
+-> Instead of this build directly from the repo 
+Commands for it
+-------------
+git clone https://github.com/rerun-io/rerun.git
+cd rerun
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+-----------
+
+Now, for this we might need rust as it will show error while building
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+export the cargo path to $PATH variable to make it work
+
+--------
 #makelist
 -> The CMakeLists.txt is for glfw and librealsense code which is pointcloud.cpp which enables glfw window
 -> To test it out I have another code pointcloud_saver.cpp which just opens the realsense-viewer and then saves the point cloud data to a ply file 
