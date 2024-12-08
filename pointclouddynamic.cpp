@@ -57,6 +57,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 	float max_x=roverpose.position[0]+5.0f;
 	float min_y=roverpose.position[1]-5.0f;
 	float max_y=roverpose.position[1]+5.0f;
+	//to initialise;
     gridmap.min_x = min_x;
     gridmap.min_y = min_y;
     gridmap.max_x = max_x;
@@ -131,7 +132,8 @@ std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid
 
 
 
-void draw_gridmap(const Gridmap& gridmap, float grid_resolution) {
+void draw_gridmap(const Gridmap& gridmap, float grid_resolution)
+{
 	    float x_range=gridmap.max_x - gridmap.min_x;
     float y_range=gridmap.max_y - gridmap.min_y;
     
@@ -150,9 +152,25 @@ if (gridmap.occupancy_grid.empty()) {
         //float y_pos = gridmap.min_y + ypos * grid_resolution;
 	//float y_pos = (gridmap.min_y + ypos * grid_resolution - gridmap.min_y) / y_range * 2.0f - 1.0f;
                 // Interpolate grid positions to OpenGL normalized device coordinates [-1, 1]
-        float x_pos = -1.0f + 2.0f * (xpos - gridmap.min_x) / x_range;
-        float y_pos = -1.0f + 2.0f * (ypos - gridmap.min_y) / y_range;
+	
+        float x_pos=-1.0f+2.0f*(xpos-gridmap.min_x)/(gridmap.max_x-gridmap.min_x);
+        float y_pos=-1.0f+2.0f*(ypos-gridmap.min_y)/(gridmap.max_y-gridmap.min_y);
+
+	//
+	
+	//float x_pos = (xpos - gridmap.min_x) / x_range * window_width;
+        //float y_pos = (ypos - gridmap.min_y) / y_range * window_height;
         
+	float aspect_ratio = 800.0f / 600.0f; // Window width / height
+
+// Scaling the grid to fit the window
+float scaled_x_range = (gridmap.max_x - gridmap.min_x) * aspect_ratio;
+float scaled_y_range = gridmap.max_y - gridmap.min_y;
+
+// Update the normalized position formula
+float x_pos = -1.0f + 2.0f * (xpos - gridmap.min_x) / scaled_x_range;
+float y_pos = -1.0f + 2.0f * (ypos - gridmap.min_y) / scaled_y_range;
+
 	cout<<"XPOS: "<<x_pos<<endl;
 	cout<<"YPOS: "<<y_pos<<endl;
 
@@ -181,10 +199,15 @@ if (gridmap.occupancy_grid.empty()) {
         
 	float x_size = 2.0f * grid_resolution / x_range;
         float y_size = 2.0f * grid_resolution / y_range;
+	//
+	
+	//float x_size = grid_resolution / x_range * window_width;  // Cell width in pixels
+        //float y_size = grid_resolution / y_range * window_height;
         
 	cout<<"XSIZE: "<<x_size<<endl;
 	cout<<"YSIZE: "<<y_size<<endl;
-
+        
+	glBegin(GL_QUADS);
         glVertex2f(x_pos, y_pos);
         glVertex2f(x_pos + x_size, y_pos);
         glVertex2f(x_pos + x_size, y_pos + y_size);
@@ -281,7 +304,7 @@ try {
 
         // Clear the window
         //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//DO NOT CLEAR THE WINDOW DURING EACH ITERATION
         //glLoadIdentity();
 
         // Declare variables to hold sensor data
@@ -327,7 +350,7 @@ try {
             for (size_t i = 0; i < points.size(); ++i) {
                 auto point = points.get_vertices()[i];
                 if (point.z) {
-                    Eigen::Vector3f transformed_point = rover_pose.orientation * Eigen::Vector3f(point.x, point.y, point.z) + rover_pose.position;
+                    Eigen::Vector3f transformed_point=rover_pose.orientation*Eigen::Vector3f(point.x, point.y, point.z)+rover_pose.position;
                     point_vectors.push_back(transformed_point);
                 }
            }
@@ -336,7 +359,13 @@ try {
             cout<<"Generated PointCloud: "<< points.size()<< " points."<< std::endl;
 
         //gridmap draw
-          draw_gridmap(gridmap, grid_resolution);
+          // Get the window size
+          int window_width, window_height;
+          glfwGetWindowSize(window, &window_width, &window_height);
+
+// Call the draw function with window size
+         draw_gridmap(gridmap, grid_resolution);
+
 
 
         glfwSwapBuffers(window);
