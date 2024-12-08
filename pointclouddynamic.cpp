@@ -46,15 +46,22 @@ struct Pose
 	Matrix3f orientation;
 };
 
+//GLOBALLY
+Gridmap gridmap;
+
 /*struct state { double yaw, pitch, last_x, last_y; bool ml; float offset_x, offset_y; texture tex; };*/
 
-void create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=2.0,float proxfactor=0.5)
+void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=2.0,float proxfactor=0.5)
 {
 	float min_x=roverpose.position[0]-5.0f;
 	float max_x=roverpose.position[0]+5.0f;
 	float min_y=roverpose.position[1]-5.0f;
 	float max_y=roverpose.position[1]+5.0f;
-   Gridmap gridmap; 	
+    gridmap.min_x = min_x;
+    gridmap.min_y = min_y;
+    gridmap.max_x = max_x;
+    gridmap.max_y = max_y;
+
    int xgridnum,ygridnum;
    xgridnum=static_cast<int>((max_x-min_x)/grid_resolution)+1; //adding one to ensure that all of the grids are counted
    ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
@@ -65,7 +72,12 @@ void create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,float 
 
 	   int xpos=static_cast<int>((roverpose.position[0]-min_x)/grid_resolution);
 	   int ypos=static_cast<int>((roverpose.position[1]-min_y)/grid_resolution); //to check which grid is it currently in
-     
+           
+	   std::cout << "xpos: " << xpos << ", ypos: " << ypos << std::endl;
+	   std::cout << "minx: " << min_x << ", maxx: " << max_x << std::endl;
+	   std::cout << "miny: " << min_y << ", maxy: " << max_y << std::endl;
+          // to verify if it is valid
+
 	   if(xpos>=0 && xpos<xgridnum && ypos>=0 && ypos<ygridnum)
 	   { 
 		   float cost=0.0f;
@@ -105,15 +117,31 @@ void create_gridmap(const vector<Vector3f>& points, const Pose& roverpose,float 
 		   }
 	
 	   }
-   	   
+
+std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
+for (const auto& [key, value] : updated_occupancy_grid) {
+    std::cout << "Grid: (" << key.first << ", " << key.second << ") -> " << value << std::endl;
+}
+
    /*Gridmap gridmap(occupancy_grid,min_x,min_y,max_x,max_y);
    return gridmap;*/
 gridmap.occupancy_grid=updated_occupancy_grid;
+std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
 }
+
+
 
 void draw_gridmap(const Gridmap& gridmap, float grid_resolution) {
 	    float x_range=gridmap.max_x - gridmap.min_x;
     float y_range=gridmap.max_y - gridmap.min_y;
+    
+    std::cout << "Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
+if (gridmap.occupancy_grid.empty()) {
+    std::cout << "Error: Occupancy grid is empty!" << std::endl;
+} else {
+    std::cout << "Occupancy grid has data!" << std::endl;
+}
+
     for (const auto& entry : gridmap.occupancy_grid) {
         const auto& [coord, cost]=entry;
         int xpos=coord.first;
@@ -121,7 +149,13 @@ void draw_gridmap(const Gridmap& gridmap, float grid_resolution) {
         //float x_pos=(gridmap.min_x+xpos*grid_resolution - gridmap.min_x)/x_range*2.0f - 1.0f;
         //float y_pos = gridmap.min_y + ypos * grid_resolution;
 	//float y_pos = (gridmap.min_y + ypos * grid_resolution - gridmap.min_y) / y_range * 2.0f - 1.0f;
-       
+                // Interpolate grid positions to OpenGL normalized device coordinates [-1, 1]
+        float x_pos = -1.0f + 2.0f * (xpos - gridmap.min_x) / x_range;
+        float y_pos = -1.0f + 2.0f * (ypos - gridmap.min_y) / y_range;
+        
+	cout<<"XPOS: "<<x_pos<<endl;
+	cout<<"YPOS: "<<y_pos<<endl;
+
         glBegin(GL_QUADS);
         if (cost>=10.0f) 
 	{
@@ -144,11 +178,17 @@ void draw_gridmap(const Gridmap& gridmap, float grid_resolution) {
         glVertex2f(x_pos + grid_resolution, y_pos + grid_resolution);
         glVertex2f(x_pos, y_pos + grid_resolution);
         glEnd();*/
+        
+	float x_size = 2.0f * grid_resolution / x_range;
+        float y_size = 2.0f * grid_resolution / y_range;
+        
+	cout<<"XSIZE: "<<x_size<<endl;
+	cout<<"YSIZE: "<<y_size<<endl;
 
-	 glVertex2f(x_pos, y_pos);
-        glVertex2f(x_pos + grid_resolution / x_range * 2.0f, y_pos);
-        glVertex2f(x_pos + grid_resolution / x_range * 2.0f, y_pos + grid_resolution / y_range * 2.0f);
-        glVertex2f(x_pos, y_pos + grid_resolution / y_range * 2.0f);
+        glVertex2f(x_pos, y_pos);
+        glVertex2f(x_pos + x_size, y_pos);
+        glVertex2f(x_pos + x_size, y_pos + y_size);
+        glVertex2f(x_pos, y_pos + y_size);
         glEnd();
     }
 }
@@ -233,8 +273,6 @@ try {
 
     float grid_resolution = 1.0f;
 
-    Gridmap gridmap;
-
     while (!glfwWindowShouldClose(window)) {
         // Get the current time and compute the delta time
         auto current_time = std::chrono::high_resolution_clock::now();
@@ -242,7 +280,8 @@ try {
         last_time = current_time;
 
         // Clear the window
-        glClear(GL_COLOR_BUFFER_BIT);
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //glLoadIdentity();
 
         // Declare variables to hold sensor data
@@ -292,12 +331,13 @@ try {
                     point_vectors.push_back(transformed_point);
                 }
            }
-            create_gridmap(point_vectors, rover_pose, grid_resolution);
+            create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
 
             cout<<"Generated PointCloud: "<< points.size()<< " points."<< std::endl;
 
         //gridmap draw
-        draw_gridmap(gridmap, grid_resolution);
+          draw_gridmap(gridmap, grid_resolution);
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
