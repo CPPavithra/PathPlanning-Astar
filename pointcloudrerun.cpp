@@ -35,26 +35,23 @@ template <>
 struct AsComponents<std::vector<float>> {
     static std::vector<ComponentBatch> serialize(const std::vector<float>& data) {
         std::vector<ComponentBatch> batches;
-        for (float value : data) {
+        for (float value:data) {
             ComponentBatch batch;
-            //batch.data.push_back(value); // Add data to the batch
-            batches.push_back(batch);   // Push batch to the vector
+            batches.push_back(batch);  
         }
         return batches;
     }
 };
 
-} // namespace rerun
-
- //because rerun doesnt automatically take float values
+}//because rerun doesnt automatically take float values
 
 
 struct pair_hash {
 	template <typename T1, typename T2>
 	std::size_t operator()(const std::pair<T1, T2>& p) const {
-    	auto h1 = std::hash<T1>{}(p.first);  // Hash the first element
-    	auto h2 = std::hash<T2>{}(p.second); // Hash the second element
-    	return h1 ^ (h2 << 1);           	// Combine the two hashes
+    	auto h1 = std::hash<T1>{}(p.first);  
+    	auto h2 = std::hash<T2>{}(p.second);
+    	return h1 ^ (h2 << 1);//to combine the 2 hashes
 	}
 }; //READ ABOYT THIS- cant do pair hash in hash table usually so we use this
 
@@ -83,8 +80,6 @@ struct Pose
 Gridmap gridmap;
 float grid_resolution = 0.1f;
 
-/*struct state { double yaw, pitch, last_x, last_y; bool ml; float offset_x, offset_y; texture tex; };*/
-
 void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=2.0,float proxfactor=0.5)
 {
 	float min_x=roverpose.position[0]-5.0f;
@@ -93,36 +88,40 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 	float max_y=roverpose.position[1]+5.0f;
 	
 
-	if (roverpose.position[0] < min_x) {
-    min_x = roverpose.position[0] - 5.0f;
-    max_x = roverpose.position[0] + 5.0f;  // Adjust max_x if the rover moves left
-}
-if (roverpose.position[0] > max_x) {
-    max_x = roverpose.position[0] + 5.0f;
-    min_x = roverpose.position[0] - 5.0f;  // Adjust min_x if the rover moves right
-}
+	if (roverpose.position[0] < min_x)
+       	{
+                   min_x = roverpose.position[0] - 5.0f;
+                   max_x = roverpose.position[0] + 5.0f;  // Adjust max_x if the rover moves left
+        }
+        if (roverpose.position[0] > max_x)
+       	{
+                   max_x = roverpose.position[0] + 5.0f;
+                   min_x = roverpose.position[0] - 5.0f;  // Adjust min_x if the rover moves right
+        }
 
-if (roverpose.position[1] < min_y) {
-    min_y = roverpose.position[1] - 5.0f;
-    max_y = roverpose.position[1] + 5.0f;  // Adjust max_y if the rover moves down
-}
-if (roverpose.position[1] > max_y) {
-    max_y = roverpose.position[1] + 5.0f;
-    min_y = roverpose.position[1] - 5.0f;  // Adjust min_y if the rover moves up
-}
+        if (roverpose.position[1] < min_y)
+       	{
+                   min_y = roverpose.position[1] - 5.0f;
+                   max_y = roverpose.position[1] + 5.0f;  // Adjust max_y if the rover moves down
+        }
+        if (roverpose.position[1] > max_y)
+       	{
+                  max_y = roverpose.position[1] + 5.0f;
+                  min_y = roverpose.position[1] - 5.0f;  // Adjust min_y if the rover moves up
+        }
 	//to initialise;
 	gridmap.min_x = min_x;
 	gridmap.min_y = min_y;
 	gridmap.max_x = max_x;
 	gridmap.max_y = max_y;
 
-   int xgridnum,ygridnum;
-   xgridnum=static_cast<int>((max_x-min_x)/grid_resolution)+1; //adding one to ensure that all of the grids are counted
-   ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
+       int xgridnum,ygridnum;
+       xgridnum=static_cast<int>((max_x-min_x)/grid_resolution)+1; //adding one to ensure that all of the grids are counted
+       ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
 
    /*vector<vector<bool>>occupancy_grid(xgridnum, vector<bool>(ygridnum,false))*;/ //everything is initialised to be false at the start*/
-   unordered_map<pair<int,int>,float,pair_hash>updated_occupancy_grid = gridmap.occupancy_grid;
-   int proxradius=3;
+       unordered_map<pair<int,int>,float,pair_hash>updated_occupancy_grid = gridmap.occupancy_grid;
+       int proxradius=3;
 
    	int xpos=static_cast<int>((roverpose.position[0]-min_x)/grid_resolution);
    	int ypos=static_cast<int>((roverpose.position[1]-min_y)/grid_resolution); //to check which grid is it currently in
@@ -172,18 +171,19 @@ if (roverpose.position[1] > max_y) {
     
    	}
 
-std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
-for (const auto& [key, value] : updated_occupancy_grid) {
+    std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
+    for (const auto& [key, value] : updated_occupancy_grid) 
+    {
 	std::cout << "Grid: (" << key.first << ", " << key.second << ") -> " << value << std::endl;
-}
+    }
 
    /*Gridmap gridmap(occupancy_grid,min_x,min_y,max_x,max_y);
    return gridmap;*/
-gridmap.occupancy_grid=updated_occupancy_grid;
-std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
+   gridmap.occupancy_grid=updated_occupancy_grid;
+   std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
 }
 
-// Function to determine the color based on cost 
+//color based on cost
 components::Color get_color_for_cost(float cost) 
 {
  if (cost >= 10.0f)
@@ -232,11 +232,9 @@ if (gridmap.occupancy_grid.empty()) {
     std::cout << "Occupancy grid has data!" << std::endl;
 }
 
-std::vector<rerun::Position3D> points;  // Declare outside the loop to accumulate points
+std::vector<rerun::Position3D> points;  //outside the loop to accumulate the points
 std::vector<rerun::Color> colors;
 
- //const auto rec = rerun::RecordingStream("gridmap_log");
- //rec.log("rover/pose", components::Pose3D{ rover.position.x(), rover.position.y(), 0.0f, 0.0f, 0.0f, atan2(rover.orientation(1, 0), rover.orientation(0, 0)) });
 for (const auto& entry : gridmap.occupancy_grid)
  { 
 const auto& [coord, cost] = entry;
@@ -248,23 +246,7 @@ cout<<"Before normalising: ("<<xpos<<","<<ypos<<")"<<endl;
  float x_pos = -10.0f + 20.0f * (xpos - gridmap.min_x) / (gridmap.max_x - gridmap.min_x);
  float y_pos = -10.0f + 20.0f * (ypos - gridmap.min_y) / (gridmap.max_y - gridmap.min_y);
 
-
-//components::Color cell_color = get_color_for_cost(cost)
-
-
-/*std::vector<rerun::Points3D> points = {
-    rerun::Points3D{x_pos, y_pos, 0.0f}
-};*/
-
-///////////
-
 cout<<"3d positions to be entered: "<<xpos<<","<<ypos<<endl;
-
-
-//std::vector<rerun::Position3D> points = rerun::demo::grid3d<rerun::Position3D,float>(x_pos, y_pos, 0.0f) ;
-//std::vector<rerun::Color> colors = rerun::demo::grid3d<rerun::Color, uint8_t>(0, 255, 10);
-//std::vector<rerun::Position3D> points = {{xpos, ypos, 0.0f}};
-//std::vector<rerun::Color> colors = {get_color_for_cost(cost)};
 
     rerun::Color color = get_color_for_cost(cost);
 
@@ -277,7 +259,7 @@ for (const auto& point : points) {
     std::cout << "(" << point.x() << ", " << point.y() << ", " << point.z() << ") ";
 }
 
-//rec.log("gridcells", rerun::Points3D(points).with_colors(colors).with_radii({0.01f}));
+
 
 if (points.empty()) {
     std::cerr << "Skipping logging due to empty points" << std::endl;
@@ -291,20 +273,7 @@ if (colors.empty()) {
 
 }
 rec.log("gridcells", rerun::Points3D(points).with_colors(colors).with_radii({0.5f}));
-//rec.log("grid_cells/coordinate", components::Text{std::to_string(xpos) + ", " + std::to_string(ypos)});
-
 }
-// Optional: Show grid boundaries 
-/*rec.log("gridmap/edges", components::LineStrip3D{ 
-{gridmap.min_x, gridmap.min_y, 0.0f},
- {gridmap.max_x, gridmap.min_y, 0.0f},
- {gridmap.max_x, gridmap.max_y, 0.0f},
- {gridmap.min_x, gridmap.max_y, 0.0f},
- {gridmap.min_x, gridmap.min_y, 0.0f}, });*/
-
-
-
-
 
 
 Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
