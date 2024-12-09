@@ -122,17 +122,24 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
    /*vector<vector<bool>>occupancy_grid(xgridnum, vector<bool>(ygridnum,false))*;/ //everything is initialised to be false at the start*/
        unordered_map<pair<int,int>,float,pair_hash>updated_occupancy_grid = gridmap.occupancy_grid;
        int proxradius=3;
-
-   	int xpos=static_cast<int>((roverpose.position[0]-min_x)/grid_resolution);
-   	int ypos=static_cast<int>((roverpose.position[1]-min_y)/grid_resolution); //to check which grid is it currently in
+         
+        //NORMALISED COORDINATES
+   	/*int xpos=static_cast<int>((roverpose.position[0]-min_x)/grid_resolution);
+   	int ypos=static_cast<int>((roverpose.position[1]-min_y)/grid_resolution);*/ //to check which grid is it currently in
       	 
-   	std::cout << "xpos: " << xpos << ", ypos: " << ypos << std::endl;
-   	std::cout << "minx: " << min_x << ", maxx: " << max_x << std::endl;
-   	std::cout << "miny: " << min_y << ", maxy: " << max_y << std::endl;
-      	// to verify if it is valid
+   	float rover_x=roverpose.position[0];
+        float rover_y=roverpose.position[1];
 
-   	if(xpos>=0 && xpos<xgridnum && ypos>=0 && ypos<ygridnum)
-   	{
+      	// to verify if it is valid
+        //OPTIONAL
+	std::cout << "Rover position (real-world): (" << rover_x << ", " << rover_y << ")" << std::endl;
+
+       // Optionally, round real-world coordinates to nearest grid cell for indexing
+       float grid_x = round((rover_x - min_x) / grid_resolution) * grid_resolution + min_x;
+       float grid_y = round((rover_y - min_y) / grid_resolution) * grid_resolution + min_y;
+
+    std::cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << std::endl;
+
        	float cost=0.0f;
        	if(roverpose.position[2]>height)
        	{
@@ -150,21 +157,21 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
        	//to add the obstacles to the list
        	if(cost>0.0f)
        	{
-         	updated_occupancy_grid[{xpos,ypos}]+=cost;
+         	updated_occupancy_grid[{rover_x,rover_y}]+=cost;
          	//if we are not taking proximity then just do occupancy_grid{[xpos,ypos}]=cost
        	}
        	for(int dx=-proxradius;dx<=proxradius;++dx)
        	{
            	for(int dy=-proxradius;dy<=proxradius;++dy)
            	{
-               	int nx=xpos+dx;
+               	int nx=rover_x+dx;
                	int ny=ypos+dy;
                	pair<int,int>neighbour={nx,ny};
                	float dist=sqrt(dx*dx+dy*dy)*grid_resolution;
                	if(dist<proxradius*grid_resolution)
                	{
                    	float proxcost=proxfactor*(1.0f/(dist+0.1f));//add 0.1 to avoid division by zero if ever it happens
-                   	updated_occupancy_grid[neighbour]+=proxcost;
+                   	updated_occupancy_grid[{nx,ny}]+=proxcost;
                	}
            	}
        	}
@@ -240,11 +247,12 @@ for (const auto& entry : gridmap.occupancy_grid)
 const auto& [coord, cost] = entry;
  float xpos = coord.first;
  float ypos = coord.second;
+ 
 
 cout<<"Before normalising: ("<<xpos<<","<<ypos<<")"<<endl; 
 // Normalize positions
- float x_pos = -10.0f + 20.0f * (xpos - gridmap.min_x) / (gridmap.max_x - gridmap.min_x);
- float y_pos = -10.0f + 20.0f * (ypos - gridmap.min_y) / (gridmap.max_y - gridmap.min_y);
+// float x_pos = -10.0f + 20.0f * (xpos - gridmap.min_x) / (gridmap.max_x - gridmap.min_x);
+// float y_pos = -10.0f + 20.0f * (ypos - gridmap.min_y) / (gridmap.max_y - gridmap.min_y);
 
 cout<<"3d positions to be entered: "<<xpos<<","<<ypos<<endl;
 
@@ -260,19 +268,32 @@ for (const auto& point : points) {
 }
 
 
-
-if (points.empty()) {
+/*if (points.empty()) {
     std::cerr << "Skipping logging due to empty points" << std::endl;
 }
 if (colors.empty()) {
 	std::cerr<<"Skipping logging due to empty colors"<<std::endl;
-}
+}*/
 
  // Log the cost of the cell as a scalar property
 // rec.log("grid_cells/cost",cost);
 
 }
-rec.log("gridcells", rerun::Points3D(points).with_colors(colors).with_radii({0.5f}));
+//rec.log("gridcells", rerun::Points3D(points).with_colors(colors).with_radii({0.5f}));
+    if (!points.empty() && !colors.empty()) {
+        rec.log("gridcells", rerun::Points3D(points).with_colors(colors).with_radii({0.5f}));
+    } else {
+        if (points.empty()) {
+            std::cerr << "Skipping logging due to empty points" << std::endl;
+        }
+        if (colors.empty()) {
+            std::cerr << "Skipping logging due to empty colors" << std::endl;
+        }
+    }
+
+    // Clear the vectors for the next iteration
+    points.clear();
+    colors.clear();
 }
 
 
@@ -303,6 +324,8 @@ void update_rover_pose(Pose& pose,Vector3f &accel_data,Vector3f &gyro_data, floa
 	pose.orientation = svd.matrixU() * svd.matrixV().transpose();
 
 }
+
+
 
 int main() {
         
@@ -389,7 +412,8 @@ try {
                 	Eigen::Vector3f transformed_point=rover_pose.orientation*Eigen::Vector3f(point.x, point.y, point.z)+rover_pose.position;
                 	point_vectors.push_back(transformed_point);
             	}
-       	}
+ }
+
         	create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
 
         	cout<<"Generated PointCloud: "<< points.size()<< " points."<< std::endl;
