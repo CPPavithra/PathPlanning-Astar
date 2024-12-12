@@ -10,7 +10,7 @@
 
 using namespace std;
 
-struct Node
+/*struct Node
 {
 	float x,y;
 	double g_cost,h_cost,f_cost;
@@ -34,14 +34,14 @@ struct Node
         bool operator>(const Node& other) const {
             return f > other.f;
          }*/
-};
+//};
 
-struct comparenode {
+/*struct comparenode {
     bool operator()(Node*a, Node*b)
     {
             return *a>*b;
     }
-};
+};*/
 
 double heuristic(int x1, int y1, int x2, int y2)
 {
