@@ -357,7 +357,7 @@ Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
 
 //function to update the rover's pose using IMU data
 void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time) {
-    //gravity vector in the world frame(assumes z-axis is up)
+    //gravity vector in the world frame
     Vector3f gravity(0.0f, 0.0f, -9.81f);
     //convert acceleration from the sensor frame to the world frame
     Vector3f accel_world=pose.orientation*accel_data;
@@ -382,7 +382,6 @@ void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& g
     pose.orientation=delta_q*pose.orientation;
     pose.orientation.normalize(); //normalize quaternion to prevent drift
 
-    //debugging outputs
     cout<< "Position: "<<pose.position.transpose() <<endl;
     cout<< "Velocity: " <<pose.velocity.transpose() <<endl;
 }
@@ -395,7 +394,7 @@ int main() {
 	auto rec = rerun::RecordingStream("gridmap");
 	rec.spawn().exit_on_failure();
 
-	// Initialize the RealSense pipeline
+	//realsense pipeline
 	rs2::pipeline pipe;
 	rs2::config cfg;
 	cfg.enable_device_from_file("video1.bag");
@@ -412,13 +411,13 @@ int main() {
       rs2::pointcloud pc;
       rs2::points points;
 
-    	// Initialize rover pose
+    	//for rover pose
       Pose rover_pose;
       rover_pose.position = Eigen::Vector3f(0, 0, 0);
       rover_pose.orientation = Eigen::Matrix3f::Identity();
       rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
 
-	// Initialize timing
+	//for time
      auto last_time = std::chrono::high_resolution_clock::now();
 
      vector<Vector3f> point_vectors;
@@ -442,7 +441,7 @@ int main() {
         	continue;  
     	}
 
-    	//retrieve accelerometer data
+    	//get accelerometer data
     	if (rs2::motion_frame accel_frame = frameset.first_or_default(RS2_STREAM_ACCEL))
        	{
         	accel_data = accel_frame.get_motion_data();
@@ -452,7 +451,7 @@ int main() {
         	cerr<< "Failed to retrieve accelerometer data" << endl;
     	}
 
-    	//retrieve gyroscope data
+    	//get gyroscope data
     	if (rs2::motion_frame gyro_frame = frameset.first_or_default(RS2_STREAM_GYRO))
        	{
         	gyro_data = gyro_frame.get_motion_data();
@@ -483,9 +482,31 @@ int main() {
             	}
  }
 
-        	create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
+    //passthrough filter
+    pcl::PointCloud<pcl::PointXYZ>::Ptr passthrough_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PassThrough<pcl::PointXYZ> passthrough;
+    passthrough.setInputCloud(pcl_cloud);
+    passthrough.setFilterFieldName("z");  //this is based on depth
+    passthrough.setFilterLimits(0.5, 5.0); //range in metres. 
+    passthrough.filter(*passthrough_cloud);
 
-        	cout<<"Generated PointCloud: "<< points.size()<< " points."<< std::endl;
+    //voxelgrid
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::VoxelGrid<pcl::PointXYZ> voxel;
+    voxel.setInputCloud(passthrough_cloud);
+    voxel.setLeafSize(0.05f, 0.05f, 0.05f); //this is the size of each voxel in xyz dimension
+    voxel.filter(*filtered_cloud);
+
+    point_vectors.clear();
+    for (const auto& point : filtered_cloud->points) {
+        point_vectors.emplace_back(point.x, point.y, point.z);
+    }
+
+
+    create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
+
+    cout<<"Generated PointCloud: "<< points.size()<< " points."<<"\n"<<endl;
+    cout<<"After filtering: "<<filtered_cloud->size()<<" points."<<"\n"<<endl;
 
      	draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
         //std::this_thread::sleep_for(std::chrono::milliseconds(30));
