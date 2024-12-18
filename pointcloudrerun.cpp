@@ -108,19 +108,19 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
         float boundary_threshold = 0.01f;
 	if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
 	{
-           gridmap.min_x-=grid_resolution;
+           gridmap.min_x-=(grid_resolution*3.0f);
         }
         if (roverpose.position.x()>gridmap.max_x-boundary_threshold) 
 	{
-           gridmap.max_x+=grid_resolution;
+           gridmap.max_x+=(grid_resolution*3.0f);
         }
         if (roverpose.position.y()<gridmap.min_y+boundary_threshold) 
 	{
-           gridmap.min_y-=grid_resolution;
+           gridmap.min_y-=(grid_resolution*3.0f);
         }
         if (roverpose.position.y()>gridmap.max_y-boundary_threshold)
        	{
-           gridmap.max_y+=grid_resolution;
+           gridmap.max_y+=(grid_resolution*3.0f);
         }
 	float min_x=gridmap.min_x;
 	float max_x=gridmap.max_x;
@@ -200,7 +200,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
     
         cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
 
-    int prox=2; //edit as needed
+    int prox=5; //edit as needed
     for (int dx=-prox; dx<=prox; ++dx) {
         for (int dy=-prox; dy <=prox ; ++dy) {
             if (dx == 0 && dy == 0) continue;  // Skip the current cell
@@ -219,7 +219,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 
         //calculate proximity cost
         float dist = sqrt(dx *dx + dy*dy)  /*grid_resolution*/;//euclidean distance between them. 
-        float proxcost = ((proxfactor*2.0f)/(0.1f+dist));
+        float proxcost = ((proxfactor*5.0f)/(0.1f+dist));
 
 	/*if(updated_occupancy_grid.find(neighbor) != updated_occupancy_grid.end()) {
 	float proxcost = (proxfactor * neighbor_cell.cost) / (0.1f + dist);
@@ -239,16 +239,16 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
         std::cout << "After updating: (" << neighbor.first << ", " << neighbor.second << ") -> Cost: " << neighbor_cell.cost << std::endl;
     }
 }
- /*   std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
+/*    std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
     for (const auto& [key, value] : updated_occupancy_grid) 
     {
 	std::cout << "Grid: (" << key.first << ", " << key.second << ") -> " << value.cost << std::endl;
     }
    gridmap.occupancy_grid=updated_occupancy_grid;
    std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
-   //updated_occupancy_grid[current]=CLOSED; //after everything*/
+   //updated_occupancy_grid[current]=CLOSED; //after everything
 
-
+}*/
 /////////////////////////
 ///IF I HAVE TO CHECK AND NO OVERWRITING 
 for (const auto& neighbor : updated_occupancy_grid) {
@@ -257,13 +257,8 @@ for (const auto& neighbor : updated_occupancy_grid) {
 
     // Check if the key already exists in the updated map
     auto it = updated_occupancy_grid.find(key);
-    if (it != updated_occupancy_grid.end()) {
-        // If it exists, keep the existing data (no need to overwrite)
-        std::cout << "Already present: (" << key.first << ", " << key.second << ") -> Cost: " << it->second.cost << std::endl;
-    } else {
-        // If it doesn't exist, insert the new entry
-        updated_occupancy_grid.insert({key, value});
-        std::cout << "Added new entry: (" << key.first << ", " << key.second << ") -> Cost: " << value.cost << std::endl;
+    if (it == updated_occupancy_grid.end()) {
+        updated_occupancy_grid.insert({key,value});
     }
 }
 
