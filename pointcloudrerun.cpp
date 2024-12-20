@@ -92,6 +92,8 @@ struct Pose
 //GLOBALLY
 Gridmap gridmap;
 float grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metre
+int batch_threshold = 20;
+int countupdate = 0;
 
 void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=0.5f,float proxfactor=0.5)
 {
@@ -131,7 +133,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
       	// to verify if it is valid
 	cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
 
-        float cellsize=1.0f;
+        float cellsize=0.5f; //metres
 	float tolog_x=((rover_x - min_x) /cellsize);
 	float tolog_y=((rover_y - min_y)/cellsize);
         cout << "Mapped grid position: (" << tolog_x << ", " <<tolog_y << ")" <<endl;
@@ -527,7 +529,7 @@ int main() {
     passthrough.setFilterFieldName("z");  //this is based on depth
     passthrough.setFilterLimits(0.5, 5.0); //range in metres. 
     passthrough.filter(*passthrough_cloud);
-    cout<<"After filtering AFTER PASSTHROUGH: "<<passthrough_cloud->size()<<" points."<<"\n"<<endl;
+    //cout<<"After filtering AFTER PASSTHROUGH: "<<passthrough_cloud->size()<<" points."<<"\n"<<endl;
 
     //voxelgrid
     pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -542,14 +544,19 @@ int main() {
     }
 
 
-    create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
+    size_t changes=create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
 
-    cout<<"Generated PointCloud: "<< points.size()<< " points."<<"\n"<<endl;
-    cout<<"After filtering FULLY: "<<filtered_cloud->size()<<" points."<<"\n"<<endl;
+   /* cout<<"Generated PointCloud: "<< points.size()<< " points."<<"\n"<<endl;
+    cout<<"After filtering FULLY: "<<filtered_cloud->size()<<" points."<<"\n"<<endl;*/
+    //to draw gridmap only after sometime
+     countupdate=countupdate+changes;
 
+     if(countupdate>=batch_threshold) 
+     {
      	draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(30));
-	}
+	countupdate=0;
+     }  //std::this_thread::sleep_for(std::chrono::milliseconds(30));
+}
 	return 0;
 }
 
