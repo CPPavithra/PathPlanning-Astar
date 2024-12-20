@@ -92,7 +92,7 @@ struct Pose
 //GLOBALLY
 Gridmap gridmap;
 float grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metre
-int batch_threshold = 20;
+int batch_threshold = 2;
 
 void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=0.5f,float proxfactor=0.5)
 {
@@ -179,47 +179,46 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
          }
         cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
 //////////////////////////////////////////////////
-///
-/*
-    int prox=5; //edit as needed
-    for (int dx=-prox; dx<=prox; ++dx) {
-        for (int dy=-prox; dy <=prox ; ++dy) {
+//
+    float prox=1; //edit as needed
+    for (float dx=-prox; dx<=prox;++dx) {
+        for (float dy=-prox; dy <=prox ;++dy) {
             if (dx == 0 && dy == 0) continue;  // Skip the current cell
 
-            int neighbor_x = rover_x + dx;
-            int neighbor_y = rover_y + dy;
-            pair<int, int> neighbor = {neighbor_x, neighbor_y};
-
+            float neighbor_x = tolog_x + dx;
+            float neighbor_y = tolog_y + dy;
+            pair<float, float> neighbor = {neighbor_x, neighbor_y};
+	    //pair<float,float>currentcell={tolog_x,tolog_y};
+	     //CellCost& currentcell=updated_occupancy_grid[currentcell];
            //add new neighbor if not already in the grid
+	   if(updated_occupancy_grid[{tolog_x,tolog_y}].visited)
+	   {
            if (updated_occupancy_grid.find(neighbor)==updated_occupancy_grid.end()) {
                updated_occupancy_grid[neighbor]=CellCost{0.0f, 0.0f, false, false};  //set cost as default
                std::cout<< "Added new neighbor: ("<< neighbor.first<< ", "<< neighbor.second<< ")" << std::endl;
-           }
+	   }
 
         CellCost& neighbor_cell=updated_occupancy_grid[neighbor];
-
+       
+       
         //calculate proximity cost
         float dist = sqrt(dx *dx + dy*dy)  /*grid_resolution*/;//euclidean distance between them. 
-/*        float proxcost = ((proxfactor*5.0f)/(0.1f+dist));
+        float proxcost = ((proxfactor*2.0f)/(0.1f+dist));
 
 	/*if(updated_occupancy_grid.find(neighbor) != updated_occupancy_grid.end()) {
 	float proxcost = (proxfactor * neighbor_cell.cost) / (0.1f + dist);
 	} */                                                           	//exponential calculation
 
-        //log calculations
-/*        cout<< "Before updating: ("<< neighbor.first<< ", "<< neighbor.second<< ") -> Cost: "<< neighbor_cell.cost<<endl;
-
         //update proximity cost only if not already updated
-        if (!neighbor_cell.proxvisited) {
+        if (neighbor_cell.proxvisited==false) {
             neighbor_cell.proxcost = proxcost;
             neighbor_cell.cost += neighbor_cell.proxcost; //add proximity cost
             neighbor_cell.proxvisited = true;            //mark it as visited for proximity
         }
+	}
+	}
+}
 
-        //logging it on the terminal to check errors
-        std::cout << "After updating: (" << neighbor.first << ", " << neighbor.second << ") -> Cost: " << neighbor_cell.cost << std::endl;
-    }
-}*/
     std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
     for (const auto& [key, value] : updated_occupancy_grid) 
     {
@@ -248,9 +247,16 @@ std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid
 
 
 //color based on cost
-components::Color get_color_for_cost(float cost) 
+components::Color get_color_for_cost(const CellCost& cell) 
 {
- if (cost >= 10.0f)
+	if (cell.proxvisited && cell.cost > 0.0f) {
+        return components::Color{
+            static_cast<uint8_t>(0.0f * 255),
+            static_cast<uint8_t>(0.0f * 255),
+            static_cast<uint8_t>(1.0f * 255)
+        };  // BLUE = Proxvisited and cost > 0
+ }
+	else if (cell.cost >= 10.0f)
  {
 return components::Color{
     static_cast<uint8_t>(0.0f * 255), 
@@ -259,7 +265,7 @@ return components::Color{
 };
 
  }  // BLACK=FULLY OCCUPIED
- else if (cost >= 5.0f) 
+ else if (cell.cost >= 5.0f) 
  {
 return components::Color{
     static_cast<uint8_t>(1.0f * 255), 
@@ -267,7 +273,7 @@ return components::Color{
     static_cast<uint8_t>(0.0f * 255)
 };
 }// RED=MILD }
- else if (cost >= 1.0f)
+ else if (cell.cost >= 1.0f)
 {
     return components::Color{
     static_cast<uint8_t>(1.0f * 255), 
@@ -351,7 +357,7 @@ void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, 
     //float xpos = static_cast<float>(((grid_x*scale_factor) - min_x * grid_resolution) / grid_resolution);
     //float ypos = static_cast<float>(((grid_y*scale_factor) - min_y * grid_resolution) / grid_resolution);
 
-     rerun::Color color = get_color_for_cost(value.cost);
+     rerun::Color color = get_color_for_cost(value);
     
      std::vector<rerun::Position3D> points = {rerun::Position3D{grid_x, grid_y, 0.0f}};
 
@@ -360,7 +366,7 @@ void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, 
                    << value.cost << "\n";*/
      colors.push_back(color);
      std::string tag = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_"+ std::to_string(value.cost);
-     rec.log(tag, rerun::Points3D(points).with_colors({color}).with_radii({0.1f}));
+     rec.log(tag, rerun::Points3D(points).with_colors({color}).with_radii({0.08f}));
     // Add the point and its corresponding color to the vectors
     //points.push_back({scaled_x, scaled_y, 0.000000000f});
 }
