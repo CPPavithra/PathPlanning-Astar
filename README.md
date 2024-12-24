@@ -54,3 +54,11 @@ export the cargo path to $PATH variable to make it work
 #TO CODE
 -> gridmap.cpp should also save the occupancy grid as a png file
 -> Test path planning on this
+
+_________________
+
+We use BITMASK ENCODING technique, check in rerunpointcloud.cpp
+
+---------------------
+TO DO -
+add multithreading and parallel processing for capturing and processing of frames
