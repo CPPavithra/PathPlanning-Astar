@@ -69,6 +69,12 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
      //stack
      Node*current=openlist.top();
      openlist.pop();//read one by one
+    //(check if the node has higher g cost than in all nodes, if yes it is outdated)
+    pair<int,int>currentkey={current->x,current->y};
+    if(allNodes.find(currentkey) != allNodes.end() && current->g_cost>allNodes[currentkey]->g_cost)
+    {
+	    continue;
+    }
      if(current->x == goal.x && current->y == goal.y)
      {
 	     vector <Node> path;
@@ -86,6 +92,7 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 //ADD 2 ENTITIES-> MOVEMENT_COST AND OBSTACLE_COST TO THE G_COST.
 //OBSTACLE_COST IS CALCULATED FROM
    int i; double newg_cost;
+   double movement_cost;
    for(i=0; i<8; i++)
    {
 	   int newx = current->x+dx[i];
@@ -104,15 +111,13 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 	     }*/
 	     if(i<4)
 	     {
-		     double movement_cost=1.0;
+		     movement_cost=1.0;
 	     }
 	     else
 	     {
-		     double movement_cost=1.414;
+		     movement_cost=1.414;
 	     }
 	     double obstacle_cost=1e6; // Default cost for free cells
-             if(newx>=minx && newx<=maxx &&newy>=miny && newy<=maxy)
-	     {
 		     auto it = occupancyGrid.find({newx,newy});
 		     if(it!=occupancyGrid.end()) 
 		     {
@@ -122,19 +127,23 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 		     {
 			     obstacle_cost=0.0; //free space (if not in grid but within the bounds)
 		     }
-	     }
+		     if(obstacle_cost>=1e6)
+		     {
+			     continue;
+		     }
+	     
 	     //infinite cost for unexplored regions (out of bounds)
-	     newg_cost=current->g_cost+movement_cost+obstavle_cost; 
+	     newg_cost=current->g_cost+movement_cost+obstacle_cost; 
 	     Node* neighbour = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
              //newx+newy shows collision
-	     int key=newx*grid[0].size()+newy;
-	     
-	     if(allNodes.find(key)==allNodes.end() || neighbour -> g_cost<allNodes.find(key) -> second -> g_cost)//newx+newy is the unique key for map
+	     //int key=newx*grid[0].size()+newy;
+	     pair<int, int>neighbor_key = {newx, newy};
+	     if(allNodes.find(neighbour_key)==allNodes.end() || neighbour -> g_cost<allNodes.find(neighbour_key) -> second -> g_cost)//newx+newy is the unique key for map
 	     {
                neighbour->f_cost=neighbour->g_cost+neighbour->h_cost;
 	       openlist.push(neighbour);
 	       //update all nodes
-	       allNodes[key]=neighbour;
+	       allNodes[neighbour_key]=neighbour;
 	     }
 
      } 
