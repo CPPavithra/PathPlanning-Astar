@@ -9,6 +9,14 @@
 #include <sstream>
 
 using namespace std;
+struct pair_hash {
+        template <typename T1, typename T2>
+        std::size_t operator()(const std::pair<T1, T2>& p) const {
+        auto h1 = std::hash<T1>{}(p.first);
+        auto h2 = std::hash<T2>{}(p.second);
+        return h1 ^ (h2 << 1);//to combine the 2 hashes
+        }
+};
 
 /*struct Node
 {
@@ -50,7 +58,8 @@ double heuristic(int x1, int y1, int x2, int y2)
 vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
 {
    priority_queue<Node*,vector<Node*>,comparenode>openlist;//priority list for 
-   unordered_map<int, Node*>allNodes;//map for all the nodes
+   unordered_map<pair<int,int>,Node*, pair_hash>allNodes;
+   //unordered_map<int, Node*>allNodes;//map for all the nodes
    start.h_cost = heuristic(start.x, start.y, goal.x, goal.y);//euclidean distance function h cost
    start.f_cost = start.g_cost + start.h_cost;
    openlist.push(&start);
@@ -73,22 +82,49 @@ vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal)
     //for variable square grid size
     int dx[] = {1,-1,0,0,1,-1,1,-1};
     int dy[] = {0,0,1,-1,1,-1,-1,1}; 
-
+//
+//ADD 2 ENTITIES-> MOVEMENT_COST AND OBSTACLE_COST TO THE G_COST.
+//OBSTACLE_COST IS CALCULATED FROM
    int i; double newg_cost;
    for(i=0; i<8; i++)
    {
 	   int newx = current->x+dx[i];
 	   int newy  = current->y+dy[i];
-     if(newx>=0 && newx<grid.size() && grid[newx][newy]==0 && newy>=0 && newy<grid[0].size())//boundary condition checking
-     {
-	     if(i<4)//frist 4 in the array is for straight movements
+           if(newx<minx||newx>maxx || newy<miny||newy>maxy ||grid[newx][newy] != 0)
+	   {
+		   continue;
+	   }
+	     /*if(i<4)//frist 4 in the array is for straight movements
 	     {
 		     newg_cost=current->g_cost+1.0;
 	     }
 	     else
 	     {
                     newg_cost=current->g_cost+1.414;//diagonal cost will be root2
+	     }*/
+	     if(i<4)
+	     {
+		     double movement_cost=1.0;
 	     }
+	     else
+	     {
+		     double movement_cost=1.414;
+	     }
+	     double obstacle_cost=1e6; // Default cost for free cells
+             if(newx>=minx && newx<=maxx &&newy>=miny && newy<=maxy)
+	     {
+		     auto it = occupancyGrid.find({newx,newy});
+		     if(it!=occupancyGrid.end()) 
+		     {
+			     obstacle_cost=it->second; //variable cost assigned (in grid and within bounds)
+		     }
+		     else
+		     {
+			     obstacle_cost=0.0; //free space (if not in grid but within the bounds)
+		     }
+	     }
+	     //infinite cost for unexplored regions (out of bounds)
+	     newg_cost=current->g_cost+movement_cost+obstavle_cost; 
 	     Node* neighbour = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
              //newx+newy shows collision
 	     int key=newx*grid[0].size()+newy;
