@@ -409,6 +409,33 @@ int main()
         draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
         batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
      }  //std::this_thread::sleep_for(std::chrono::milliseconds(30));
+     if(gridmap.occupancy_grid.size()>=batch_threshold)
+     {
+        draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
+        batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
+	cout<<"Setting boundaries"<<endl;
+       
+        Node start(0,0);
+        Node goal(5,6);
+
+        cout<<"Start and goal node set astar starts"<<endl;
+
+        vector<Node>path = astar(grid,start,goal);
+        if(path.empty())
+        {
+            cout<<"No path found"<<endl;
+        }
+        else
+        {
+            cout<<"Path found"<<endl;
+            for(const Node&node:path)
+            {
+                cout<<"("<<node.x<<","<<node.y<<")";
+            }
+            cout<<endl;
+        }
+
+     } 
 }
         return 0;
 
