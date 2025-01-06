@@ -18,83 +18,19 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <sstream>
+#include "include/rerun.h"
+#include "include/common.h"
 
 //chrono is for time
 using namespace rerun;
-using namespace std;
-using namespace Eigen;
 using namespace rs2;
 
-namespace rerun {
-
-template <>
-struct AsComponents<float> {
-    static std::vector<float> serialize(float value) {
-        return {value};
-    }
-};
-}
-
-namespace rerun {
-
-template <>
-struct AsComponents<std::vector<float>> {
-    static std::vector<ComponentBatch> serialize(const std::vector<float>& data) {
-        std::vector<ComponentBatch> batches;
-        for (float value:data) {
-            ComponentBatch batch;
-            batches.push_back(batch);  
-        }
-        return batches;
-    }
-};
-
-}//because rerun doesnt automatically take float values
-
-struct pair_hash {
-	template <typename T1, typename T2>
-	std::size_t operator()(const std::pair<T1, T2>& p) const {
-    	auto h1 = std::hash<T1>{}(p.first);  
-    	auto h2 = std::hash<T2>{}(p.second);
-    	return h1 ^ (h2 << 1);//to combine the 2 hashes
-	}
-}; //READ ABOYT THIS- cant do pair hash in hash table usually so we use this
-struct CellCost {
-    float cost;  //cost of the cell
-  float proxcost;  //cost based on proximity
-    bool visited;  //flag indicating if the cell has been visited
-    bool proxvisited;
-
-    //edit this if needed
-    CellCost(float c = 0.0f,float pc=0.0f,  bool v = false, bool p = false) : cost(c),proxcost(pc), visited(v),proxvisited(p) {}
-};
-struct Gridmap {
-	unordered_map<pair<int,int>,CellCost,pair_hash>occupancy_grid;
-	float min_x,min_y,max_x,max_y;
-	Gridmap()
-	{
-   	//
-	}
-	Gridmap(unordered_map<pair<int,int>,CellCost,pair_hash> grid, float min_x, float min_y, float max_x, float max_y)
-    	: occupancy_grid(grid), min_x(min_x), min_y(min_y), max_x(max_x), max_y(max_y) {
-    	//
-	}
-};
-
-
-struct Pose
-{
-	Vector3f position;
-	Vector3f velocity;
-	Matrix3f orientation;
-};
-
 //GLOBALLY
-Gridmap gridmap;
-float grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metre
-int batch_threshold = 2;
+/*Gridmap gridmap;
+grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metr 
+batch_threshold = 2;*/
 
-void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=0.5f,float proxfactor=0.5)
+void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution=0.001f, float height=0.5f,float proxfactor=0.5)
 {
         float boundary_threshold = 0.01f;
 	if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
@@ -180,7 +116,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
         cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
 //////////////////////////////////////////////////
 //
-    float prox=1; //edit as needed
+/*    float prox=1; //edit as needed
     for (float dx=-prox; dx<=prox;++dx) {
         for (float dy=-prox; dy <=prox ;++dy) {
             if (dx == 0 && dy == 0) continue;  // Skip the current cell
@@ -192,7 +128,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 	     //CellCost& currentcell=updated_occupancy_grid[currentcell];
            //add new neighbor if not already in the grid
 	   if(updated_occupancy_grid[{tolog_x,tolog_y}].visited)
-	   {
+/*	   {
            if (updated_occupancy_grid.find(neighbor)==updated_occupancy_grid.end()) {
                updated_occupancy_grid[neighbor]=CellCost{0.0f, 0.0f, false, false};  //set cost as default
                std::cout<< "Added new neighbor: ("<< neighbor.first<< ", "<< neighbor.second<< ")" << std::endl;
@@ -203,21 +139,21 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
        
         //calculate proximity cost
         float dist = sqrt(dx *dx + dy*dy)  /*grid_resolution*/;//euclidean distance between them. 
-        float proxcost = ((proxfactor*2.0f)/(0.1f+dist));
+/*        float proxcost = ((proxfactor*2.0f)/(0.1f+dist));
 
 	/*if(updated_occupancy_grid.find(neighbor) != updated_occupancy_grid.end()) {
 	float proxcost = (proxfactor * neighbor_cell.cost) / (0.1f + dist);
 	} */                                                           	//exponential calculation
 
         //update proximity cost only if not already updated
-        if (neighbor_cell.proxvisited==false) {
+/*        if (neighbor_cell.proxvisited==false) {
             neighbor_cell.proxcost = proxcost;
             neighbor_cell.cost += neighbor_cell.proxcost; //add proximity cost
             neighbor_cell.proxvisited = true;            //mark it as visited for proximity
         }
 	}
 	}
-}
+}*/
 
     std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
     for (const auto& [key, value] : updated_occupancy_grid) 
@@ -431,7 +367,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convert_to_pcl(const std::vector<Eigen::Vect
 }
 ///////////////////////////////////////
 
-
+/*
 int main() {
    
 	auto rec = rerun::RecordingStream("gridmap");
@@ -564,16 +500,16 @@ int main() {
 
     create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
 
-   /* cout<<"Generated PointCloud: "<< points.size()<< " points."<<"\n"<<endl;
+    cout<<"Generated PointCloud: "<< points.size()<< " points."<<"\n"<<endl;
     cout<<"After filtering FULLY: "<<filtered_cloud->size()<<" points."<<"\n"<<endl;*/
     //to draw gridmap only after sometime
 
-     if(gridmap.occupancy_grid.size()>=batch_threshold) 
+ /*    if(gridmap.occupancy_grid.size()>=batch_threshold) 
      {
      	draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
 	batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
      }  //std::this_thread::sleep_for(std::chrono::milliseconds(30));
 }
 	return 0;
-}
+}*/
 
