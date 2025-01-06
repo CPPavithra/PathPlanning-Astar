@@ -31,6 +31,10 @@
 #include <deque>
 #include "include/common.h"
 
+Gridmap gridmap;          // Define and initialize here
+float grid_resolution = 0.001f; // Initialize with a value
+int batch_threshold = 100;      // Initialize with a value
+
 int main()
 {
         auto rec = rerun::RecordingStream("gridmap");
