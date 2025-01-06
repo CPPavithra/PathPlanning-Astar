@@ -1,7 +1,35 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "rerun.h"
-#include "astar.h"
+#include <iostream>
+#include "include/astar.h"
+#include <vector>
+#include <cmath>
+#include <unordered_map>
+#include <queue>
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <librealsense2/rs.hpp>
+#include <iostream>
+#include <vector>
+#include <rerun.hpp>
+#include <Eigen/Dense>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include <unordered_map>
+#include <functional>
+#include <Eigen/Core>
+//for downsampling and filtering
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/filters/voxel_grid.h>
+#include <cstdlib>
+#include <rerun/demo_utils.hpp>
+#include <unordered_set>
+#include <sstream>
+#include "include/rerun.h"
+#include <deque>
+#include "include/common.h"
 
 int main()
 {
@@ -155,22 +183,24 @@ int main()
         cout<<" , ";
         cin>>goaly;
         cout<<")"<<"\n"<<endl;
-        if(startx<min_x || starty<min_y || goalx>max_x || goaly>max_y)
+        if(startx<gridmap.min_x || starty<gridmap.min_y || goalx>gridmap.max_x || goaly>gridmap.max_y)
         {
-                cout<<"Out of bound query"<<endl;
-        }else
-        {Node start(startx,starty);
+             cout << "Out of bound query. Valid range: ("<< gridmap.min_x << ", " << gridmap.min_y << ") to (" << gridmap.max_x << ", " << gridmap.max_y << ")" << endl;
+        }
+	else
+        {
+	Node start(startx,starty);
         Node goal(goalx,goaly);
 
         cout<<"Start and goal node set astar starts"<<endl;
 
-        vector<Node>path = astar(grid,start,goal);
-if(path.empty())
-{
-        cout<<"No path found"<<endl;
-}
-else
-{
+        vector<Node>path = astar(gridmap.occupancy_grid,start,goal);
+        if(path.empty())
+        {
+            cout<<"No path found"<<endl;
+        }
+        else
+        {
         cout<<"Path found"<<endl;
         for(const Node&node:path)
         {
@@ -185,4 +215,4 @@ else
         return 0;
 
 }
-
+}
