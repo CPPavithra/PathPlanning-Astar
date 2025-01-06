@@ -1,7 +1,16 @@
 #ifndef ASTAR_H
 #define ASTAR_H
+
 #include <vector>
+#include <unordered_map> 
 #include <string>
+#include <utility> // For std::pair
+#include <functional> // For std::hash
+#include <cmath>
+#include <deque>
+#include "common.h"
+
+using namespace std;
 
 struct Node
 {
@@ -16,8 +25,15 @@ struct Node
         }//overloading > to comapre between final cost of the nodes
 };
 
+struct comparenode {
+    bool operator()(Node*a, Node*b)
+    {
+            return *a>*b;
+    }
+};
+
 double heuristic(int x1, int y1, int x2, int y2);
 
-vector<Node>astar(const vector<vector<int>>& grid, Node start, Node goal);
+vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal);
 
 #endif //ASTAR_H
