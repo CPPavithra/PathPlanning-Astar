@@ -30,7 +30,7 @@ using namespace rs2;
 grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metr 
 batch_threshold = 2;*/
 
-void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution=0.001f, float height=0.5f,float proxfactor=0.5)
+void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height,float proxfactor)//declare only in rerun.h
 {
         float boundary_threshold = 0.01f;
 	if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
