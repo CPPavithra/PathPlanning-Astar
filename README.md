@@ -1,5 +1,33 @@
 # PathPlanning-Astar
 
+__________________________________________________________
+#THREADS
+
+We are implementing multithreading in the main function because the disparity in timing between data acquisition, grid map creation,
+and user input handling can cause synchronization issues, leading to premature loop exits or improper execution.
+
+Thread 1: Data Acquisition
+
+    Capture data from the Intel RealSense Depth Camera.
+    Convert depth data into a point cloud format.
+    Pass the point cloud data to the grid map generation function.
+
+Thread 2: Grid Map Creation
+
+    Process the point cloud data and generate a grid map.
+    Update the grid map in a shared resource safely.
+
+Thread 3: A Pathfinding*
+
+    Wait for valid start and goal inputs from the user.
+    Use the latest grid map to calculate the path between the start and goal nodes.
+
+Thread 4: User Input
+
+    Accept and validate the user’s start and goal node inputs.
+    Signal readiness to the A* thread when input is complete.
+
+________________________________________________________
 ##TASKS
 - A star with user defined sample cost grid- DONE & WORKED
 - with sample point cloud from interdomain through piping as it is a python file- DONE (didnt work due to latency)
