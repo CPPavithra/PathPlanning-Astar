@@ -30,14 +30,26 @@
 #include "include/rerun.h"
 #include <deque>
 #include "include/common.h"
+//for threads
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 Gridmap gridmap;          // Define and initialize here
-float grid_resolution = 0.001f; // Initialize with a value
-int batch_threshold = 100;      // Initialize with a value
+float grid_resolution=0.001f; // Initialize with a value
+int batch_threshold=100;      // Initialize with a value
+std::mutex input_mutex;
+std::condition_variable cv;
+int startx, starty, goalx, goaly;
 
-int main()
+Pose rover_pose;
+rover_pose.position = Eigen::Vector3f(0, 0, 0);
+rover_pose.orientation = Eigen::Matrix3f::Identity();
+rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
+
+void realsense()
 {
-        auto rec = rerun::RecordingStream("gridmap");
+	auto rec = rerun::RecordingStream("gridmap");
         rec.spawn().exit_on_failure();
 
         //realsense pipeline
@@ -52,16 +64,15 @@ int main()
                 pipe.start(cfg);
        } catch (const rs2::error &e) {
                 cerr << "Error: Failed to start the pipeline: " << e.what() << endl;
-                return -1;
       }
       rs2::pointcloud pc;
       rs2::points points;
 
-        //for rover pose
-      Pose rover_pose;
+      /*Pose rover_pose;
       rover_pose.position = Eigen::Vector3f(0, 0, 0);
       rover_pose.orientation = Eigen::Matrix3f::Identity();
-      rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
+      rover_pose.velocity = Eigen::Vector3f(0, 0, 0);*/
+
 
         //for time
      auto last_time = std::chrono::high_resolution_clock::now();
@@ -69,7 +80,8 @@ int main()
      vector<Vector3f> point_vectors;
 
      static int frame_counter = 0;
-          while (true){
+     
+     while (true){
         //get the current time and compute the delta time
         auto current_time = std::chrono::high_resolution_clock::now();
         float delta_time = std::chrono::duration<float>(current_time - last_time).count();
@@ -109,8 +121,7 @@ int main()
                 //convert accelerometer and gyroscope data to Eigen vectors
         Eigen::Vector3f accel_eigen = convert_to_eigen_vector(accel_data);
         Eigen::Vector3f gyro_eigen = convert_to_eigen_vector(gyro_data);
-
-        //update the rover pose with accelerometer and gyroscope data
+               //update the rover pose with accelerometer and gyroscope data
         update_rover_pose(rover_pose, accel_eigen, gyro_eigen, delta_time);
 
         //process depth data to create point cloud
@@ -150,7 +161,7 @@ int main()
     //voxelgrid
     pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::VoxelGrid<pcl::PointXYZ> voxel;
-    voxel.setInputCloud(passthrough_cloud);
+   voxel.setInputCloud(passthrough_cloud);
     voxel.setLeafSize(0.05f, 0.05f, 0.05f); //this is the size of each voxel in xyz dimension
     voxel.filter(*filtered_cloud);
 
@@ -158,27 +169,32 @@ int main()
     for (const auto& point : filtered_cloud->points) {
         point_vectors.emplace_back(point.x, point.y, point.z);
     }
+create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
+}
 
+}
 
-    create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
-
-   /* cout<<"Generated PointCloud: "<< points.size()<< " points."<<"\n"<<endl;
-    cout<<"After filtering FULLY: "<<filtered_cloud->size()<<" points."<<"\n"<<endl;*/
-    //to draw gridmap only after sometime
-
+void gridmap_thread()
+{
+ while(true)
+ {
      if(gridmap.occupancy_grid.size()>=batch_threshold)
      {
         draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
         batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
      }  //std::this_thread::sleep_for(std::chrono::milliseconds(30));
-    if(gridmap.occupancy_grid.size()>=batch_threshold)
+
+ }
+}
+
+void pathplanning()
+{
+        while(true)
+	{
+	    if(gridmap.occupancy_grid.size()>=batch_threshold)
      {
-        draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
-        batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
         cout<<"Setting boundaries"<<endl;
-        int startx,starty,goalx,goaly;
-        cout<<"Enter start: (";
-        cin>>startx;
+	cin>>startx;
         cout<<" , ";
         cin>>starty;
         cout<<")"<<"\n"<<endl;
@@ -187,13 +203,31 @@ int main()
         cout<<" , ";
         cin>>goaly;
         cout<<")"<<"\n"<<endl;
+         {
+            // Lock the mutex and update the shared variables
+            std::lock_guard<std::mutex> lock(input_mutex);
+            input_ready = true;
+        }
+
+        // Notify the path planning thread
+        cv.notify_one();
+     }
+     }
+}
+
+void userinput()
+{
+	while(true)
+	{
+        std::unique_lock<std::mutex> lock(input_mutex);
+        cv.wait(lock, [] { return input_ready; });
         if(startx<gridmap.min_x || starty<gridmap.min_y || goalx>gridmap.max_x || goaly>gridmap.max_y)
         {
              cout << "Out of bound query. Valid range: ("<< gridmap.min_x << ", " << gridmap.min_y << ") to (" << gridmap.max_x << ", " << gridmap.max_y << ")" << endl;
         }
-	else
+         else
         {
-	Node start(startx,starty);
+        Node start(startx,starty);
         Node goal(goalx,goaly);
 
         cout<<"Start and goal node set astar starts"<<endl;
@@ -214,9 +248,22 @@ int main()
 }
 
         }
-
+input_ready = false;
+	}
 }
-        return 0;
+int main()
+{
+    // Start the threads
+    std::thread realsense_thread(realsense);
+    std::thread gridmap_thread_func(gridmap_thread);
+    std::thread pathplanning_thread(pathplanning);
+    std::thread userinput_thread(userinput);
 
-}
+    // Join threads
+    realsense_thread.join();
+    gridmap_thread_func.join();
+    pathplanning_thread.join();
+    userinput_thread.join();
+return 0;
+
 }
