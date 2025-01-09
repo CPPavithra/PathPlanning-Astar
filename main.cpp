@@ -30,10 +30,6 @@
 #include "include/rerun.h"
 #include <deque>
 #include "include/common.h"
-//for threads
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 
 Gridmap gridmap;          // Define and initialize here
 float grid_resolution=0.001f; // Initialize with a value
@@ -72,7 +68,7 @@ int main()
       rover_pose.orientation = Eigen::Matrix3f::Identity();
       rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
 
-
+      
         //for time
      auto last_time = std::chrono::high_resolution_clock::now();
 
@@ -82,6 +78,7 @@ int main()
      const int maxgrid=(3/grid_resolution)*(3/grid_resolution);
      bool pathplanning_flag=false;
     int counter=0;
+    int adder=0;
      while (gridmap.occupancy_grid.size()<maxgrid)
     {
         if(!pathplanning_flag)
@@ -178,10 +175,11 @@ if(gridmap.occupancy_grid.size()>=batch_threshold)
          draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
          batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
       }
-counter++;
+counter=gridmap.occupancy_grid.size()-adder;
             if (counter >= limit) {
                 std::cout<<"Mapping paused. Switching to path planning." << std::endl;
                 pathplanning_flag =true;    //switching to path planning
+                adder=20;
 }
 }
 else{
@@ -225,7 +223,7 @@ else{
 
         std::cout << "Path planning logic executed" << std::endl;
         }
-    counter=0;
+    //int pathcounter=gridmap.occupancy_grid.size();
     pathplanning_flag=false;
     
     }
