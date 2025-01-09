@@ -37,17 +37,16 @@
 
 Gridmap gridmap;          // Define and initialize here
 float grid_resolution=0.001f; // Initialize with a value
-int batch_threshold=100;      // Initialize with a value
-std::mutex input_mutex;
-std::condition_variable cv;
+int batch_threshold=1;      // Initialize with a value
 int startx, starty, goalx, goaly;
 
 Pose rover_pose;
-rover_pose.position = Eigen::Vector3f(0, 0, 0);
+/*rover_pose.position = Eigen::Vector3f(0, 0, 0);
 rover_pose.orientation = Eigen::Matrix3f::Identity();
-rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
-
-void realsense()
+rover_pose.velocity = Eigen::Vector3f(0, 0, 0);*/
+bool input_ready=false;
+int limit=20;
+int main()
 {
 	auto rec = rerun::RecordingStream("gridmap");
         rec.spawn().exit_on_failure();
@@ -68,10 +67,10 @@ void realsense()
       rs2::pointcloud pc;
       rs2::points points;
 
-      /*Pose rover_pose;
+      //Pose rover_pose;
       rover_pose.position = Eigen::Vector3f(0, 0, 0);
       rover_pose.orientation = Eigen::Matrix3f::Identity();
-      rover_pose.velocity = Eigen::Vector3f(0, 0, 0);*/
+      rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
 
 
         //for time
@@ -80,9 +79,13 @@ void realsense()
      vector<Vector3f> point_vectors;
 
      static int frame_counter = 0;
-     
-     while (true){
-        //get the current time and compute the delta time
+     const int maxgrid=(3/grid_resolution)*(3/grid_resolution);
+     bool pathplanning_flag=false;
+    int counter=0;
+     while (gridmap.occupancy_grid.size()<maxgrid)
+    {
+        if(!pathplanning_flag)
+        {
         auto current_time = std::chrono::high_resolution_clock::now();
         float delta_time = std::chrono::duration<float>(current_time - last_time).count();
         last_time = current_time;
@@ -170,31 +173,20 @@ void realsense()
         point_vectors.emplace_back(point.x, point.y, point.z);
     }
 create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
+if(gridmap.occupancy_grid.size()>=batch_threshold)
+      {
+         draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
+         batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
+      }
+counter++;
+            if (counter >= limit) {
+                std::cout<<"Mapping paused. Switching to path planning." << std::endl;
+                pathplanning_flag =true;    //switching to path planning
 }
-
 }
-
-void gridmap_thread()
-{
- while(true)
- {
-     if(gridmap.occupancy_grid.size()>=batch_threshold)
-     {
-        draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
-        batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
-     }  //std::this_thread::sleep_for(std::chrono::milliseconds(30));
-
- }
-}
-
-void pathplanning()
-{
-        while(true)
-	{
-	    if(gridmap.occupancy_grid.size()>=batch_threshold)
-     {
+else{
         cout<<"Setting boundaries"<<endl;
-	cin>>startx;
+        cin>>startx;
         cout<<" , ";
         cin>>starty;
         cout<<")"<<"\n"<<endl;
@@ -202,68 +194,43 @@ void pathplanning()
         cin>>goalx;
         cout<<" , ";
         cin>>goaly;
-        cout<<")"<<"\n"<<endl;
-         {
-            // Lock the mutex and update the shared variables
-            std::lock_guard<std::mutex> lock(input_mutex);
-            input_ready = true;
+        cout<<")"<<"\n"<<endl;  
+//std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  if (startx < gridmap.min_x || starty < gridmap.min_y || 
+            goalx > gridmap.max_x || goaly > gridmap.max_y) {
+            std::cout << "Out of bound query. Valid range: (" << gridmap.min_x << ", " 
+                      << gridmap.min_y << ") to (" << gridmap.max_x << ", " 
+                      << gridmap.max_y << ")" << std::endl;
+            continue;  // Skip to the next iteration
+        }
+   else{
+        // Create start and goal nodes
+        Node start(startx, starty);
+        Node goal(goalx, goaly);
+
+        std::cout << "Start and goal node set. A* begins..." << std::endl;
+
+        // Perform A* pathfinding
+        std::vector<Node> path = astar(gridmap.occupancy_grid, start, goal);
+
+        if (path.empty()) {
+            std::cout << "No path found. Check grid or start/goal positions." << std::endl;
+        } else {
+            std::cout << "Path found:" << std::endl;
+            for (const Node& node : path) {
+                std::cout << "(" << node.x << "," << node.y << ") ";
+            }
+            std::cout << std::endl;
         }
 
-        // Notify the path planning thread
-        cv.notify_one();
-     }
-     }
+        std::cout << "Path planning logic executed" << std::endl;
+        }
+    counter=0;
+    pathplanning_flag=false;
+    
+    }
 }
-
-void userinput()
-{
-	while(true)
-	{
-        std::unique_lock<std::mutex> lock(input_mutex);
-        cv.wait(lock, [] { return input_ready; });
-        if(startx<gridmap.min_x || starty<gridmap.min_y || goalx>gridmap.max_x || goaly>gridmap.max_y)
-        {
-             cout << "Out of bound query. Valid range: ("<< gridmap.min_x << ", " << gridmap.min_y << ") to (" << gridmap.max_x << ", " << gridmap.max_y << ")" << endl;
-        }
-         else
-        {
-        Node start(startx,starty);
-        Node goal(goalx,goaly);
-
-        cout<<"Start and goal node set astar starts"<<endl;
-
-        vector<Node>path = astar(gridmap.occupancy_grid,start,goal);
-        if(path.empty())
-        {
-            cout<<"No path found"<<endl;
-        }
-        else
-        {
-        cout<<"Path found"<<endl;
-        for(const Node&node:path)
-        {
-                cout<<"("<<node.x<<","<<node.y<<")";
-        }
-        cout<<endl;
-}
-
-        }
-input_ready = false;
-	}
-}
-int main()
-{
-    // Start the threads
-    std::thread realsense_thread(realsense);
-    std::thread gridmap_thread_func(gridmap_thread);
-    std::thread pathplanning_thread(pathplanning);
-    std::thread userinput_thread(userinput);
-
-    // Join threads
-    realsense_thread.join();
-    gridmap_thread_func.join();
-    pathplanning_thread.join();
-    userinput_thread.join();
 return 0;
-
 }
+            
+ 
