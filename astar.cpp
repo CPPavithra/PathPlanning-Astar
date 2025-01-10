@@ -84,10 +84,7 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
 	   {
 		   continue;
 	   }*/
-	   auto it_2 = occupancyGrid.find({newx, newy});
-if (it_2 == occupancyGrid.end() || it_2->second.cost != 0) {
-    continue;
-}
+	 
 	     /*if(i<4)//frist 4 in the array is for straight movements
 	     {
 		     newg_cost=current->g_cost+1.0;
@@ -104,16 +101,26 @@ if (it_2 == occupancyGrid.end() || it_2->second.cost != 0) {
 	     {
 		     movement_cost=1.414;
 	     }
-	     double obstacle_cost=1e6; // Default cost for free cells
+             
+	     double obstacle_cost=1e6; //default cost for free cells
+ 
+             
 		     auto it = occupancyGrid.find({newx,newy});
 		     if(it!=occupancyGrid.end()) 
 		     {
 			     obstacle_cost=it->second.cost; //variable cost assigned (in grid and within bounds)
 		     }
-		     else
+		    else if(newx >= gridmap.min_x && newx <= gridmap.max_x && newy >= gridmap.min_y && newy <= gridmap.max_y)
 		     {
 			     obstacle_cost=0.0; //free space (if not in grid but within the bounds)
 		     }
+                     // Skip if the cost is high (blocked or out of bounds)
+                     else {
+    // If the cell is outside the boundary, assign a high cost (impassable)
+                      obstacle_cost = 1e6;
+                    }
+
+                      
 		     if(obstacle_cost>=1e6)
 		     {
 			     continue;
