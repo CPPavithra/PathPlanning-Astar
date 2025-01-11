@@ -30,7 +30,7 @@ using namespace rs2;
 grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metr 
 batch_threshold = 2;*/
 
-void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height,float proxfactor)//declare only in rerun.h
+void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, const Pose& roverpose,float grid_resolution, float height,float proxfactor)//declare only in rerun.h
 {
         float boundary_threshold = 0.01f;
 	if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
@@ -67,25 +67,32 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 
       	// to verify if it is valid
 	cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
+       for (const auto& point : point_vectors)
+  {
+        int grid_x = static_cast<int>((point.x() / grid_resolution)/1000); // Map to grid cell
+        int grid_y = static_cast<int>((point.y() / grid_resolution)/1000);
+        float height_at_point = point.z(); // Use z for height
 
         float cellsize=0.5f; //metres
-	int tolog_x=((rover_x - min_x) /cellsize);
-	int tolog_y=((rover_y - min_y)/cellsize);
-        cout << "Mapped grid position: (" << tolog_x << ", " <<tolog_y << ")" <<endl;
+	//int tolog_x=((rover_x - min_x) /cellsize);
+	//int tolog_y=((rover_y - min_y)/cellsize);
+        int tolog_x=rover_x;
+        int tolog_y=rover_y;
+        cout << "Mapped grid position: (" << grid_x << ", " <<grid_y << ")" <<endl;
        
        cout<<"Height at ("<<tolog_x<<" , "<<tolog_y<<") ->"<<roverpose.position.z()<<"\n"<<endl;
        
        //to calculate cost
        	float cost=0.0f;
-       	if(roverpose.position.z()>height)
+       	if(height_at_point>height)
        	{
            	cost=10.0f; //very high=cant go cost is from range 0 to 10
        	}
-       	else if(roverpose.position.z()>(height/2) &&roverpose.position.z()<=(height))
+       	else if(height_at_point>(height/2) &&height_at_point<=(height))
        	{
            	cost=5.0f;
        	}
-       	else if(roverpose.position.z()>(height/4) && roverpose.position.z()<=(height/2))
+       	else if(height_at_point>(height/4) && height_at_point<=(height/2))
        	{
            	cost=1.0f;
        	}
@@ -94,7 +101,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 	 
     
      // USE BIT MASK ENCODING TO CHECK IF THE NODE IS VISITED OR NOT, I have used visited and proxvisited boolean visited and proxvisited with the cost proxcost.
-     pair<int, int> current = {tolog_x, tolog_y};
+     pair<int, int> current = {grid_x,grid_y};
 		std::cout << "Before updating: (" << current.first << ", " << current.second << ") -> Cost: " << cost << std::endl;
 		CellCost& cell=updated_occupancy_grid[current];
 
@@ -154,7 +161,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 	}
 	}
 }*/
-
+}
     std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
     for (const auto& [key, value] : updated_occupancy_grid) 
     {
