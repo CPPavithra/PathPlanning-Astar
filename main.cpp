@@ -47,7 +47,7 @@ int main()
 	auto rec = rerun::RecordingStream("gridmap");
         rec.spawn().exit_on_failure();
 
-        //realsense pipeline
+       /* //realsense pipeline
         rs2::pipeline pipe;
         rs2::config cfg;
         cfg.enable_device_from_file("video2.bag");
@@ -59,7 +59,18 @@ int main()
                 pipe.start(cfg);
        } catch (const rs2::error &e) {
                 cerr << "Error: Failed to start the pipeline: " << e.what() << endl;
-      }
+      }*/
+        std::system("realsense-viewer &");
+        rs2::pipeline pipe;
+        rs2::config cfg;
+
+        cfg.enable_stream(RS2_STREAM_DEPTH); 
+        cfg.enable_stream(RS2_STREAM_GYRO);   
+        cfg.enable_stream(RS2_STREAM_ACCEL); 
+
+    
+        pipe.start(cfg);
+
       rs2::pointcloud pc;
       rs2::points points;
 
