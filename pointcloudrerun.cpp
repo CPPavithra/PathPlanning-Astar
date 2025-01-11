@@ -69,9 +69,10 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
 	cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
        for (const auto& point : point_vectors)
   {
-        int grid_x = static_cast<int>((point.x() / grid_resolution)/1000); // Map to grid cell
-        int grid_y = static_cast<int>((point.y() / grid_resolution)/1000);
-        float height_at_point = point.z(); // Use z for height
+        int grid_x = static_cast<int>((point.z() / grid_resolution)/1000); // Map to grid cell
+        int grid_y = static_cast<int>((point.x() / grid_resolution)/1000);
+        float height_at_point = point.y(); // Use z for height
+
 
         float cellsize=0.5f; //metres
 	//int tolog_x=((rover_x - min_x) /cellsize);
