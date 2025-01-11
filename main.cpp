@@ -60,14 +60,19 @@ int main()
        } catch (const rs2::error &e) {
                 cerr << "Error: Failed to start the pipeline: " << e.what() << endl;
       }*/
-        std::system("realsense-viewer &");
+       /* std::system("realsense-viewer &");
         rs2::pipeline pipe;
         rs2::config cfg;
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
-        cfg.enable_stream(RS2_STREAM_ACCEL); 
-
+        cfg.enable_stream(RS2_STREAM_ACCEL);*/
+        rs2::pipeline pipe;
+        rs2::config cfg;
+        cfg.enable_device_from_file("video2.bag");
+        cfg.enable_stream(RS2_STREAM_GYRO);
+        cfg.enable_stream(RS2_STREAM_ACCEL);
+        cfg.enable_stream(RS2_STREAM_DEPTH); 
     
         pipe.start(cfg);
 
@@ -176,16 +181,20 @@ int main()
     voxel.setLeafSize(0.05f, 0.05f, 0.05f); //this is the size of each voxel in xyz dimension
     voxel.filter(*filtered_cloud);
 
-    point_vectors.clear();
-    for (const auto& point : filtered_cloud->points) {
-        point_vectors.emplace_back(point.x, point.y, point.z);
-    }
-create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
-if(gridmap.occupancy_grid.size()>=batch_threshold)
-      {
-         draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
-         batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
-      }
+       point_vectors.clear();
+   std::vector<float> z_values;
+   z_values.reserve(filtered_cloud->points.size());
+
+     for (const auto& point : filtered_cloud->points) {
+        point_vectors.emplace_back(point.x, point.y, point.z);}
+    create_gridmap(gridmap,point_vectors , rover_pose, grid_resolution);
+
+     if(gridmap.occupancy_grid.size()>=batch_threshold)
+     {
+        draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
+        batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
+     }  //std::this_thread::sleep_for(std::chrono::milliseconds(30));
+
 counter=gridmap.occupancy_grid.size()-adder;
             if (counter >= limit) {
                 std::cout<<"Mapping paused. Switching to path planning." << std::endl;
