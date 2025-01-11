@@ -178,12 +178,16 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
             cell.cost += cost;  //adding new cost to the existing cost (the existing cost might be proximity cost= proxcost)
             cell.visited = true; //mark that cell as visited to avoid reiteration
 	    cell.proxvisited = proxvupdate;
+           if (cell.cost == 0.0f) {
+           updated_occupancy_grid.erase(current);
         }
+}
         else {
         //if not found in the occupancy grid then visit that node and then update it
-        updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,false); // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
-
-         }
+        if(cost>0.0f) {
+        updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,false); 
+}  // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
+}
         cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
 //////////////////////////////////////////////////
 //
