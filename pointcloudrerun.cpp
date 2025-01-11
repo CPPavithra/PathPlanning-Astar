@@ -69,13 +69,13 @@ struct CellCost {
     CellCost(float c = 0.0f,float pc=0.0f,  bool v = false, bool p = false) : cost(c),proxcost(pc), visited(v),proxvisited(p) {}
 };
 struct Gridmap {
-	unordered_map<pair<float,float>,CellCost,pair_hash>occupancy_grid;
+	unordered_map<pair<int,int>,CellCost,pair_hash>occupancy_grid;
 	float min_x,min_y,max_x,max_y;
 	Gridmap()
 	{
    	//
 	}
-	Gridmap(unordered_map<pair<float,float>,CellCost,pair_hash> grid, float min_x, float min_y, float max_x, float max_y)
+	Gridmap(unordered_map<pair<int,int>,CellCost,pair_hash> grid, float min_x, float min_y, float max_x, float max_y)
     	: occupancy_grid(grid), min_x(min_x), min_y(min_y), max_x(max_x), max_y(max_y) {
     	//
 	}
@@ -86,6 +86,7 @@ struct Pose
 {
 	Vector3f position;
 	Vector3f velocity;
+        Vector3f accel_prev;
 	Matrix3f orientation;
 };
 
@@ -94,24 +95,24 @@ Gridmap gridmap;
 float grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metre
 int batch_threshold = 2;
 
-void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose& roverpose,float grid_resolution, float height=0.5f,float proxfactor=0.5)
+void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, const Pose& roverpose,float grid_resolution, float height=10.0f,float proxfactor=0.5)
 {
         float boundary_threshold = 0.01f;
 	if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
 	{
-           gridmap.min_x-=(grid_resolution*3.0f);
+           gridmap.min_x-=(grid_resolution*50.0f);
         }
         if (roverpose.position.x()>gridmap.max_x-boundary_threshold) 
 	{
-           gridmap.max_x+=(grid_resolution*3.0f);
+           gridmap.max_x+=(grid_resolution*50.0f);
         }
         if (roverpose.position.y()<gridmap.min_y+boundary_threshold) 
 	{
-           gridmap.min_y-=(grid_resolution*3.0f);
+           gridmap.min_y-=(grid_resolution*50.0f);
         }
         if (roverpose.position.y()>gridmap.max_y-boundary_threshold)
        	{
-           gridmap.max_y+=(grid_resolution*3.0f);
+           gridmap.max_y+=(grid_resolution*50.0f);
         }
 	float min_x=gridmap.min_x;
 	float max_x=gridmap.max_x;
@@ -123,42 +124,48 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
        ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
 
       /*vector<vector<bool>>occupancy_grid(xgridnum, vector<bool>(ygridnum,false))*;/ //everything is initialised to be false at the start*/
-       unordered_map<pair<float,float>,CellCost, pair_hash>updated_occupancy_grid=gridmap.occupancy_grid;
-       int proxradius=3;
+       unordered_map<pair<int,int>,CellCost, pair_hash>updated_occupancy_grid=gridmap.occupancy_grid;
+       int proxradius=1;
       	 
    	float rover_x=roverpose.position.x();
         float rover_y=roverpose.position.y();
 
       	// to verify if it is valid
 	cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
+        
+        for (const auto& point : point_vectors)
+  {
+        int grid_x = static_cast<int>((point.x() / grid_resolution)/1000); // Map to grid cell
+        int grid_y = static_cast<int>((point.y() / grid_resolution)/1000);
+        float height_at_point = point.z(); // Use z for height
 
         float cellsize=0.5f; //metres
-	float tolog_x=((rover_x - min_x) /cellsize);
-	float tolog_y=((rover_y - min_y)/cellsize);
-        cout << "Mapped grid position: (" << tolog_x << ", " <<tolog_y << ")" <<endl;
+	int tolog_x=((rover_x - min_x) /cellsize);
+	int tolog_y=((rover_y - min_y)/cellsize);
+        cout << "Mapped grid position: (" <<grid_x << ", " <<grid_y << ")" <<endl;
        
-       cout<<"Height at ("<<tolog_x<<" , "<<tolog_y<<") ->"<<roverpose.position.z()<<"\n"<<endl;
+       cout<<"Height at ("<<grid_x<<" , "<<grid_y<<") ->"<<height_at_point<<"\n"<<endl;
        
        //to calculate cost
        	float cost=0.0f;
-       	if(roverpose.position.z()>height)
+       	if(height_at_point>height)
        	{
            	cost=10.0f; //very high=cant go cost is from range 0 to 10
        	}
-       	else if(roverpose.position.z()>(height/2) &&roverpose.position.z()<=(height))
+       	else if(height_at_point>(height/2) &&height_at_point<=(height))
        	{
            	cost=5.0f;
        	}
-       	else if(roverpose.position.z()>(height/4) && roverpose.position.z()<=(height/2))
+       	else if(height_at_point>(height/4) && height_at_point<=(height/2))
        	{
            	cost=1.0f;
        	}
 
-	std::cout << "Mapped grid position: (" << tolog_x  << ", " << tolog_y << "), COST ->" <<cost<<"\n"<< std::endl;
+	std::cout << "Mapped grid position: (" << grid_x  << ", " << grid_y << "), COST ->" <<cost<<"\n"<< std::endl;
 	 
     
      // USE BIT MASK ENCODING TO CHECK IF THE NODE IS VISITED OR NOT, I have used visited and proxvisited boolean visited and proxvisited with the cost proxcost.
-     pair<float, float> current = {tolog_x, tolog_y};
+     pair<int, int> current = {grid_x, grid_y};
 		std::cout << "Before updating: (" << current.first << ", " << current.second << ") -> Cost: " << cost << std::endl;
 		CellCost& cell=updated_occupancy_grid[current];
 
@@ -166,7 +173,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
 		 bool proxvupdate=cell.proxvisited;
 		 
    // if (updated_occupancy_grid.find(current)!=updated_occupancy_grid.end()) {
-        if (!cell.visited) {
+        if (!cell.visited && !cell.proxvisited) {  //CHECK HERE
             //update the cost AND mark them as visited to avoid re-iteration of that cell
             cell.cost += cost;  //adding new cost to the existing cost (the existing cost might be proximity cost= proxcost)
             cell.visited = true; //mark that cell as visited to avoid reiteration
@@ -174,24 +181,24 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
         }
         else {
         //if not found in the occupancy grid then visit that node and then update it
-        updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,proxvupdate); // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
+        updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,false); // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
 
          }
         cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
 //////////////////////////////////////////////////
 //
-    float prox=1; //edit as needed
+/*    float prox=3; //edit as needed
     for (float dx=-prox; dx<=prox;++dx) {
         for (float dy=-prox; dy <=prox ;++dy) {
             if (dx == 0 && dy == 0) continue;  // Skip the current cell
 
-            float neighbor_x = tolog_x + dx;
-            float neighbor_y = tolog_y + dy;
-            pair<float, float> neighbor = {neighbor_x, neighbor_y};
+            int neighbor_x = grid_x + dx;
+            int neighbor_y = grid_y + dy;
+            pair<int, int> neighbor = {neighbor_x, neighbor_y};
 	    //pair<float,float>currentcell={tolog_x,tolog_y};
 	     //CellCost& currentcell=updated_occupancy_grid[currentcell];
            //add new neighbor if not already in the grid
-	   if(updated_occupancy_grid[{tolog_x,tolog_y}].visited)
+	   if(updated_occupancy_grid[{grid_x,grid_y}].visited)
 	   {
            if (updated_occupancy_grid.find(neighbor)==updated_occupancy_grid.end()) {
                updated_occupancy_grid[neighbor]=CellCost{0.0f, 0.0f, false, false};  //set cost as default
@@ -203,22 +210,24 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& points, const Pose&
        
         //calculate proximity cost
         float dist = sqrt(dx *dx + dy*dy)  /*grid_resolution*/;//euclidean distance between them. 
-        float proxcost = ((proxfactor*2.0f)/(0.1f+dist));
+/*        float proxcost = ((proxfactor*2.0f)/(0.1f+dist));
 
 	/*if(updated_occupancy_grid.find(neighbor) != updated_occupancy_grid.end()) {
 	float proxcost = (proxfactor * neighbor_cell.cost) / (0.1f + dist);
 	} */                                                           	//exponential calculation
 
         //update proximity cost only if not already updated
-        if (neighbor_cell.proxvisited==false) {
+/*        if (neighbor_cell.proxvisited==false) {
             neighbor_cell.proxcost = proxcost;
             neighbor_cell.cost += neighbor_cell.proxcost; //add proximity cost
             neighbor_cell.proxvisited = true;            //mark it as visited for proximity
         }
 	}
 	}
-}
+}*/
 
+
+}
     std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
     for (const auto& [key, value] : updated_occupancy_grid) 
     {
@@ -249,14 +258,14 @@ std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid
 //color based on cost
 components::Color get_color_for_cost(const CellCost& cell) 
 {
-	if (cell.proxvisited && cell.cost > 0.0f) {
+if (cell.proxvisited && cell.cost > 0.0f && cell.cost<1.0f) {
         return components::Color{
             static_cast<uint8_t>(0.0f * 255),
             static_cast<uint8_t>(0.0f * 255),
             static_cast<uint8_t>(1.0f * 255)
         };  // BLUE = Proxvisited and cost > 0
  }
-	else if (cell.cost >= 10.0f)
+   else	if (cell.cost >= 10.0f)
  {
 return components::Color{
     static_cast<uint8_t>(0.0f * 255), 
@@ -366,7 +375,7 @@ void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, 
                    << value.cost << "\n";*/
      colors.push_back(color);
      std::string tag = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_"+ std::to_string(value.cost);
-     rec.log(tag, rerun::Points3D(points).with_colors({color}).with_radii({0.08f}));
+     rec.log(tag, rerun::Points3D(points).with_colors({color}).with_radii({0.5f}));
     // Add the point and its corresponding color to the vectors
     //points.push_back({scaled_x, scaled_y, 0.000000000f});
 }
@@ -397,7 +406,7 @@ void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& g
     //subtract gravity from the acceleration
     accel_world=accel_world-gravity;
     //v=u+at
-    pose.velocity=pose.velocity+accel_world*delta_time;
+    pose.velocity=/*pose.velocity+*/accel_world*delta_time;
 
     //s=ut+0.5at^2
     Vector3f delta_position=(pose.velocity*delta_time)+(0.5f*accel_world*delta_time*delta_time);
@@ -465,6 +474,8 @@ int main() {
 
      vector<Vector3f> point_vectors;
 
+     static int frame_counter = 0;
+
      while (true){
     	//get the current time and compute the delta time
     	auto current_time = std::chrono::high_resolution_clock::now();
@@ -483,6 +494,7 @@ int main() {
         	std::cerr << "RealSense error: " << e.what() << std::endl;
         	continue;  
     	}
+
 
     	//get accelerometer data
     	if (rs2::motion_frame accel_frame = frameset.first_or_default(RS2_STREAM_ACCEL))
@@ -507,7 +519,7 @@ int main() {
     	//convert accelerometer and gyroscope data to Eigen vectors
     	Eigen::Vector3f accel_eigen = convert_to_eigen_vector(accel_data);
     	Eigen::Vector3f gyro_eigen = convert_to_eigen_vector(gyro_data);
-
+   
     	//update the rover pose with accelerometer and gyroscope data
     	update_rover_pose(rover_pose, accel_eigen, gyro_eigen, delta_time);
 
@@ -526,6 +538,16 @@ int main() {
  }
 		//convert the realsense points to pcl point
 		auto pcl_cloud=convert_to_pcl(point_vectors); 
+        
+  if (depth_frame) {
+    static int processed_frames = 0;  // Tracks how many frames you process
+    processed_frames++;
+    auto frame_number = depth_frame.get_frame_number();
+    
+    std::cout << "Iteration: " << processed_frames 
+              << ", Frame Number: " << frame_number << std::endl;
+}
+
 
     //passthrough filter
     pcl::PointCloud<pcl::PointXYZ>::Ptr passthrough_cloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -544,23 +566,22 @@ int main() {
     voxel.filter(*filtered_cloud);
 
     point_vectors.clear();
-    for (const auto& point : filtered_cloud->points) {
-        point_vectors.emplace_back(point.x, point.y, point.z);
-    }
+   std::vector<float> z_values;
+   z_values.reserve(filtered_cloud->points.size());
 
-
-    create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
+     for (const auto& point : filtered_cloud->points) {
+        point_vectors.emplace_back(point.x, point.y, point.z);}
+    create_gridmap(gridmap,point_vectors , rover_pose, grid_resolution);
 
    /* cout<<"Generated PointCloud: "<< points.size()<< " points."<<"\n"<<endl;
     cout<<"After filtering FULLY: "<<filtered_cloud->size()<<" points."<<"\n"<<endl;*/
     //to draw gridmap only after sometime
 
-     if(gridmap.occupancy_grid.size()>=batch_threshold) 
+     if(gridmap.occupancy_grid.size()>=batch_threshold)
      {
-     	draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
-	batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
+        draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);
+        batch_threshold=batch_threshold+gridmap.occupancy_grid.size();
      }  //std::this_thread::sleep_for(std::chrono::milliseconds(30));
 }
 	return 0;
 }
-
