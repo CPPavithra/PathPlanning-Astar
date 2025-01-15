@@ -49,14 +49,10 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
        	{
            gridmap.max_y+=(grid_resolution*50.0f);
         }
-	float min_x=gridmap.min_x;
-	float max_x=gridmap.max_x;
-	float min_y=gridmap.min_y;
-	float max_y=gridmap.max_y;
 
-       int xgridnum,ygridnum;
-       xgridnum=static_cast<int>((max_x-min_x)/grid_resolution)+1; //adding one to ensure that all of the grids are counted
-       ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
+//       int xgridnum,ygridnum;
+//       xgridnum=static_cast<int>((max_x-min_x)/grid_resolution)+1; //adding one to ensure that all of the grids are counted
+//       ygridnum=static_cast<int>((max_y-min_y)/grid_resolution)+1;
 
       /*vector<vector<bool>>occupancy_grid(xgridnum, vector<bool>(ygridnum,false))*;/ //everything is initialised to be false at the start*/
        unordered_map<pair<int,int>,CellCost, pair_hash>updated_occupancy_grid=gridmap.occupancy_grid;
@@ -110,18 +106,23 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
 		 bool proxvupdate=cell.proxvisited;
 		 
    // if (updated_occupancy_grid.find(current)!=updated_occupancy_grid.end()) {
-        if (!cell.visited && !cell.proxvisited) {  //CHECK HERE
+               if (!cell.visited && !cell.proxvisited) {  //CHECK HERE
             //update the cost AND mark them as visited to avoid re-iteration of that cell
             cell.cost += cost;  //adding new cost to the existing cost (the existing cost might be proximity cost= proxcost)
             cell.visited = true; //mark that cell as visited to avoid reiteration
-	    cell.proxvisited = proxvupdate;
+            cell.proxvisited = proxvupdate;
+           if (cell.cost == 0.0f) {
+           updated_occupancy_grid.erase(current);
         }
+}
         else {
         //if not found in the occupancy grid then visit that node and then update it
-        updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,false); // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
-
-         }
+        if(cost>0.0f) {
+        updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,false);
+}  // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
+}
         cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
+
 //////////////////////////////////////////////////
 //
 /*    float prox=1; //edit as needed
@@ -163,6 +164,28 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
 	}
 }*/
 }
+
+// Initialize the boundaries to extreme values
+       int min_x = INT_MAX;
+       int max_x = INT_MIN;
+       int min_y = INT_MAX;
+       int max_y = INT_MIN;
+
+for (const auto& cell : updated_occupancy_grid) {
+    int xindice = cell.first.first;  // Extract grid x index
+    int yindice = cell.first.second; // Extract grid y index
+
+    if (xindice < min_x) min_x =xindice;
+    if (xindice > max_x) max_x =xindice;
+    if (yindice < min_y) min_y =yindice;
+    if (yindice > max_y) max_y =yindice;
+}
+
+gridmap.min_x=min_x;
+gridmap.min_y=min_y;
+gridmap.max_x=max_x;
+gridmap.max_y=max_y;
+
     std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
     for (const auto& [key, value] : updated_occupancy_grid) 
     {
@@ -363,6 +386,10 @@ void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& g
 }
 
 //////////////////////////////////////////////////////////////////
+    //update orientation using a small-angle quaternion
+    Quaternionf delta_q=Quaternionf(AngleAxisf(angular_velocity.norm(),angular_velocity.normalized()));
+    pose.orientation=delta_q*pose.orientation;
+    pose.orientation.normalize(); //normalize quaternion to prevent drift
 //convert the realsense points to pcl point
 pcl::PointCloud<pcl::PointXYZ>::Ptr convert_to_pcl(const std::vector<Eigen::Vector3f>& point_vectors) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());

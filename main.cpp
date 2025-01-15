@@ -41,7 +41,7 @@ Pose rover_pose;
 rover_pose.orientation = Eigen::Matrix3f::Identity();
 rover_pose.velocity = Eigen::Vector3f(0, 0, 0);*/
 bool input_ready=false;
-int limit=20;
+int limit=100;
 int main()
 {
 	auto rec = rerun::RecordingStream("gridmap");
@@ -60,19 +60,19 @@ int main()
        } catch (const rs2::error &e) {
                 cerr << "Error: Failed to start the pipeline: " << e.what() << endl;
       }*/
-       /* std::system("realsense-viewer &");
+        std::system("realsense-viewer &");
         rs2::pipeline pipe;
         rs2::config cfg;
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
-        cfg.enable_stream(RS2_STREAM_ACCEL);*/
-        rs2::pipeline pipe;
+        cfg.enable_stream(RS2_STREAM_ACCEL);
+        /*rs2::pipeline pipe;
         rs2::config cfg;
         cfg.enable_device_from_file("video2.bag");
         cfg.enable_stream(RS2_STREAM_GYRO);
         cfg.enable_stream(RS2_STREAM_ACCEL);
-        cfg.enable_stream(RS2_STREAM_DEPTH); 
+        cfg.enable_stream(RS2_STREAM_DEPTH); */
     
         pipe.start(cfg);
 
@@ -199,7 +199,7 @@ counter=gridmap.occupancy_grid.size()-adder;
             if (counter >= limit) {
                 std::cout<<"Mapping paused. Switching to path planning." << std::endl;
                 pathplanning_flag =true;    //switching to path planning
-                adder=20;
+                adder=100;
 }
 }
 else{
