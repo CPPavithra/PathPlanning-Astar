@@ -79,20 +79,6 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
    {
 	   int newx = current->x+dx[i];
 	   int newy = current->y+dy[i];
-//	   if(newx<gridmap.min_x||newx>gridmap.max_x||newy<gridmap.min_y||newy>gridmap.max_y||occupancyGrid[newx,newy]!=0)
-          /* if(occupancyGrid.find({newx, newy})==occupancyGrid.end()||occupancyGrid[{newx, newy}].cost!=0)
-	   {
-		   continue;
-	   }*/
-	 
-	     /*if(i<4)//frist 4 in the array is for straight movements
-	     {
-		     newg_cost=current->g_cost+1.0;
-	     }
-	     else
-	     {
-                    newg_cost=current->g_cost+1.414;//diagonal cost will be root2
-	     }*/
 	     if(i<4)
 	     {
 		     movement_cost=1.0;
@@ -144,55 +130,4 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
    }
  //return std::vector<Node>();  //return empty if not found in while loop
  return {};
-}
-
-/*int main(){
-//SAMPLE GRID
-/*vector<vector<int>> grid = {
- (0,0) {0, 0, 0, 0, 0},
-  {0, 1, 1, 1, 1},
-  {1, 0, 0, 0, 0},
-  {0, 1, 1, 1, 0},
-  {0, 0, 0, 0, 0}(4,4)
-};*/
-
-/*cout << "Reading grid map from CSV file" << endl;
-
-// Read the grid map from a CSV file
-string filename = "grid_map.csv"; // Replace with your CSV file name
-vector<vector<int>> grid;
-try {
-    grid = readGridFromCSV(filename);
-} catch (const exception& e) {
-    cerr << "Error: " << e.what() << endl;
-    return 1;
-}
-cout << "Grid map loaded" << endl;
-
-    
-double min_x = 0;
-double max_x = grid[0].size();
-double min_y = 0;
-double max_y = grid.size();
-
-cout<<"Setting boundaries"<<endl;
-
-Node start(0,0);
-Node goal(5,6);
-
-cout<<"Start and goal node set astar starts"<<endl;
-
-vector<Node>path = astar(grid,start,goal);
-if(path.empty())
-{
-	cout<<"No path found"<<endl;
-}
-else
-{
-	cout<<"Path found"<<endl;
-	for(const Node&node:path)
-	{
-		cout<<"("<<node.x<<","<<node.y<<")";
-	}
-	}*/
-
+}`
