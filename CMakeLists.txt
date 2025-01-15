@@ -47,9 +47,9 @@ add_definitions(${PCL_DEFINITIONS})
 
 # Add the executable
 add_executable(main
-       	main.cpp
-astar.cpp
-pointcloudrerun.cpp
+src/main.cpp
+src/astar.cpp
+src/pointcloudrerun.cpp
 )
 
 set_property(TARGET main PROPERTY CXX_STANDARD 17)
