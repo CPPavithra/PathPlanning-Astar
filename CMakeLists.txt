@@ -25,6 +25,7 @@ find_package(rerun_sdk REQUIRED)
 
 # Include directories
 include_directories(
+    include
     ${PCL_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIR}
     ${MPI_INCLUDE_PATH}
@@ -53,7 +54,9 @@ src/pointcloudrerun.cpp
 )
 
 set_property(TARGET main PROPERTY CXX_STANDARD 17)
-target_include_directories(main PRIVATE "/usr/local/include/rerun/components")
+target_include_directories(main
+PUBLIC include
+PRIVATE "/usr/local/include/rerun/components")
 # Link libraries to the executable
 target_link_libraries(main PRIVATE rerun_sdk
     ${PCL_LIBRARIES}
