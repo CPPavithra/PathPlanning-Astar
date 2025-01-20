@@ -18,8 +18,8 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <sstream>
-#include "include/rerun.h"
-#include "include/common.h"
+#include "../include/rerun.h"
+#include "common.h"
 
 //chrono is for time
 using namespace rerun;
@@ -134,8 +134,8 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
        
        
         //calculate proximity cost
-        float dist = sqrt(dx *dx + dy*dy)  /*grid_resolution*/;//euclidean distance between them. 
-       float proxcost = ((proxfactor*2.0f)/(0.1f+dist);
+        float dist = sqrt(dx *dx + dy*dy);  /*grid_resolution*/;//euclidean distance between them. 
+       float proxcost = (proxfactor*2.0f)/(0.1f+dist);
 
         //update proximity cost only if not already updated
        if (neighbor_cell.proxvisited==false) {
@@ -273,7 +273,7 @@ Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
 
 
 //function to update the rover's pose using IMU data
-void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time) {
+void update_rover_pose(struct Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time) {
     //gravity vector in the world frame
     Vector3f gravity(0.0f, 0.0f, -9.81f);
     //convert acceleration from the sensor frame to the world frame
@@ -304,9 +304,9 @@ void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& g
 }
 
     //update orientation using a small-angle quaternion
-    Quaternionf delta_q=Quaternionf(AngleAxisf(angular_velocity.norm(),angular_velocity.normalized()));
-    pose.orientation=delta_q*pose.orientation;
-    pose.orientation.normalize(); //normalize quaternion to prevent drift
+//    Quaternionf delta_q=Quaternionf(AngleAxisf(angular_velocity.norm(),angular_velocity.normalized()));
+//    pose.orientation=delta_q*pose.orientation;
+//    pose.orientation.normalize(); //normalize quaternion to prevent drift
 //convert the realsense points to pcl point
    pcl::PointCloud<pcl::PointXYZ>::Ptr convert_to_pcl(const std::vector<Eigen::Vector3f>& point_vectors) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());

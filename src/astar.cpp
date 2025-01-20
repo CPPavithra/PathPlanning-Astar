@@ -1,5 +1,5 @@
 #include <iostream>
-#include "include/astar.h"
+#include "astar.h"
 #include <vector>
 #include <cmath>
 #include <unordered_map>
@@ -27,8 +27,8 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <sstream>
-#include "include/rerun.h"
-#include "include/common.h"
+#include "rerun.h"
+#include "common.h"
 
 using namespace std;
 
@@ -130,4 +130,4 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
    }
  //return std::vector<Node>();  //return empty if not found in while loop
  return {};
-}`
+}

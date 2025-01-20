@@ -1,5 +1,5 @@
 #include <iostream>
-#include "include/astar.h"
+#include "astar.h"
 #include <vector>
 #include <cmath>
 #include <unordered_map>
@@ -27,9 +27,9 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <sstream>
-#include "include/rerun.h"
+#include "rerun.h"
 #include <deque>
-#include "include/common.h"
+#include "common.h"
 
 Gridmap gridmap;          // Define and initialize here
 float grid_resolution=0.001f; // Initialize with a value
@@ -47,9 +47,11 @@ int main()
 	auto rec = rerun::RecordingStream("gridmap");
         rec.spawn().exit_on_failure(); //this is for realsense viewer- can be avoided
 
-        std::system("realsense-viewer &");
+//        std::system("realsense-viewer &");
         rs2::pipeline pipe;
-        rs2::config cfg;
+        rs2::config cfg;  
+        cfg.enable_device_from_file("video2.bag");      
+        
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
