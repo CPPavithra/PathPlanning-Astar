@@ -4,12 +4,16 @@
 #include <vector>
 #include <string>
 
-using namespace std;
 
 // Define the Gridmap structure
 struct Gridmap {
-    vector<vector<bool>> occupancy_grid;
+    std::vector<std::vector<bool>> occupancy_grid;
     float min_x, min_y, max_x, max_y;
+};
+
+struct Pose {
+    Quaternionf orientation;
+    Vector3f position;
 };
 
 // Function declaration for creating a grid map
