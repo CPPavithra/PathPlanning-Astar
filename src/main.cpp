@@ -187,16 +187,14 @@ int main()
         }
 }
 else {
-        cout<<"Setting boundaries"<<endl;
-        cin>>startx;
-        cout<<" , ";
-        cin>>starty;
-        cout<<")"<<"\n"<<endl;
-        cout<<"Enter goal: (";
-        cin>>goalx;
-        cout<<" , ";
-        cin>>goaly;
-        cout<<")"<<"\n"<<endl;  
+           cout<<"Setting boundaries...\n";
+    cout<<"Enter starting coordinates (x y): ";
+    cin>>startx>>starty;
+
+    cout<<"Enter goal coordinates (x y): ";
+    cin>>goalx>>goaly;
+    cout<<"\nStart: ("<<startx<< ", " <<starty<< ")";
+    cout<<"\nGoal: ("<<goalx<< ", " <<goaly<< ")\n";  
 //std::this_thread::sleep_for(std::chrono::milliseconds(30));
         if (startx < gridmap.min_x || starty < gridmap.min_y || goalx > gridmap.max_x || goaly > gridmap.max_y) {
             std::cout << "Out of bound query. Valid range: (" << gridmap.min_x << ", " 
@@ -205,13 +203,13 @@ else {
             continue;  // Skip to the next iteration
         }
    else{
-        // Create start and goal nodes
+        //create start and goal nodes
         Node start(startx, starty);
         Node goal(goalx, goaly);
 
         std::cout << "Start and goal node set. A* begins..." << std::endl;
 
-        // Perform A* pathfinding
+        //a-star pathfinding
         std::vector<Node> path = astar(gridmap.occupancy_grid, start, goal);
 
         if (path.empty()) {
