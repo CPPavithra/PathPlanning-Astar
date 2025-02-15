@@ -47,10 +47,10 @@ int main()
 	auto rec = rerun::RecordingStream("gridmap");
         rec.spawn().exit_on_failure(); //this is for realsense viewer- can be avoided
 
-//        std::system("realsense-viewer &");
+        std::system("realsense-viewer &");
         rs2::pipeline pipe;
         rs2::config cfg;  
-        cfg.enable_device_from_file("video2.bag");      
+//        cfg.enable_device_from_file("video2.bag"); 
         
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
