@@ -56,8 +56,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
    	float rover_x=roverpose.position.x();
         float rover_y=roverpose.position.y();
 //ORIENTATION theta
-float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() + roverpose.orientation.x() * roverpose.orientation.y()), 
-                    1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() + roverpose.orientation.z() * roverpose.orientation.z()));
+
 
       	// to verify if it is valid
 	//cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
@@ -114,26 +113,23 @@ int grid_x = static_cast<int>(local_x / 1.0);
 int grid_y = static_cast<int>(local_y / 1.0);
 float height_at_point = dz;*/
 ///////////////////////////////////////
-float dx = point.z()/10.0f;  // Z becomes X (forward motion)
-float dy = -point.x()/10.0f; // X becomes -Y (rightward, with negative)
+cout << "Raw point data: (" << point.x() << ", " << point.y() << ", " << point.z() << ")" << endl;
+float dx = point.z();  // Z becomes X (forward motion)
+float dy = -point.x(); // X becomes -Y (rightward, with negative)
 float dz = -point.y();  
 
-/*int grid_x = static_cast<int>(dx / 1.0);
-int grid_y = static_cast<int>(dy / 1.0);
-float height_at_point = dz;*/
 
 
-float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
+float theta = atan2(2.0f*(roverpose.orientation.w()*roverpose.orientation.z()+
                             roverpose.orientation.x() * roverpose.orientation.y()), 
                     1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() +
                                    roverpose.orientation.z() * roverpose.orientation.z()));
 
-// Rotate the point based on rover's orientation
 float rotated_x = cos(theta) * dx + sin(theta) * dy;
 float rotated_y = -sin(theta) * dx + cos(theta) * dy;
 
-int grid_x = static_cast<int>(rotated_x / 1.0f);  // Convert to grid coordinates
-int grid_y = static_cast<int>(rotated_y / 1.0f);  // Convert to grid coordinates
+int grid_x = static_cast<int>(rotated_x / 1.0f);  //grid coordinates
+int grid_y = static_cast<int>(rotated_y / 1.0f); 
 
 // Height remains the same, assuming you're checking for obstacles based on height
 float height_at_point = dz;
@@ -159,7 +155,7 @@ if (it == height_map.end()) {
 }
 }*/
 
-          float adjusted_height = height_at_point; // Adjust by 30 cm (0.3m)
+          float adjusted_height = height_at_point+0.3f; // Adjust by 30 cm (0.3m)
      //    float adjusted_height = height_map[grid_cell].second;
 
          cout<<"Real height = "<<height_at_point<<" & Height adjusted: "<<adjusted_height<<"\n"<<endl;
