@@ -37,8 +37,33 @@ I have implemented Astar algorithm based on the following-
 ## Gridmap Creation
 
 
-
 ## Repo Guidance
+#to use with rerun
+-> Usually rerun is on python/Rust
+-> To run it in C++, in the documentation, a CMakeLists.txt is given with the following command
+include(FetchContent)
+FetchContent_Declare(rerun_sdk URL
+    https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
+FetchContent_MakeAvailable(rerun_sdk)
+-> With this we will have to clone into the repo and build everytime we test or run it
+-> Instead of this build directly from the repo 
+Commands for it
+
+    git clone https://github.com/rerun-io/rerun.git
+    cd rerun
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+
+
+Now, for this we might need rust as it will show error while building
+
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    source $HOME/.cargo/env
+
+export the cargo path to $PATH variable to make it work
 
 - Main files-> the main files for real time testing
 - Motor Car-> Test code for the motor car using L298N
