@@ -59,18 +59,22 @@ FetchContent_MakeAvailable(rerun_sdk)
 -> Instead of this build directly from the repo 
 Commands for it
 -------------
-git clone https://github.com/rerun-io/rerun.git
-cd rerun
-mkdir build
-cd build
-cmake ..
-make
-sudo make install
+
+    git clone https://github.com/rerun-io/rerun.git
+    cd rerun
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+
 -----------
 
 Now, for this we might need rust as it will show error while building
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
+
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    source $HOME/.cargo/env
+
 export the cargo path to $PATH variable to make it work
 
 --------
