@@ -55,36 +55,89 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
       	 
    	float rover_x=roverpose.position.x();
         float rover_y=roverpose.position.y();
+//ORIENTATION theta
+float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() + roverpose.orientation.x() * roverpose.orientation.y()), 
+                    1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() + roverpose.orientation.z() * roverpose.orientation.z()));
 
       	// to verify if it is valid
 	//cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
        for (const auto& point : point_vectors)
        {
-          int grid_x = static_cast<int>((point.z() / grid_resolution)/1000); // Map to grid cell
+    /*      int grid_x = static_cast<int>((point.z() / grid_resolution)/1000); // Map to grid cell
           int grid_y = static_cast<int>((point.x() / grid_resolution)/1000);
-          float height_at_point = point.y(); // Use z for height
+//         int grid_x = static_cast<int>((point.x() - rover_x) / grid_resolution);
+  //      int grid_y = static_cast<int>((point.y() - rover_y) / grid_resolution);   
+         float height_at_point = point.y(); // Use z for height
+*/
+//////////////////////////////////////////////////////////////////////////
+/*std::unordered_map<std::pair<int, int>, std::pair<float, float>, pair_hash> height_map;  // {min_height, max_height}  
+       std::pair<int, int> grid_cell = {grid_x, grid_y};
 
 
-          float cellsize=0.5f; //metre
+       auto it = height_map.find(grid_cell);
+if (it == height_map.end()) {
+    if (height_map.find(grid_cell) == height_map.end()) {
+              
+  height_map.emplace(grid_cell, std::make_pair(height_at_point, height_at_point));
+} else {
+    it->second.first = std::min(it->second.first, height_at_point);
+    it->second.second = std::max(it->second.second, height_at_point);
+}
+}*/
+////////////////////////////////////////////////////////////
+
           //cout << "Mapped grid position: (" << grid_x << ", " <<grid_y << ")" <<endl;
           // cout<<"Height at ("<<tolog_x<<" , "<<tolog_y<<") ->"<<roverpose.position.z()<<"\n"<<endl;
-       
-          //to calculate cost
-       	  float cost=0.0f;
-       	  if(height_at_point>height)
-       	  {
-           	cost=10.0f; //very high=cant go cost is from range 0 to 10
-       	  }
-       	  else if(height_at_point>(height/2) &&height_at_point<=(height))
-       	  {
-           	cost=5.0f;
-       	  }
-       	  else if(height_at_point>(height/4) && height_at_point<=(height/2))
-       	  {
-           	cost=1.0f;
-       	  }
+      
+ // Compute displacement from the rover's position
+/*float dx = point.x() - rover_x;
+float dy = point.y() - rover_y;  // y is the lateral
+float dz = point.z();  //z is height*/
 
-	  std::cout << "Mapped grid position: (" << grid_x  << ", " << grid_y << "), COST ->" <<cost<<"\n"<< std::endl;
+float dx = point.z() - rover_x;  // Z becomes X (forward motion)
+float dy = -point.x() - rover_y; // X becomes -Y (rightward, with negative)
+float dz = -point.y();            // Y becomes -Z (height, flipped)
+
+float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
+                            roverpose.orientation.x() * roverpose.orientation.y()), 
+                    1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() + 
+                                   roverpose.orientation.z() * roverpose.orientation.z()));
+
+
+float local_x = cos(theta) * dx + sin(theta) * dy;
+float local_y = -sin(theta) * dx + cos(theta) * dy;
+
+
+int grid_x = static_cast<int>(local_x / 1.0);
+int grid_y = static_cast<int>(local_y / 1.0);
+float height_at_point = dz;
+
+
+    // Debugging output
+    cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << endl;
+    cout << "Height at (" << grid_x << " , " << grid_y << ") -> " << height_at_point << "\n" << endl;
+
+
+     //     float adjusted_height = height_at_point; // Adjust by 30 cm (0.3m)
+         float adjusted_height = height_at_point;
+         cout<<"Real height = "<<height_at_point<<" & Height adjusted: "<<adjusted_height<<"\n"<<endl;
+
+          float cost=0.0f;
+          if(adjusted_height>height)
+          {
+                cost=10.0f; //very high=cant go cost is from range 0 to 10
+          }
+          else if(adjusted_height>(height/2) &&adjusted_height<=(height))
+          {
+                cost=5.0f;
+          }
+          else if(adjusted_height>(height/4) && adjusted_height<=(height/2))
+          {
+                cost=1.0f;
+          }
+
+
+//	  std::cout << "Mapped grid position: (" << grid_x  << ", " << grid_y << "), COST ->" <<cost<<"\n"<< std::endl;
 	 
     
      // USE BIT MASK ENCODING TO CHECK IF THE NODE IS VISITED OR NOT, I have used visited and proxvisited boolean visited and proxvisited with the cost proxcost.
@@ -114,7 +167,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
 
 //////////////////////////////////////////////////
 //NEIGHBOURING COST PADDING
-   float prox=1; //edit as needed
+/*   float prox=1; //edit as needed
     for (float dx=-prox; dx<=prox;++dx) {
         for (float dy=-prox; dy <=prox ;++dy) {
             if (dx == 0 && dy == 0) continue;  // Skip the current cell
@@ -135,7 +188,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
        
         //calculate proximity cost
         float dist = sqrt(dx *dx + dy*dy);  /*grid_resolution*/;//euclidean distance between them. 
-       float proxcost = (proxfactor*2.0f)/(0.1f+dist);
+   /*    float proxcost = (proxfactor*2.0f)/(0.1f+dist);
 
         //update proximity cost only if not already updated
        if (neighbor_cell.proxvisited==false) {
@@ -146,7 +199,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
 	}
 	}
    }
-}
+}*/
 
 // Initialize the boundaries to extreme values
        int min_x = INT_MAX;
@@ -180,7 +233,7 @@ gridmap.max_y=max_y;
 
 }
 /////////////////////////
-
+}
 
 
 //color based on cost
@@ -271,37 +324,23 @@ Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
 	return Eigen::Vector3f(rs2_vec.x, rs2_vec.y, rs2_vec.z);
 }//helper function to convert rs2 to eigen vector3f
 
+void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time) {
+    Vector3f gravity(0.0f, 0.0f, -9.81f);
+    Vector3f accel_world = pose.orientation * accel_data;  // ✅ Rotate acceleration into world frame
+    accel_world -= gravity;
+
+    pose.velocity += accel_world * delta_time;
+    pose.position += pose.velocity * delta_time + 0.5f * accel_world * delta_time * delta_time;
+    pose.position /= 1000.0f;  // Convert from mm to meters if needed
+
+    Vector3f angular_velocity = gyro_data * delta_time;
+    Quaternionf delta_q = Quaternionf(AngleAxisf(angular_velocity.norm(), angular_velocity.normalized()));
+
+    pose.orientation = delta_q * pose.orientation;
+    pose.orientation.normalize();  // ✅ Normalize to prevent drift
+}
 
 //function to update the rover's pose using IMU data
-void update_rover_pose(struct Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time) {
-    //gravity vector in the world frame
-    Vector3f gravity(0.0f, 0.0f, -9.81f);
-    //convert acceleration from the sensor frame to the world frame
-    Vector3f accel_world=pose.orientation*accel_data;
-
-    //subtract gravity from the acceleration
-    accel_world=accel_world-gravity;
-    //v=u+at
-    pose.velocity=pose.velocity+accel_world*delta_time;
-
-    //s=ut+0.5at^2
-    Vector3f delta_position=(pose.velocity*delta_time)+(0.5f*accel_world*delta_time*delta_time);
-    pose.position=pose.position+delta_position;
-
-    //convert position from millimeters to meters if required
-    pose.position=pose.position/1000.0f;
-
-    //compute angular velocity from gyroscope data
-    Vector3f angular_velocity=gyro_data*delta_time;
-
-    //update orientation using a small-angle quaternion
-    Quaternionf delta_q=Quaternionf(AngleAxisf(angular_velocity.norm(),angular_velocity.normalized()));
-    pose.orientation=delta_q*pose.orientation;
-    pose.orientation.normalize(); //normalize quaternion to prevent drift
-
-    cout<< "Position: "<<pose.position.transpose() <<endl;
-    cout<< "Velocity: " <<pose.velocity.transpose() <<endl;
-}
 
     //update orientation using a small-angle quaternion
 //    Quaternionf delta_q=Quaternionf(AngleAxisf(angular_velocity.norm(),angular_velocity.normalized()));
