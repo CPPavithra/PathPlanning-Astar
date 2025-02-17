@@ -41,7 +41,7 @@ Pose rover_pose;
 rover_pose.orientation = Eigen::Matrix3f::Identity();
 rover_pose.velocity = Eigen::Vector3f(0, 0, 0);*/
 bool input_ready=false;
-int limit=300;
+int limit=50;
 int main()
 {
 	auto rec = rerun::RecordingStream("gridmap");
@@ -50,7 +50,7 @@ int main()
 //        std::system("realsense-viewer &");
         rs2::pipeline pipe;
         rs2::config cfg;  
-      // cfg.enable_device_from_file("actualgoodvideo.bag"); 
+   //    cfg.enable_device_from_file("actualgoodvideo.bag"); 
         
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 

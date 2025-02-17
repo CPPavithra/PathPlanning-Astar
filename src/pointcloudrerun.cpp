@@ -94,7 +94,9 @@ if (it == height_map.end()) {
 float dy = point.y() - rover_y;  // y is the lateral
 float dz = point.z();  //z is height*/
 
-float dx = point.z() - rover_x;  // Z becomes X (forward motion)
+
+       ////////////////////////////
+/*float dx = point.z() - rover_x;  // Z becomes X (forward motion)
 float dy = -point.x() - rover_y; // X becomes -Y (rightward, with negative)
 float dz = -point.y();            // Y becomes -Z (height, flipped)
 
@@ -110,16 +112,56 @@ float local_y = -sin(theta) * dx + cos(theta) * dy;
 
 int grid_x = static_cast<int>(local_x / 1.0);
 int grid_y = static_cast<int>(local_y / 1.0);
-float height_at_point = dz;
+float height_at_point = dz;*/
+///////////////////////////////////////
+float dx = point.z()/10.0f;  // Z becomes X (forward motion)
+float dy = -point.x()/10.0f; // X becomes -Y (rightward, with negative)
+float dz = -point.y();  
 
+/*int grid_x = static_cast<int>(dx / 1.0);
+int grid_y = static_cast<int>(dy / 1.0);
+float height_at_point = dz;*/
+
+
+float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
+                            roverpose.orientation.x() * roverpose.orientation.y()), 
+                    1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() +
+                                   roverpose.orientation.z() * roverpose.orientation.z()));
+
+// Rotate the point based on rover's orientation
+float rotated_x = cos(theta) * dx + sin(theta) * dy;
+float rotated_y = -sin(theta) * dx + cos(theta) * dy;
+
+int grid_x = static_cast<int>(rotated_x / 1.0f);  // Convert to grid coordinates
+int grid_y = static_cast<int>(rotated_y / 1.0f);  // Convert to grid coordinates
+
+// Height remains the same, assuming you're checking for obstacles based on height
+float height_at_point = dz;
 
     // Debugging output
     cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << endl;
     cout << "Height at (" << grid_x << " , " << grid_y << ") -> " << height_at_point << "\n" << endl;
 
+//TO UPDATE BASED ON THE HIGHEST POINT DETECTED
+//	std::map<std::pair<int, int>, std::pair<float, float>> height_map; // {min, max}
+/*std::unordered_map<std::pair<int, int>, std::pair<float, float>, pair_hash> height_map;  // {min_height, max_height}  
+       std::pair<int, int> grid_cell = {grid_x, grid_y};
 
-     //     float adjusted_height = height_at_point; // Adjust by 30 cm (0.3m)
-         float adjusted_height = height_at_point;
+
+       auto it = height_map.find(grid_cell);
+if (it == height_map.end()) {
+    if (height_map.find(grid_cell) == height_map.end()) {
+              
+  height_map.emplace(grid_cell, std::make_pair(height_at_point, height_at_point));
+} else {
+    it->second.first = std::min(it->second.first, height_at_point);
+    it->second.second = std::max(it->second.second, height_at_point);
+}
+}*/
+
+          float adjusted_height = height_at_point; // Adjust by 30 cm (0.3m)
+     //    float adjusted_height = height_map[grid_cell].second;
+
          cout<<"Real height = "<<height_at_point<<" & Height adjusted: "<<adjusted_height<<"\n"<<endl;
 
           float cost=0.0f;
