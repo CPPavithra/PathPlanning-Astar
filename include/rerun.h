@@ -38,7 +38,7 @@ struct Pose
 {
         Vector3f position;
         Vector3f velocity;
-        Matrix3f orientation;
+        Quaternionf orientation;
 };
 
 //GLOBALLY
@@ -48,7 +48,7 @@ extern int batch_threshold;
 
 // Function prototypes
 void create_gridmap(Gridmap& gridmap, const std::vector<Vector3f>& points,
-                    const Pose& roverpose, float grid_resolution = 0.001f, float height = 2.0f, float proxfactor = 0.5f);
+                    const Pose& roverpose, float grid_resolution = 0.001f, float height = 10.0f, float proxfactor = 0.5f);
 
 rerun::components::Color get_color_for_cost(const CellCost& cell);
 
