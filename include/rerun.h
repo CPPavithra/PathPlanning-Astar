@@ -58,6 +58,8 @@ void draw_gridmap(const Gridmap& gridmap, const std::vector<Vector3f>& point_vec
 
 void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time);
 
+void log_navigation_pane(rerun::RecordingStream& rec, const Pose& roverpose);
+
 Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec);
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr convert_to_pcl(const std::vector<Eigen::Vector3f>& point_vectors);

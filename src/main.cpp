@@ -30,7 +30,7 @@
 #include <sstream>
 #include "rerun.h"
 #include <deque>
-#include "common.h"
+#include "common.h"       // Add this for image functionality// Add this for text_document
 #include <set>
 
 Gridmap gridmap;          // Define and initialize here
@@ -76,11 +76,53 @@ Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const No
 }
 
 
+// LOGGING FUNCTION FOR MULTIPLE SCREENS
+void log_views(rerun::RecordingStream& rec) {
+    // Log camera feeds
+   rec.log_static("depth_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
+   rec.log_static("rgb_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
+    
+    // Log grid map, rover feedback, and navigation pane
+    rec.log_static("grid_map", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
+    rec.log_static("rover_feedback", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
+    rec.log_static("navigation_pane", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
+}
+
+void log_camera_frames(rerun::RecordingStream& rec, const rs2::frameset& frameset) {
+    auto color_frame = frameset.get_color_frame();
+  //  auto depth_frame = frameset.get_depth_frame();
+
+        uint32_t width = color_frame.get_width();
+        uint32_t height = color_frame.get_height();
+        const uint8_t* color_data = static_cast<const uint8_t*>(color_frame.get_data());
+
+        rec.log("rgb_camera",
+                rerun::Image::from_rgb24(std::vector<uint8_t>(color_data, color_data + (width * height * 3)),  
+                    { width, height }));
+
+  /*  if (depth_frame) {
+        uint32_t width = depth_frame.get_width();
+        uint32_t height = depth_frame.get_height();
+        const uint16_t* depth_data = static_cast<const uint16_t*>(depth_frame.get_data());
+
+        rec.log("depth_camera",
+                rerun::DepthImage(std::vector<uint16_t>(depth_data, depth_data + (width * height)),  
+                                  { width, height },
+                                  rerun::datatypes::ChannelDatatype::U16));
+    }*/
+}
+
+void log_rover_feedback(rerun::RecordingStream& rec) {
+    // Placeholder function for logging rover movement feedback
+    rec.log("rover_feedback", rerun::TextLog("Rover movement tracking enabled."));
+}
+
+
 int main()
 {
       	auto rec = rerun::RecordingStream("gridmap");
         rec.spawn().exit_on_failure(); //this is for realsense viewer- can be avoided
-
+        log_views(rec);
         //std::system("realsense-viewer &");
         rs2::pipeline pipe;
         rs2::config cfg;  
@@ -90,6 +132,7 @@ int main()
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
         cfg.enable_stream(RS2_STREAM_ACCEL);
+        cfg.enable_stream(RS2_STREAM_COLOR);
      
     
         pipe.start(cfg);
@@ -119,7 +162,7 @@ int main()
         cout<<"Enter starting coordinates (x y): ";
         cin>>startx>>starty;
         cout<<"\nStart: ("<<startx<< ", " <<starty<< ")";
-        Node goal(37,24); //take goal as a user input later
+        Node goal(15,15); //take goal as a user input later
        // cout << "Goal: (" << goal.x << ", " << goal.y << ")\n";  
      
    
@@ -180,6 +223,11 @@ int main()
              //process depth data to create point cloud
              rs2::depth_frame depth_frame = frameset.get_depth_frame();
              points = pc.calculate(depth_frame);
+            
+             //LOGGING THE frameset
+              log_camera_frames(rec, frameset);
+              log_rover_feedback(rec);
+              //log_navigation_pane(rec,rover_pose);
 
              //collect point cloud data
              point_vectors.clear();
@@ -289,7 +337,7 @@ int main()
                  // Log all nodes together instead of per node
                  rec.log("full_path",rerun::Points3D(subpath)
                         .with_colors({rerun::Color(0, 0, 255)}) // Blue color
-                        .with_radii({0.5f}) // Radius 0.5);
+                        .with_radii({0.5f})); // Radius 0.5);
              }
 
              // Update current start to the end of the current path

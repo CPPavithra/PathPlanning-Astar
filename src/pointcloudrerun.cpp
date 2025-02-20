@@ -155,7 +155,7 @@ if (it == height_map.end()) {
 }
 }*/
 
-          float adjusted_height = height_at_point+0.3f; // Adjust by 30 cm (0.3m)
+          float adjusted_height = height_at_point+0.; // Adjust by 30 cm (0.3m)
      //    float adjusted_height = height_map[grid_cell].second;
 
          cout<<"Real height = "<<height_at_point<<" & Height adjusted: "<<adjusted_height<<"\n"<<endl;
@@ -351,12 +351,29 @@ void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, 
 
       
      colors.push_back(color);
-     std::string tag = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_"+ std::to_string(value.cost);
+     //std::string tag = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_"+ std::to_string(value.cost);
+     //rec.log("grid_view/cells", rerun::Points3D(points).with_colors({color}).with_radii({0.5f}));
+     std::string cell_id = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_" + std::to_string(value.cost);
+     std::string tag = "grid_map" + cell_id;
      rec.log(tag, rerun::Points3D(points).with_colors({color}).with_radii({0.5f}));
 }
+ // Log navigation status
+  /*  std::string status = "Grid Size: " + std::to_string(gridmap.occupancy_grid.size()) + 
+                        "\nRover Position: (" + 
+                        std::to_string(roverpose.position.x()) + ", " +
+                        std::to_string(roverpose.position.y()) + ")";
+    rec.log("nav_status", rerun::TextDocument(status));*/
 colors.clear();
 }
 
+/*void log_navigation_pane(rerun::RecordingStream& rec,  const Pose& roverpose) {
+    std::ostringstream nav_data;
+    nav_data << "Navigation Status: \n";
+    nav_data << "- Path planning active\n";
+    nav_data << "- Obstacle detection enabled\n";
+    nav_data << "- Current pose: (" << roverpose.position.x << ", " << roverpose.position.y << ")\n";
+    rec.log("navigation_pane", rerun::TextLog(nav_data.str()));
+}*/
 
 Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
 	return Eigen::Vector3f(rs2_vec.x, rs2_vec.y, rs2_vec.z);
