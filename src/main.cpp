@@ -41,7 +41,16 @@ using namespace std;
 Pose rover_pose;
 bool input_ready=false;
 int limit=30;
-
+std::string table_text = 
+    "Color   | Signifies      | Cost\n\n"
+    "--------|----------------|-------------\n\n"
+    "Blue    | PATH           | 0 - Free\n\n"
+    "--------|----------------|-------------\n\n"
+    "Black   | Tall obstacles | 10\n\n"
+    "--------|----------------|-------------\n\n"
+    "Red     | Mid-obstacles  | 5\n\n"
+    "--------|----------------|-------------\n\n"
+    "Yellow  | Easy obstacles | 1\n\n";
 
 // TO FIND THE CHECKPOINTS
 Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
@@ -77,45 +86,61 @@ Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const No
 
 
 // LOGGING FUNCTION FOR MULTIPLE SCREENS
-void log_views(rerun::RecordingStream& rec) {
     // Log camera feeds
-   rec.log_static("depth_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
-   rec.log_static("rgb_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
-    
-    // Log grid map, rover feedback, and navigation pane
-    rec.log_static("grid_map", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
-    rec.log_static("rover_feedback", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
-    rec.log_static("navigation_pane", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
-}
+void log_views(rerun::RecordingStream& rec) {
+    // Define spatial views
+    rec.log_static("grid_map", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);  // Left 3/4th pane
+
+    rec.log_static("rgb_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Top-right
+    rec.log_static("heat_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Below RGB camera
+
+    rec.log_static("rover_feedback", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Bottom-right log
+    rec.log_static("cost_table", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Bottom-right navigation
+
+    // Define views manually using SpaceView
+  }
+
 
 void log_camera_frames(rerun::RecordingStream& rec, const rs2::frameset& frameset) {
+    // Get color frame
     auto color_frame = frameset.get_color_frame();
-  //  auto depth_frame = frameset.get_depth_frame();
+    auto ir_frame = frameset.get_infrared_frame();  // Get IR frame from frameset
 
-        uint32_t width = color_frame.get_width();
-        uint32_t height = color_frame.get_height();
-        const uint8_t* color_data = static_cast<const uint8_t*>(color_frame.get_data());
+    // Get color frame properties
+    uint32_t width = color_frame.get_width();
+    uint32_t height = color_frame.get_height();
+    const uint8_t* color_data = static_cast<const uint8_t*>(color_frame.get_data());
 
-        rec.log("rgb_camera",
-                rerun::Image::from_rgb24(std::vector<uint8_t>(color_data, color_data + (width * height * 3)),  
-                    { width, height }));
+    // Log color (RGB) frame
+    rec.log("rgb_camera",
+            rerun::Image::from_rgb24(std::vector<uint8_t>(color_data, color_data + (width * height * 3)),  
+                { width, height }));
 
-  /*  if (depth_frame) {
-        uint32_t width = depth_frame.get_width();
-        uint32_t height = depth_frame.get_height();
-        const uint16_t* depth_data = static_cast<const uint16_t*>(depth_frame.get_data());
+    // Get IR frame properties
+    uint32_t ir_width = ir_frame.get_width();
+    uint32_t ir_height = ir_frame.get_height();
+    const uint8_t* ir_data = static_cast<const uint8_t*>(ir_frame.get_data());
 
-        rec.log("depth_camera",
-                rerun::DepthImage(std::vector<uint16_t>(depth_data, depth_data + (width * height)),  
-                                  { width, height },
-                                  rerun::datatypes::ChannelDatatype::U16));
-    }*/
+    // Log Infrared (IR) frame as grayscale image
+    rec.log("heat_camera",
+        rerun::DepthImage(ir_data, {ir_width, ir_height}, rerun::datatypes::ChannelDatatype::U8));
+    
 }
+
 
 void log_rover_feedback(rerun::RecordingStream& rec) {
     // Placeholder function for logging rover movement feedback
     rec.log("rover_feedback", rerun::TextLog("Rover movement tracking enabled."));
 }
+
+/*void table(rerun::RecordingStream& rec)
+{
+  rec.log("cost_table", rerun::Image::from_png_file("table.png"));
+}*/
+
+
+
+
 
 
 int main()
@@ -126,14 +151,19 @@ int main()
         //std::system("realsense-viewer &");
         rs2::pipeline pipe;
         rs2::config cfg;  
-        cfg.enable_device_from_file("actualgoodvideo.bag"); 
+       // cfg.enable_device_from_file("actualgoodvideo.bag"); 
         
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
         cfg.enable_stream(RS2_STREAM_ACCEL);
         cfg.enable_stream(RS2_STREAM_COLOR);
-     
+      
+
+             cfg.enable_stream(RS2_STREAM_INFRARED, 1); // Left IR
+cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
+          // Enable Right IR (optional)
+ 
     
         pipe.start(cfg);
 
@@ -174,6 +204,8 @@ int main()
         Node final_goal = goal;
         std::vector<Node> full_path;
         std::set<std::pair<int, int>> visited_nodes;
+
+        rec.log("cost_table",rerun::archetypes::TextDocument(table_text));
 
        while (gridmap.occupancy_grid.size()<maxgrid)
        {
@@ -227,7 +259,7 @@ int main()
              //LOGGING THE frameset
               log_camera_frames(rec, frameset);
               log_rover_feedback(rec);
-              //log_navigation_pane(rec,rover_pose);
+                          //log_navigation_pane(rec,rover_pose);
 
              //collect point cloud data
              point_vectors.clear();
