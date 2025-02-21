@@ -38,6 +38,7 @@ using namespace std;
 Pose rover_pose;
 bool input_ready=false;
 int limit=30;
+int last_index=0;
 std::string table_text = 
     "Color   | Signifies      | Cost\n\n"
     "--------|----------------|-------------\n\n"
@@ -409,8 +410,8 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
                       // Move the rover every 5 points or at the last point
                       if ((i + 1) % 5 == 0 || i == path.size() - 1) {
                            cout << "\nMoving rover along path segment..." << std::endl;
-                           moveRoverAlongPath({path.begin(), path.begin() + i + 1}); // Move segment
-
+                           moveRoverAlongPath({path.begin()+last_index, path.begin() + i + 1}); // Move segment
+                           last_index = i + 1;
                            // Stop path planning to allow mapping updates
                            if(path[i]==goal)
                            {
