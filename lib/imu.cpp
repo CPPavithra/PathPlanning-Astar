@@ -1,5 +1,10 @@
 #include <chrono>
-#define Ki 0.0
+#include "../include/imu.h"
+#include <iostream>
+#include <stdlib.h>
+#include "cobs.h"
+using namespace std;
+/*#define Ki 0.0
 #define Kp 1
 #define Kd 0.0
 struct motion{
@@ -11,7 +16,7 @@ struct gyro{
   float x, y, z;
 };
 struct drive{
-  float liner_x, angular_z;
+  float linear_x, angular_z;
 };
 const float g = 9.81;
 const float alpha = 0.5;
@@ -38,10 +43,58 @@ const float alpha_gyro = 0.5;
 /*    return (R);*/
 /*}*/
 float yaw();
-void left();
-void right();
-void diagonal_forward();
-void forward();
+float rot=0.5;
+float speed=0.3;
+void sendcommand(const drive &cmd) {
+    uint8_t raw_data[sizeof(drive)];
+    serializeDrive(cmd, raw_data, sizeof(raw_data));
+
+    uint8_t encoded_data[sizeof(raw_data) + 2];  // +2 to account for COBS overhead
+    cobs_encode_result result = cobs_encode(encoded_data, sizeof(encoded_data), raw_data, sizeof(raw_data));
+
+    if (result.status == COBS_ENCODE_OK) {
+        encoded_data[result.out_len] = 0x00; // Append COBS delimiter (COBS requires a trailing 0x00)
+        Serial.write(encoded_data, result.out_len + 1); // Send over serial
+    } else {
+        Serial.println("COBS encoding failed!");
+    }
+}
+void left()
+{
+ drive d;
+ d.linear_x=0.0f;
+ d.angular_z=rot;
+ cout<<"Going LEFT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+ sendcommand(d);
+}
+
+void right()
+{
+ drive d;
+ d.linear_x=0.0f;
+ d.angular_z=-rot;
+  cout<<"Going RIGHT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+}
+
+void diagonal_forward()
+{
+drive d;
+d.linear_x=speed;
+d.angular_z=rot/2;
+cout<<"Going DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+} 
+
+void forward()
+{
+drive d;
+d.linear_x=speed;
+d.angular_z=0.0f;
+cout<<"Going DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+}
+
 void Drive(int dir, float t, int prev_dir)
 {
   float current_angle = prev_dir * 45;
@@ -55,10 +108,13 @@ void Drive(int dir, float t, int prev_dir)
   else if((final_angle - current_angle) > 0)
     for(int i=current_angle ; i!=final_angle ; i+=45)
       right();
- if(dir == 1) 
+
+ if(dir%2 == 1) //that is if dir is odd (diagonal)
   diagonal_forward();
- else forward();
+ else 
+   forward();
 }
+
 int PID(int target, int initial)
 {
   return 0;
