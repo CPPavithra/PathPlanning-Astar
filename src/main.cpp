@@ -30,7 +30,8 @@
 #include <sstream>
 #include "rerun.h"
 #include <deque>
-#include "common.h"       // Add this for image functionality// Add this for text_document
+#include "common.h"  
+#include "imu.h" // Add this for image functionality// Add this for text_document
 #include <set>
 
 Gridmap gridmap;          // Define and initialize here
@@ -44,13 +45,13 @@ int limit=30;
 std::string table_text = 
     "Color   | Signifies      | Cost\n\n"
     "--------|----------------|-------------\n\n"
-    "Blue    | PATH           | 0 - Free\n\n"
+    "Blue     | PATH           | 0 - Free\n\n"
     "--------|----------------|-------------\n\n"
-    "Black   | Tall obstacles | 10\n\n"
+    "Black    | Tall obstacles | 10\n\n"
     "--------|----------------|-------------\n\n"
-    "Red     | Mid-obstacles  | 5\n\n"
+    "Red      | Mid-obstacles  | 5\n\n"
     "--------|----------------|-------------\n\n"
-    "Yellow  | Easy obstacles | 1\n\n";
+    "Yellow   | Easy obstacles | 1\n\n";
 
 // TO FIND THE CHECKPOINTS
 Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
@@ -139,8 +140,35 @@ void log_rover_feedback(rerun::RecordingStream& rec) {
 }*/
 
 
+void moveRoverAlongPath(struct Handle *handle, const std::vector<Node>& path) {
+    if (path.size() < 2) return;  // No movement needed
 
+    int prev_dir = 0;  // Start with no direction
 
+    for (size_t i = 1; i < path.size(); i++) {
+        int dx = path[i].x - path[i - 1].x;
+        int dy = path[i].y - path[i - 1].y;
+
+        // Determine direction index (0-7 for 45-degree increments)
+        int dir = 0;
+        if (dx > 0 && dy == 0) dir = 0;  // Right
+        else if (dx > 0 && dy > 0) dir = 1;  // Top-right
+        else if (dx == 0 && dy > 0) dir = 2;  // Up
+        else if (dx < 0 && dy > 0) dir = 3;  // Top-left
+        else if (dx < 0 && dy == 0) dir = 4;  // Left
+        else if (dx < 0 && dy < 0) dir = 5;  // Bottom-left
+        else if (dx == 0 && dy < 0) dir = 6;  // Down
+        else if (dx > 0 && dy < 0) dir = 7;  // Bottom-right
+
+        float distance = sqrt(dx*dx + dy*dy)*1.0f;//grid resolution=1.0f
+        float time_needed = distance / 0.2;  
+
+        Drive(dir, time_needed, prev_dir);//this function is in imu.cpp
+        std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
+
+        prev_dir = dir;  
+    }
+}
 
 
 int main()
@@ -187,6 +215,9 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
         int counter=0; //to check when path planning is to be called
         int adder=0;
 
+          rec.log("cost_table",rerun::archetypes::TextDocument(table_text));
+
+
         //path planning- just setting the starting node
         cout<<"Setting boundaries...\n";
         cout<<"Enter starting coordinates (x y): ";
@@ -204,8 +235,6 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
         Node final_goal = goal;
         std::vector<Node> full_path;
         std::set<std::pair<int, int>> visited_nodes;
-
-        rec.log("cost_table",rerun::archetypes::TextDocument(table_text));
 
        while (gridmap.occupancy_grid.size()<maxgrid)
        {
@@ -259,6 +288,7 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
              //LOGGING THE frameset
               log_camera_frames(rec, frameset);
               log_rover_feedback(rec);
+              //log_table("table.png",rec);
                           //log_navigation_pane(rec,rover_pose);
 
              //collect point cloud data
