@@ -51,6 +51,7 @@ add_executable(main
 src/main.cpp
 src/astar.cpp
 src/pointcloudrerun.cpp
+lib/imu.cpp
 )
 
 set_property(TARGET main PROPERTY CXX_STANDARD 17)

@@ -45,6 +45,12 @@ const float alpha_gyro = 0.5;
 float yaw();
 float rot=0.5;
 float speed=0.3;
+
+void serializeDrive(const drive &cmd, uint8_t *buffer, size_t buf_size) {
+    if (buf_size < sizeof(drive)) return;
+    memcpy(buffer, &cmd, sizeof(drive));
+}
+
 void sendcommand(const drive &cmd) {
     uint8_t raw_data[sizeof(drive)];
     serializeDrive(cmd, raw_data, sizeof(raw_data));

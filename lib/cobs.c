@@ -4,7 +4,7 @@
  * Consistent Overhead Byte Stuffing
  */
 
-#include <Tarzan/lib/cobs.h>
+#include "cobs.h"
 #include <stdlib.h>
 
 /*****************************************************************************
