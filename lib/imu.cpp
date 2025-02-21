@@ -46,13 +46,13 @@ float yaw();
 float rot=0.5;
 float speed=0.3;
 
-void serializeDrive(const drive &cmd, uint8_t *buffer, size_t buf_size) {
+/*void serializeDrive(const drive &cmd, uint8_t *buffer, size_t buf_size) {
     if (buf_size < sizeof(drive)) return;
     memcpy(buffer, &cmd, sizeof(drive));
-}
+}*/
 
 void sendcommand(const drive &cmd) {
-    uint8_t raw_data[sizeof(drive)];
+/*    uint8_t raw_data[sizeof(drive)];
     serializeDrive(cmd, raw_data, sizeof(raw_data));
 
     uint8_t encoded_data[sizeof(raw_data) + 2];  // +2 to account for COBS overhead
@@ -63,7 +63,8 @@ void sendcommand(const drive &cmd) {
         Serial.write(encoded_data, result.out_len + 1); // Send over serial
     } else {
         Serial.println("COBS encoding failed!");
-    }
+    }*/
+  cout<<"COMMAND TO BE SENT- WRITE CODE"<<endl;
 }
 void left()
 {

@@ -52,6 +52,7 @@ src/main.cpp
 src/astar.cpp
 src/pointcloudrerun.cpp
 lib/imu.cpp
+lib/cobs.c
 )
 
 set_property(TARGET main PROPERTY CXX_STANDARD 17)

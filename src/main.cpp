@@ -3,8 +3,6 @@
 #include <ostream>
 #include <vector>
 #include <cmath>
-#include <unordered_map>
-#include <queue>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -14,10 +12,7 @@
 #include <rerun.hpp>
 #include <Eigen/Dense>
 #include <thread>
-#include <mutex>
 #include <chrono>
-#include <unordered_map>
-#include <functional>
 #include <Eigen/Core>
 //for downsampling and filtering
 #include <pcl/point_cloud.h>
@@ -26,13 +21,14 @@
 #include <pcl/filters/voxel_grid.h>
 #include <cstdlib>
 #include <rerun/demo_utils.hpp>
-#include <unordered_set>
-#include <sstream>
 #include "rerun.h"
-#include <deque>
 #include "common.h"  
 #include "imu.h" // Add this for image functionality// Add this for text_document
 #include <set>
+
+/***********************************************
+ * DEFINING GLOBAL VARIABLES HERE*
+ ***********************************************/
 
 Gridmap gridmap;          // Define and initialize here
 float grid_resolution=0.001f; // Initialize with a value
@@ -53,6 +49,8 @@ std::string table_text =
     "--------|----------------|-------------\n\n"
     "Yellow   | Easy obstacles | 1\n\n";
 
+/********************************************************
+ * ******************************************************/
 // TO FIND THE CHECKPOINTS
 Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
     Node best_node = current_start;
@@ -85,9 +83,17 @@ Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const No
     return best_node;
 }
 
+/*****************************************************************************
+ * There are a few functions to log views in the rerun viewer.
+ * The Blueprint attribute is not being recognised so we have to manually adjust the screen view.
+ * Add more in the future if needed.
+ * Now it includes- 1. Grid map 
+                    2. Cost table
+                    3. Rover feedback
+                    4. Stereo camera
+                    5. Realsense color enable_stream
+  ****************************************************************************/
 
-// LOGGING FUNCTION FOR MULTIPLE SCREENS
-    // Log camera feeds
 void log_views(rerun::RecordingStream& rec) {
     // Define spatial views
     rec.log_static("grid_map", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);  // Left 3/4th pane
@@ -134,13 +140,14 @@ void log_rover_feedback(rerun::RecordingStream& rec) {
     rec.log("rover_feedback", rerun::TextLog("Rover movement tracking enabled."));
 }
 
-/*void table(rerun::RecordingStream& rec)
-{
-  rec.log("cost_table", rerun::Image::from_png_file("table.png"));
-}*/
+/********************************************************************************************
+ * ******************************************************************************************/
 
+/******************************************************************************************
+ * FUNCTION TO DETERMINE THE DIRECTION FOR THE ROVER TO MOVE (HARDCODED POSITIONS)
+ * ****************************************************************************************/
 
-void moveRoverAlongPath(struct Handle *handle, const std::vector<Node>& path) {
+void moveRoverAlongPath(const std::vector<Node>& path) {
     if (path.size() < 2) return;  // No movement needed
 
     int prev_dir = 0;  // Start with no direction
@@ -169,7 +176,7 @@ void moveRoverAlongPath(struct Handle *handle, const std::vector<Node>& path) {
         prev_dir = dir;  
     }
 }
-
+/***********************************************************************************************/
 
 int main()
 {
@@ -356,6 +363,8 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
           }
           else
           {
+            while(pathplanning_flag)
+            {
                // Mark the current start as visited
              visited_nodes.insert({current_start.x, current_start.y});
              std::vector<rerun::Position3D> subpath; // Store all nodes for logging
@@ -388,11 +397,32 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
                  // Clear subpath before using it
                  subpath.clear();
 
-                 for (const Node& node : path) 
+                 /*for (const Node& node : path) 
                  {
                     std::cout << "(" << node.x << "," << node.y << ") ";
                     subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f}); // z=0 for 2D
-                 }
+                 }*/
+                 for (size_t i = 0; i < path.size(); ++i) {
+                      cout << "(" << path[i].x << "," << path[i].y << ") ";
+                      subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f}); // z=0 for 2D
+
+                      // Move the rover every 5 points or at the last point
+                      if ((i + 1) % 5 == 0 || i == path.size() - 1) {
+                           cout << "\nMoving rover along path segment..." << std::endl;
+                           moveRoverAlongPath({path.begin(), path.begin() + i + 1}); // Move segment
+
+                           // Stop path planning to allow mapping updates
+                           if(path[i]==goal)
+                           {
+                             break; //break out of this while loop to check if current goal is equal to final goal but keeping pathplanning flag as true only
+                           }
+                           else
+                           {
+                           pathplanning_flag = false;
+                           break;  // Exit to update grid and replan
+                           }
+                      }
+                  }
 
                  std::cout << std::endl;
 
@@ -411,6 +441,7 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
                 break;
              }
              pathplanning_flag=false;
+            }
 
         }
     }
