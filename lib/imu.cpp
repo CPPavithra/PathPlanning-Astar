@@ -45,8 +45,8 @@ const float alpha_gyro = 0.5;
 /*    return (R);*/
 /*}*/
 float yaw();
-float rot=0.5;
-float speed=0.3;
+float rot=2.5;
+float speed=-0.5;
 boost::asio::io_service io;
 boost::asio::serial_port serial(io);// DEFINITION
 /*boost::asio::io_service io;
@@ -139,28 +139,43 @@ drive d;
 d.linear_x=speed;
 d.angular_z=0.0f;
 d.msg=0;
-cout<<"Going DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+cout<<"Going FORWARD with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
 }
 
+void sendfinalsignal()
+{
+  drive d;
+  d.linear_x=0.0f;
+  d.angular_z=0.0f;
+  d.msg=0;
+  cout<<"Goal Reached- Rover stopped"<<endl;
+  sendcommand(d);
+}
 void Drive(int dir, float t, int prev_dir)
 {
-  float current_angle = prev_dir * 45;
-  float final_angle = dir*45;
+    float current_angle = prev_dir * 45;  // Convert previous direction to degrees
+    float final_angle = dir * 45;  // Convert target direction to degrees
 
-  drive drive;
-  if((final_angle - current_angle) < 0)
-    for(int i=current_angle ; i!=final_angle ; i-=45)
-      left();
-  
-  else if((final_angle - current_angle) > 0)
-    for(int i=current_angle ; i!=final_angle ; i+=45)
-      right();
+    if (final_angle != current_angle) { //if final angle=current then we dont need to unnecessarilly rotate it again
+        if ((final_angle - current_angle) < 0) {
+            //left till it faces right direction
+            for (int i = current_angle; i != final_angle; i -= 45) {
+                left();
+            }
+        } else {
+            //right till it faces right direction
+            for (int i = current_angle; i != final_angle; i += 45) {
+                right();
+            }
+        }
+    }
 
- if(dir%2 == 1) //that is if dir is odd (diagonal)
-  diagonal_forward();
- else 
-   forward();
+    // Move forward in the new direction
+    if (dir % 2 == 1)  //if the dir is odd->diagonal movement
+        diagonal_forward();
+    else 
+        forward();
 }
 
 int PID(int target, int initial)

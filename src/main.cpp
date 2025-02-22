@@ -38,7 +38,7 @@ int startx, starty, goalx, goaly;
 using namespace std;
 Pose rover_pose;
 bool input_ready=false;
-int limit=30;
+int limit=10;
 int last_index=0;
 std::string table_text = 
     "Color   | Signifies      | Cost\n\n"
@@ -191,7 +191,7 @@ int main()
        // cfg.enable_device_from_file("actualgoodvideo.bag"); 
         
         //SERIAL CONNECTION
-        initSerial("/dev/ttyACM0", 9600);
+        initSerial("/dev/ttyACM1", 9600);
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
@@ -362,7 +362,7 @@ int main()
              {
                 cout<<"Mapping paused. Switching to path planning." << std::endl;
                 pathplanning_flag =true;    //switching to path planning
-                adder=30;
+                adder=10;
              }
           }
           else
@@ -443,6 +443,7 @@ int main()
              if(current_goal==final_goal)
              {
                 cout<<"GOAL REACHED"<<endl;
+                sendfinalsignal();
                 serial.close();
                 break;
              }
