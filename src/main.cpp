@@ -25,6 +25,7 @@
 #include "common.h"  
 #include "imu.h" 
 #include <boost/asio.hpp> 
+#include "ArucoDetect.h"
 #include <set>
 
 /***********************************************
@@ -443,6 +444,7 @@ int main()
              if(current_goal==final_goal)
              {
                 cout<<"GOAL REACHED"<<endl;
+                ArucoDetect();
                 sendfinalsignal();
                 serial.close();
                 break;

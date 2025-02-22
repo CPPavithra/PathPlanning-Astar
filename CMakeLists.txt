@@ -23,6 +23,7 @@ find_package(PCL 1.14 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(rerun_sdk REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV REQUIRED)
 
 # Include directories
 include_directories(
@@ -31,11 +32,13 @@ include_directories(
     ${OPENGL_INCLUDE_DIR}
     ${MPI_INCLUDE_PATH}
     ${Boost_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
     /usr/include/boost
     /usr/local/include  # Include RealSense headers explicitly
     /usr/include/eigen3
     /usr/include/GL
     /usr/local/include/rerun/
+    
 )
 
 
@@ -51,6 +54,7 @@ add_definitions(${PCL_DEFINITIONS})
 
 # Add the executable
 add_executable(main
+src/ArucoDetect.cpp
 src/main.cpp
 src/astar.cpp
 src/pointcloudrerun.cpp
@@ -66,6 +70,7 @@ PRIVATE "/usr/local/include/rerun/components")
 target_link_libraries(main PRIVATE rerun_sdk
     ${PCL_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    ${OpenCV_LIBS}
     ${MPI_LIBRARIES}
     Boost::system
     realsense2  # Link the RealSense2 library explicitly

@@ -1,4 +1,4 @@
-#include "ArucoDetect.h"
+#include "../include/ArucoDetect.h"
 
 using namespace std;
 
