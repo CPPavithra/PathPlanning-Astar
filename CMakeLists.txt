@@ -22,6 +22,7 @@ find_package(MPI REQUIRED)
 find_package(PCL 1.14 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(rerun_sdk REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 
 # Include directories
 include_directories(
@@ -29,6 +30,8 @@ include_directories(
     ${PCL_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIR}
     ${MPI_INCLUDE_PATH}
+    ${Boost_INCLUDE_DIRS}
+    /usr/include/boost
     /usr/local/include  # Include RealSense headers explicitly
     /usr/include/eigen3
     /usr/include/GL
@@ -64,6 +67,7 @@ target_link_libraries(main PRIVATE rerun_sdk
     ${PCL_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${MPI_LIBRARIES}
+    Boost::system
     realsense2  # Link the RealSense2 library explicitly
     pthread
 )

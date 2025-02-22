@@ -23,7 +23,8 @@
 #include <rerun/demo_utils.hpp>
 #include "rerun.h"
 #include "common.h"  
-#include "imu.h" // Add this for image functionality// Add this for text_document
+#include "imu.h" 
+#include <boost/asio.hpp> 
 #include <set>
 
 /***********************************************
@@ -189,6 +190,8 @@ int main()
         rs2::config cfg;  
        // cfg.enable_device_from_file("actualgoodvideo.bag"); 
         
+        //SERIAL CONNECTION
+        initSerial("/dev/ttyS1", 9600);
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
@@ -439,6 +442,7 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
              if(current_goal==final_goal)
              {
                 cout<<"GOAL REACHED"<<endl;
+                serial.close();
                 break;
              }
              pathplanning_flag=false;
