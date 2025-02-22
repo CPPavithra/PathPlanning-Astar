@@ -191,7 +191,7 @@ int main()
        // cfg.enable_device_from_file("actualgoodvideo.bag"); 
         
         //SERIAL CONNECTION
-        initSerial("/dev/ttyS1", 9600);
+        initSerial("/dev/ttyACM0", 9600);
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
@@ -199,8 +199,8 @@ int main()
         cfg.enable_stream(RS2_STREAM_COLOR);
       
 
-             cfg.enable_stream(RS2_STREAM_INFRARED, 1); // Left IR
-cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
+       cfg.enable_stream(RS2_STREAM_INFRARED, 1); // Left IR
+       cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
           // Enable Right IR (optional)
  
     
@@ -413,9 +413,10 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
                       // Move the rover every 5 points or at the last point
                       if ((i + 1) % 5 == 0 || i == path.size() - 1) {
                            cout << "\nMoving rover along path segment..." << std::endl;
-                           moveRoverAlongPath({path.begin()+last_index, path.begin() + i + 1}); // Move segment
-                           last_index = i + 1;
-                           // Stop path planning to allow mapping updates
+                            if (last_index < path.size() && last_index <= i) {
+                                 moveRoverAlongPath({path.begin() + last_index, path.begin() + i + 1});
+                                 last_index = i + 1;
+                            }                         //stop path planning to allow mapping updates
                            if(path[i]==goal)
                            {
                              break; //break out of this while loop to check if current goal is equal to final goal but keeping pathplanning flag as true only
@@ -423,7 +424,7 @@ cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
                            else
                            {
                            pathplanning_flag = false;
-                           break;  // Exit to update grid and replan
+                           continue;  // Exit to update grid and replan
                            }
                       }
                   }
