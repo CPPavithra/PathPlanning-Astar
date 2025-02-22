@@ -12,8 +12,8 @@
 #define Kp 1
 #define Kd 0.0
 
-boost::asio::io_service io;
-boost::asio::serial_port serial(io);
+extern boost::asio::io_service io;
+extern boost::asio::serial_port serial;
 
 
 // Motion and Gyro Structures
