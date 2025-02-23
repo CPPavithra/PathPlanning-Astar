@@ -4,6 +4,8 @@
 #include <iostream>
 #include <stdlib.h>
 #include <cstring>
+#include <thread>
+#include <chrono>
 #include "cobs.h"
 using namespace std;
 /*#define Ki 0.0
@@ -45,7 +47,7 @@ const float alpha_gyro = 0.5;
 /*    return (R);*/
 /*}*/
 float yaw();
-float rot=2.5;
+float rot=-2.5;
 float speed=-0.5;
 boost::asio::io_service io;
 boost::asio::serial_port serial(io);// DEFINITION
@@ -111,6 +113,12 @@ void left()
  d.msg=0;
  cout<<"Going LEFT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
  sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(6 * 1000)));
+ d.linear_x=0.0;
+ d.angular_z=0.0;
+ d.msg=0;
+ sendcommand(d);
+
 }
 
 void right()
@@ -121,6 +129,12 @@ void right()
  d.msg=0;
   cout<<"Going RIGHT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(6 * 1000)));
+ d.linear_x=0.0;
+ d.angular_z=0.0;
+ d.msg=0;
+ sendcommand(d);
+
 }
 
 void diagonal_forward()
@@ -131,6 +145,11 @@ d.angular_z=rot/2;
 d.msg=0;
 cout<<"Going DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(3 * 1000)));
+ d.linear_x=0.0;
+ d.angular_z=0.0;
+ d.msg=0;
+ sendcommand(d);
 } 
 
 void forward()
@@ -152,9 +171,9 @@ void sendfinalsignal()
   cout<<"Goal Reached- Rover stopped"<<endl;
   sendcommand(d);
 }
-void Drive(int dir, float t, int &prev_dir)
+/*void Drive(int dir, float t, int &prev_dir)
 {
-    if (dir != prev_dir) {  // Rotate only if direction changes
+    //if (dir != prev_dir) {  // Rotate only if direction changes
         float current_angle = prev_dir * 45;  
         float final_angle = dir * 45;
 
@@ -172,19 +191,67 @@ void Drive(int dir, float t, int &prev_dir)
                 angle_diff -= 45;
             }
         }
-    }
+        else if (angle_diff==0)
+        {
+          if(dir%2==1)
+            diagonal_forward();
+          else
+            forward();
+          
+        }
+    //}
 
     // Move forward in the new direction
       // Move forward if already aligned, otherwise move diagonally
-    if (dir == prev_dir)  
+   /* if (dir == prev_dir)  
         forward();  // Continue moving straight in the same direction
     else if (dir % 2 == 1)  
         diagonal_forward();  // If changing direction to a diagonal, move diagonally
     else 
-        forward(); 
-
+        forward(); */
+ /*   cout<<"Prev: "<<prev_dir<<" Curr: "<<dir<<endl;
     prev_dir=dir;
+}*/
+
+void Drive(int dir, float t, int &prev_dir) {
+    // Calculate the exact angle difference between previous and current direction
+    int angle_diff = (dir - prev_dir) * 45;
+    if (angle_diff > 180) angle_diff -= 360;
+    if (angle_diff < -180) angle_diff += 360;
+
+    cout << "Prev Dir: " << prev_dir << " | New Dir: " << dir << endl;
+    cout << "Angle Diff: " << angle_diff << endl;
+
+    // Rotate only if necessary
+    if (angle_diff < -45) {  
+            left();
+            angle_diff += 45;
+            cout << "Rotating left..." << endl;
+    } 
+    else if (angle_diff > 45) {  
+            right();
+            //angle_diff -= 45;
+            cout << "Rotating right..." << endl;
+    }
+    else if(abs(angle_diff)==45)
+    {
+      diagonal_forward();
+      cout<<"Diagonal"<<endl;
+    }
+
+    // Move after rotation OR if no rotation was needed
+    if (angle_diff == 0) {
+      forward();
+        cout << "Already aligned, moving immediately..." << endl;
+    }
+
+
+    // Ensure prev_dir is updated **after** movement
+    prev_dir = dir;
+    cout << "Updated Prev Dir: " << prev_dir << endl;
 }
+
+
 
 int PID(int target, int initial)
 {

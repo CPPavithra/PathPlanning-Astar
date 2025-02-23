@@ -53,21 +53,27 @@ link_directories(
 add_definitions(${PCL_DEFINITIONS})
 
 # Add the executable
-add_executable(main
-src/ArucoDetect.cpp
-src/main.cpp
-src/astar.cpp
-src/pointcloudrerun.cpp
+# add_executable(main
+# src/ArucoDetect.cpp
+# src/main.cpp
+# src/tune.cpp
+# src/astar.cpp
+# src/pointcloudrerun.cpp
+# lib/imu.cpp
+# lib/cobs.c
+# )
+add_executable(tune
+src/tune.cpp
 lib/imu.cpp
 lib/cobs.c
 )
 
-set_property(TARGET main PROPERTY CXX_STANDARD 17)
-target_include_directories(main
+set_property(TARGET tune PROPERTY CXX_STANDARD 17)
+target_include_directories(tune
 PUBLIC include
 PRIVATE "/usr/local/include/rerun/components")
 # Link libraries to the executable
-target_link_libraries(main PRIVATE rerun_sdk
+target_link_libraries(tune PRIVATE rerun_sdk
     ${PCL_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${OpenCV_LIBS}

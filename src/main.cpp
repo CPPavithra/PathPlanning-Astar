@@ -39,7 +39,7 @@ int startx, starty, goalx, goaly;
 using namespace std;
 Pose rover_pose;
 bool input_ready=false;
-int limit=10;
+int limit=2;
 int last_index=0;
 std::string table_text = 
     "Color   | Signifies      | Cost\n\n"
@@ -57,6 +57,7 @@ std::string table_text =
 // TO FIND THE CHECKPOINTS
 Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
     Node best_node = current_start;
+ initSerial("/dev/ttyACM0", 9600);
     double min_total_cost = std::numeric_limits<double>::max();
 
     for (int x = gridmap.min_x; x <= gridmap.max_x; ++x) {
@@ -165,17 +166,14 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
         else if (dx == 0 && dy > 0) dir = 2;  // Up
         else if (dx < 0 && dy > 0) dir = 3;  // Top-left
         else if (dx < 0 && dy == 0) dir = 4;  // Left
-        else if (dx < 0 && dy < 0) dir = 5;  // Bottom-left
-        else if (dx == 0 && dy < 0) dir = 6;  // Down
-        else if (dx > 0 && dy < 0) dir = 7;  // Bottom-right
-
+        
         float distance = sqrt(dx*dx + dy*dy)*1.0f;//grid resolution=1.0f
         float time_needed = distance / 0.2;  
 
         Drive(dir, time_needed, prev_dir);//this function is in imu.cpp
-        std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
+      //  std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
 
-        //prev_dir = dir;  //dont update it here as the rover does not know if the rotation has been updated or not. It should be updated in the drive function
+        prev_dir = dir;  //dont update it here as the rover does not know if the rotation has been updated or not. It should be updated in the drive function
     }
 }
 /***********************************************************************************************/
@@ -191,7 +189,7 @@ int main()
        // cfg.enable_device_from_file("actualgoodvideo.bag"); 
         
         //SERIAL CONNECTION
-        initSerial("/dev/ttyACM1", 9600);
+        initSerial("/dev/ttyACM0", 9600);
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
@@ -234,7 +232,7 @@ int main()
         cout<<"Enter starting coordinates (x y): ";
         cin>>startx>>starty;
         cout<<"\nStart: ("<<startx<< ", " <<starty<< ")";
-        Node goal(5,5); //take goal as a user input later
+        Node goal(15,15); //take goal as a user input later
        // cout << "Goal: (" << goal.x << ", " << goal.y << ")\n";  
      
    
@@ -362,7 +360,7 @@ int main()
              {
                 cout<<"Mapping paused. Switching to path planning." << std::endl;
                 pathplanning_flag =true;    //switching to path planning
-                adder=10;
+                adder=2;
              }
           }
           else
@@ -375,8 +373,8 @@ int main()
         // Find the best intermediate goal
              Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes);
 
-             std::cout << "Current position: (" << current_start.x << "," << current_start.y << ")" << std::endl;
-             std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
+            // std::cout << "Current position: (" << current_start.x << "," << current_start.y << ")" << std::endl;
+             //std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
 
              // Check if the selected goal is valid
              if (gridmap.occupancy_grid.find({current_goal.x, current_goal.y}) != gridmap.occupancy_grid.end()) 
@@ -406,18 +404,18 @@ int main()
                     std::cout << "(" << node.x << "," << node.y << ") ";
                     subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f}); // z=0 for 2D
                  }*/
+                 moveRoverAlongPath(path);
                  for (size_t i = 0; i < path.size(); ++i) {
                       cout << "(" << path[i].x << "," << path[i].y << ") ";
                       subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f}); // z=0 for 2D
-
-                      // Move the rover every 5 points or at the last point
-                      if ((i + 1) % 5 == 0 || i == path.size() - 1) {
+                                            // Move the rover every 5 points or at the last point
+                     /* if ((i + 1) % 5 == 0 || i == path.size() - 1) {
                            cout << "\nMoving rover along path segment..." << std::endl;
                             if (last_index < path.size() && last_index <= i) {
                                  moveRoverAlongPath({path.begin() + last_index, path.begin() + i + 1});
                                  last_index = i + 1;
-                            }                         //stop path planning to allow mapping updates
-                           if(path[i]==goal)
+                            }         */                //stop path planning to allow mapping updates
+                          /* if(path[i]==goal)
                            {
                              break; //break out of this while loop to check if current goal is equal to final goal but keeping pathplanning flag as true only
                            }
@@ -425,8 +423,8 @@ int main()
                            {
                            pathplanning_flag = false;
                            continue;  // Exit to update grid and replan
-                           }
-                      }
+                           }*/
+                      //}
                   }
 
                  std::cout << std::endl;
@@ -435,10 +433,12 @@ int main()
                  rec.log("full_path",rerun::Points3D(subpath)
                         .with_colors({rerun::Color(0, 0, 255)}) // Blue color
                         .with_radii({0.5f})); // Radius 0.5);
+                                              //
+                  current_start = path.back();
              }
 
              // Update current start to the end of the current path
-             current_start = path.back();
+             //current_start = path.back();
 
              if(current_goal==final_goal)
              {
