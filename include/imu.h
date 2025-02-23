@@ -44,7 +44,7 @@ void right();
 void diagonal_forward();
 void forward();
 void sendfinalsignal();
-void Drive(int dir, float t, int prev_dir);
+void Drive(int dir, float t, int &prev_dir);
 int PID(int target, int initial);
 void initSerial(const std::string& portname, unsigned int baud_rate);
 void serializeDrive(const drive &cmd, uint8_t *buffer, size_t buf_size);

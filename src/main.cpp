@@ -131,7 +131,7 @@ void log_camera_frames(rerun::RecordingStream& rec, const rs2::frameset& framese
     uint32_t ir_height = ir_frame.get_height();
     const uint8_t* ir_data = static_cast<const uint8_t*>(ir_frame.get_data());
 
-    // Log Infrared (IR) frame as grayscale image
+    //stero cam
     rec.log("heat_camera",
         rerun::DepthImage(ir_data, {ir_width, ir_height}, rerun::datatypes::ChannelDatatype::U8));
     
@@ -139,7 +139,6 @@ void log_camera_frames(rerun::RecordingStream& rec, const rs2::frameset& framese
 
 
 void log_rover_feedback(rerun::RecordingStream& rec) {
-    // Placeholder function for logging rover movement feedback
     rec.log("rover_feedback", rerun::TextLog("Rover movement tracking enabled."));
 }
 
@@ -235,7 +234,7 @@ int main()
         cout<<"Enter starting coordinates (x y): ";
         cin>>startx>>starty;
         cout<<"\nStart: ("<<startx<< ", " <<starty<< ")";
-        Node goal(15,15); //take goal as a user input later
+        Node goal(5,5); //take goal as a user input later
        // cout << "Goal: (" << goal.x << ", " << goal.y << ")\n";  
      
    
@@ -446,7 +445,7 @@ int main()
                 cout<<"GOAL REACHED"<<endl;
                 ArucoDetect();
                 sendfinalsignal();
-                serial.close();
+                //serial.close();
                 break;
              }
              pathplanning_flag=false;
