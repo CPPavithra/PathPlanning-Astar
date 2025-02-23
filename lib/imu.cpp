@@ -113,7 +113,7 @@ void left()
  d.msg=0;
  cout<<"Going LEFT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
  sendcommand(d);
-  std::this_thread::sleep_for(std::chrono::milliseconds(int(6 * 1000)));
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(1840)));
  d.linear_x=0.0;
  d.angular_z=0.0;
  d.msg=0;
@@ -129,7 +129,7 @@ void right()
  d.msg=0;
   cout<<"Going RIGHT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
-  std::this_thread::sleep_for(std::chrono::milliseconds(int(6 * 1000)));
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(1840)));
  d.linear_x=0.0;
  d.angular_z=0.0;
  d.msg=0;
@@ -145,7 +145,7 @@ d.angular_z=rot/2;
 d.msg=0;
 cout<<"Going DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
-  std::this_thread::sleep_for(std::chrono::milliseconds(int(3 * 1000)));
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(1000)));
  d.linear_x=0.0;
  d.angular_z=0.0;
  d.msg=0;
