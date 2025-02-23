@@ -152,30 +152,38 @@ void sendfinalsignal()
   cout<<"Goal Reached- Rover stopped"<<endl;
   sendcommand(d);
 }
-void Drive(int dir, float t, int prev_dir)
+void Drive(int dir, float t, int &prev_dir)
 {
-    float current_angle = prev_dir * 45;  // Convert previous direction to degrees
-    float final_angle = dir * 45;  // Convert target direction to degrees
+    if (dir != prev_dir) {  // Rotate only if direction changes
+        float current_angle = prev_dir * 45;  
+        float final_angle = dir * 45;
 
-    if (final_angle != current_angle) { //if final angle=current then we dont need to unnecessarilly rotate it again
-        if ((final_angle - current_angle) < 0) {
-            //left till it faces right direction
-            for (int i = current_angle; i != final_angle; i -= 45) {
+        // Find shortest rotation direction
+        int angle_diff = final_angle - current_angle;
+
+        if (angle_diff < 0) {  // Need to rotate left
+            while (angle_diff < 0) {
                 left();
+                angle_diff += 45;  // Reduce the difference step by step
             }
-        } else {
-            //right till it faces right direction
-            for (int i = current_angle; i != final_angle; i += 45) {
+        } else if (angle_diff > 0) {  // Need to rotate right
+            while (angle_diff > 0) {
                 right();
+                angle_diff -= 45;
             }
         }
     }
 
     // Move forward in the new direction
-    if (dir % 2 == 1)  //if the dir is odd->diagonal movement
-        diagonal_forward();
+      // Move forward if already aligned, otherwise move diagonally
+    if (dir == prev_dir)  
+        forward();  // Continue moving straight in the same direction
+    else if (dir % 2 == 1)  
+        diagonal_forward();  // If changing direction to a diagonal, move diagonally
     else 
-        forward();
+        forward(); 
+
+    prev_dir=dir;
 }
 
 int PID(int target, int initial)

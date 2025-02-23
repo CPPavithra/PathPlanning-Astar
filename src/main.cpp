@@ -176,7 +176,7 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
         Drive(dir, time_needed, prev_dir);//this function is in imu.cpp
         std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
 
-        prev_dir = dir;  
+        //prev_dir = dir;  //dont update it here as the rover does not know if the rotation has been updated or not. It should be updated in the drive function
     }
 }
 /***********************************************************************************************/
