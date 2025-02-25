@@ -48,7 +48,7 @@ const float alpha_gyro = 0.5;
 /*}*/
 float yaw();
 float rot=2.5;
-float speed=-0.1;
+float speed=-0.3;
 boost::asio::io_service io;
 boost::asio::serial_port serial(io);// DEFINITION
 /*boost::asio::io_service io;
@@ -125,6 +125,8 @@ sendcommand(d);
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
 
 }
 
@@ -147,6 +149,7 @@ sendcommand(d);
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+ std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
 
 }
 
@@ -171,6 +174,8 @@ std::this_thread::sleep_for(std::chrono::milliseconds(int(5300)));
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
 } 
 
 void diagonal_forward_left()
@@ -194,6 +199,8 @@ std::this_thread::sleep_for(std::chrono::milliseconds(int(5300)));
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
 } 
 
 void forward()
@@ -209,6 +216,8 @@ sendcommand(d);
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
 }
 
 void sendfinalsignal()

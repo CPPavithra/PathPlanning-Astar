@@ -255,6 +255,7 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
 int main()
 {
       	auto rec = rerun::RecordingStream("gridmap");
+        auto ret = rec.connect_tcp("192.168.70.9");
         rec.spawn().exit_on_failure(); //this is for realsense viewer- can be avoided
         log_views(rec);
         //std::system("realsense-viewer &");
@@ -436,7 +437,7 @@ int main()
              {
                 cout<<"Mapping paused. Switching to path planning." << std::endl;
                 pathplanning_flag =true;    //switching to path planning
-                adder=5;
+                adder=10;
              }
           }
           else
