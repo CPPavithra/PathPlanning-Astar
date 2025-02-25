@@ -119,14 +119,17 @@ float dy = -point.x(); // X becomes -Y (rightward, with negative)
 float dz = -point.y();  
 
 
-
-float theta = atan2(2.0f*(roverpose.orientation.w()*roverpose.orientation.z()+
+float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
                             roverpose.orientation.x() * roverpose.orientation.y()), 
                     1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() +
                                    roverpose.orientation.z() * roverpose.orientation.z()));
 
-float rotated_x = cos(theta) * dx + sin(theta) * dy;
-float rotated_y = -sin(theta) * dx + cos(theta) * dy;
+float ned_theta = -(theta - M_PI_2);    // Adjust yaw for NED (North-East-Down)
+
+
+float rotated_x = cos(ned_theta) * dx - sin(ned_theta) * dy;
+float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
+
 
 int grid_x = static_cast<int>(rotated_x / 1.0f);  //grid coordinates
 int grid_y = static_cast<int>(rotated_y / 1.0f); 
