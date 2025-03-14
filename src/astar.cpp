@@ -27,6 +27,7 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <sstream>
+#include <set>
 #include "rerun.h"
 #include "common.h"
 
@@ -37,11 +38,11 @@ using namespace std;
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
-vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal)
+vector<node>astar(const std::unordered_map<std::pair<int, int>, cellcost, pair_hash>& occupancygrid, node start, node goal)
 {
-   priority_queue<Node*,vector<Node*>,comparenode>openlist;//priority list for 
-   unordered_map<pair<int,int>,Node*, pair_hash>allNodes;
-   //unordered_map<int, Node*>allNodes;//map for all the nodes
+   priority_queue<node*,vector<node*>,comparenode>openlist;//priority list for 
+   unordered_map<pair<int,int>,node*, pair_hash>allnodes;
+   //unordered_map<int, node*>allnodes;//map for all the nodes
    start.h_cost = heuristic(start.x, start.y, goal.x, goal.y);//euclidean distance function h cost
    start.f_cost = start.g_cost + start.h_cost;
    openlist.push(&start);
@@ -49,18 +50,18 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
    while(!openlist.empty())
    {
      //stack
-     Node*current=openlist.top();
+     node*current=openlist.top();
      openlist.pop();//read one by one
     //(check if the node has higher g cost than in all nodes, if yes it is outdated)
     pair<int,int>currentkey={current->x,current->y};
-    if(allNodes.find(currentkey) != allNodes.end() && current->g_cost>allNodes[currentkey]->g_cost)
+    if(allnodes.find(currentkey) != allnodes.end() && current->g_cost>allnodes[currentkey]->g_cost)
     {
 	    continue;
     }
      if(current->x == goal.x && current->y == goal.y)
      {
-	     vector <Node> path;
-	     for(Node *n=current;n!=NULL;n=n->parent)
+	     vector <node> path;
+	     for(node *n=current;n!=null;n=n->parent)
 	     {
 		     path.push_back(*n);//error
 	     }
@@ -71,8 +72,8 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
     int dx[] = {1,-1,0,0,1,-1,1,-1};
     int dy[] = {0,0,1,-1,1,-1,-1,1}; 
 //
-//ADD 2 ENTITIES-> MOVEMENT_COST AND OBSTACLE_COST TO THE G_COST.
-//OBSTACLE_COST IS CALCULATED FROM
+//add 2 entities-> movement_cost and obstacle_cost to the g_cost.
+//obstacle_cost is calculated from
    int i; double newg_cost;
    double movement_cost;
    for(i=0; i<8; i++)
@@ -91,8 +92,8 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
 	     double obstacle_cost=1e6; //default cost for free cells
  
              
-		     auto it = occupancyGrid.find({newx,newy});
-		     if(it!=occupancyGrid.end()) 
+		     auto it = occupancygrid.find({newx,newy});
+		     if(it!=occupancygrid.end()) 
 		     {
 			     obstacle_cost=it->second.cost; //variable cost assigned (in grid and within bounds)
 		     }
@@ -100,9 +101,9 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
 		     {
 			     obstacle_cost=0.0; //free space (if not in grid but within the bounds)
 		     }
-                     // Skip if the cost is high (blocked or out of bounds)
+                     // skip if the cost is high (blocked or out of bounds)
                      else {
-    // If the cell is outside the boundary, assign a high cost (impassable)
+    // if the cell is outside the boundary, assign a high cost (impassable)
                       obstacle_cost = 1e6;
                     }
 
@@ -114,21 +115,21 @@ vector<Node>astar(const std::unordered_map<std::pair<int, int>, CellCost, pair_h
 	     
 	     //infinite cost for unexplored regions (out of bounds)
 	     newg_cost=current->g_cost+movement_cost+obstacle_cost; 
-	     Node* neighbour = new Node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
+	     node* neighbour = new node(newx, newy, newg_cost, heuristic(newx, newy, goal.x, goal.y), current);//create a new neighbour node
              //newx+newy shows collision
 	     //int key=newx*grid[0].size()+newy;
 	     pair<int, int>neighbour_key = {newx, newy};
-	     if(allNodes.find(neighbour_key)==allNodes.end() || neighbour -> g_cost<allNodes.find(neighbour_key) -> second -> g_cost)//newx+newy is the unique key for map
+	     if(allnodes.find(neighbour_key)==allnodes.end() || neighbour -> g_cost<allnodes.find(neighbour_key) -> second -> g_cost)//newx+newy is the unique key for map
 	     {
                neighbour->f_cost=neighbour->g_cost+neighbour->h_cost;
 	       openlist.push(neighbour);
 	       //update all nodes
-	       allNodes[neighbour_key]=neighbour;
+	       allnodes[neighbour_key]=neighbour;
 	     }
 
      } 
    }
- //return std::vector<Node>();  //return empty if not found in while loop
+ //return std::vector<node>();  //return empty if not found in while loop
  return {};
 }*/
 // Heuristic function (Euclidean Distance)
@@ -136,7 +137,9 @@ double heuristic(int x1, int y1, int x2, int y2) {
     return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
-// A* Algorithm with optimized memory handling and proper waypoint logic
+
+
+
 vector<Node> astar(const unordered_map<pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal) {
     priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, comparenode> openList;
     unordered_map<pair<int, int>, shared_ptr<Node>, pair_hash> allNodes;
@@ -149,73 +152,103 @@ vector<Node> astar(const unordered_map<pair<int, int>, CellCost, pair_hash>& occ
     allNodes[{start.x, start.y}] = startNode;
     openList.push(startNode);
 
+    // Movement directions (8 directions: N, S, E, W, NE, NW, SE, SW)
     const int dx[] = {1, -1, 0, 0, 1, -1, 1, -1};
     const int dy[] = {0, 0, 1, -1, 1, -1, -1, 1};
 
     while (!openList.empty()) {
         auto current = openList.top();
         openList.pop();
-
         pair<int, int> currentKey = {current->x, current->y};
 
-        // If the node is already visited, skip it
-        if (visited.find(currentKey) != visited.end()) {
-            continue;
-        }
-        visited.insert(currentKey); // Mark node as visited
-
-        cout << "Processing Node: (" << current->x << "," << current->y << ") "
-             << "G: " << current->g_cost << " H: " << current->h_cost << " F: " << current->f_cost << endl;
-
+        // **Goal check**
         if (current->x == goal.x && current->y == goal.y) {
             vector<Node> path;
             for (auto n = current; n != nullptr; n = n->parent) {
                 path.push_back(*n);
             }
             reverse(path.begin(), path.end());
-
-            cout << "Path found: ";
-            for (const Node& n : path) {
-                cout << "(" << n.x << "," << n.y << ") ";
-            }
-            cout << endl;
-            return path;
+            return path; 
         }
 
-        for (int i = 0; i < 8; i++) {
+       // visited.insert(currentKey);  // ✅ Mark node as visited AFTER popping
+
+        // **Explore neighbors**
+        /*for (int i = 0; i < 8; i++) {
             int newX = current->x + dx[i];
             int newY = current->y + dy[i];
-            double movementCost = (i < 4) ? 1.0 : 1.414;
+           // double movementCost = (i < 4) ? 1.0 : 1.414;  // Straight = 1.0, Diagonal = 1.414
+           //double movementCost = (abs(newX - goal.x) == abs(newY - goal.y)) ? 1.0 : ((i < 4) ? 1.0 : 1.414);
+           
+            double movementCost = (dx[i] != 0 && dy[i] != 0) ? 1.414 : 1.0;
 
-            double obstacleCost = 1e6;  // Default high cost (impassable)
+            // Get obstacle cost
+            double obstacleCost = 1e6;  // Default: very high cost (impassable)
             auto it = occupancyGrid.find({newX, newY});
             if (it != occupancyGrid.end()) {
-                obstacleCost = it->second.cost;  // Use actual cost if found
+                obstacleCost = it->second.cost;
             } else {
                 obstacleCost = 0.0;  // Free space
             }
 
-            if (obstacleCost >= 1e6) {
-                continue;  // Skip impassable nodes
-            }
+            if (obstacleCost >= 1e6) continue;  // Skip impassable cells
 
             double newGCost = current->g_cost + movementCost + obstacleCost;
+            if (current->parent && (newX - current->x != current->x - current->parent->x || newY - current->y != current->y - current->parent->y)) {
+              newGCost += 0.1;  // Penalize unnecessary turns slightly
+            }
+
             pair<int, int> neighborKey = {newX, newY};
 
-            if (visited.find(neighborKey) == visited.end() && 
+            // ✅ Fix: Ensure only better paths update the node
+            if (visited.find(neighborKey) == visited.end() &&
                 (allNodes.find(neighborKey) == allNodes.end() || newGCost < allNodes[neighborKey]->g_cost)) {
-                
-                auto neighbor = make_shared<Node>(
-                    newX, newY, newGCost, heuristic(newX, newY, goal.x, goal.y), current);
 
+                auto neighbor = make_shared<Node>(newX, newY, newGCost, heuristic(newX, newY, goal.x, goal.y), current);
                 neighbor->f_cost = neighbor->g_cost + neighbor->h_cost;
+
                 openList.push(neighbor);
                 allNodes[neighborKey] = neighbor;
+                visited.insert(neighborKey);  // ✅ Move this AFTER confirming a better path
             }
-        }
+        }*/
+        for (int i = 0; i < 8; i++) {
+    int newX = current->x + dx[i];
+    int newY = current->y + dy[i];
+    double movementCost = (dx[i] != 0 && dy[i] != 0) ? 1.414 : 1.0;
+    // Get obstacle cost
+    double obstacleCost = 1e6;  // Default: unexplored = very high cost (impassable)
+    auto it = occupancyGrid.find({newX, newY});
+    if (it != occupancyGrid.end()) {
+        obstacleCost = it->second.cost;  // Explored, with known obstacle cost
+    } 
+    else if (newX >= gridmap.min_x && newX <= gridmap.max_x &&
+             newY >= gridmap.min_y && newY <= gridmap.max_y) {
+        obstacleCost = 0.0;  // Explored, but free space
+    } 
+    else {
+        continue;  // Unexplored or out of bounds → skip this neighbor
     }
+    if (obstacleCost >= 1e6) continue;  // Skip impassable cells
+    double newGCost = current->g_cost + movementCost + obstacleCost;
+    if (current->parent && (newX - current->x != current->x - current->parent->x || newY - current->y != current->y - current->parent->y)) {
+        newGCost += 0.1;  // Penalize unnecessary turns slightly
+    }
+    pair<int, int> neighborKey = {newX, newY};
+    //Ensure only better paths update the node
+    if (visited.find(neighborKey) == visited.end() &&
+        (allNodes.find(neighborKey) == allNodes.end() || newGCost < allNodes[neighborKey]->g_cost)) {
 
-    cout << "No path found!" << endl;
-    return {};
+        auto neighbor = make_shared<Node>(newX, newY, newGCost, heuristic(newX, newY, goal.x, goal.y), current);
+        neighbor->f_cost = neighbor->g_cost + neighbor->h_cost;
+
+        openList.push(neighbor);
+        allNodes[neighborKey] = neighbor;
+        visited.insert(neighborKey);  // ✅ Move this AFTER confirming a better path
+    }
 }
 
+    }
+
+    return {};  // No path found
+}

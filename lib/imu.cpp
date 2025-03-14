@@ -4,8 +4,13 @@
 #include <iostream>
 #include <stdlib.h>
 #include <cstring>
+<<<<<<< HEAD
 #include <thread>
 #include <chrono>
+=======
+#include <chrono>
+#include <thread>
+>>>>>>> final
 #include "cobs.h"
 using namespace std;
 /*#define Ki 0.0
@@ -47,8 +52,13 @@ const float alpha_gyro = 0.5;
 /*    return (R);*/
 /*}*/
 float yaw();
+<<<<<<< HEAD
 float rot=-2.5;
 float speed=-0.5;
+=======
+float rot=2.5;
+float speed=-0.3;
+>>>>>>> final
 boost::asio::io_service io;
 boost::asio::serial_port serial(io);// DEFINITION
 /*boost::asio::io_service io;
@@ -105,19 +115,34 @@ void sendcommand(const drive &cmd) {
 /********************************************************************
  * ******************************************************************/
 
+
 void left()
 {
  drive d;
  d.linear_x=0.0f;
- d.angular_z=rot;
+ d.angular_z=2.5; //2.5
  d.msg=0;
  cout<<"Going LEFT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
  sendcommand(d);
   std::this_thread::sleep_for(std::chrono::milliseconds(int(1840)));
+<<<<<<< HEAD
+=======
+  d.linear_x=speed;
+d.angular_z=0.0f;
+d.msg=0;
+cout<<"Going FORWARD with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+ std::this_thread::sleep_for(std::chrono::milliseconds(int(3750)));
+>>>>>>> final
  d.linear_x=0.0;
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+<<<<<<< HEAD
+=======
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
+>>>>>>> final
 
 }
 
@@ -125,31 +150,87 @@ void right()
 {
  drive d;
  d.linear_x=0.0f;
- d.angular_z=-rot;
+ d.angular_z=-rot; //-2.5
  d.msg=0;
   cout<<"Going RIGHT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
+<<<<<<< HEAD
   std::this_thread::sleep_for(std::chrono::milliseconds(int(1840)));
+=======
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(1780)));
+  d.linear_x=speed;
+d.angular_z=0.0f;
+d.msg=0;
+cout<<"Going FORWARD with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+ std::this_thread::sleep_for(std::chrono::milliseconds(int(3750)));
+>>>>>>> final
  d.linear_x=0.0;
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+<<<<<<< HEAD
+=======
+ std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+>>>>>>> final
 
 }
 
-void diagonal_forward()
+void diagonal_forward_right()
 {
 drive d;
-d.linear_x=speed;
-d.angular_z=rot/2;
+d.linear_x=0.0f;
+d.angular_z=-2.5; //-2.5/2
 d.msg=0;
-cout<<"Going DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+cout<<"Going DIAGONAL RIGHT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
+<<<<<<< HEAD
   std::this_thread::sleep_for(std::chrono::milliseconds(int(1000)));
+=======
+std::this_thread::sleep_for(std::chrono::milliseconds(int(890)));
+
+d.angular_z=0.0f;
+d.linear_x=-0.3f; 
+d.msg=0;
+cout<<"Going FORWARD DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+std::this_thread::sleep_for(std::chrono::milliseconds(int(5300)));
+
+>>>>>>> final
  d.linear_x=0.0;
  d.angular_z=0.0;
  d.msg=0;
  sendcommand(d);
+<<<<<<< HEAD
+=======
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
+} 
+
+void diagonal_forward_left()
+{
+drive d;
+d.linear_x=0.0f;
+d.angular_z=2.5; //2.5/2
+d.msg=0;
+cout<<"Going DIAGONAL LEFT with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+std::this_thread::sleep_for(std::chrono::milliseconds(int(925)));
+
+d.angular_z=0.0f;
+d.linear_x=-0.3f; 
+d.msg=0;
+cout<<"Going FORWARD DIAGONAL with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
+sendcommand(d);
+std::this_thread::sleep_for(std::chrono::milliseconds(int(5300)));
+
+ d.linear_x=0.0;
+ d.angular_z=0.0;
+ d.msg=0;
+ sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
+>>>>>>> final
 } 
 
 void forward()
@@ -160,6 +241,13 @@ d.angular_z=0.0f;
 d.msg=0;
 cout<<"Going FORWARD with speed: "<<d.linear_x<<" and rotation: "<<d.angular_z<<endl;
 sendcommand(d);
+ std::this_thread::sleep_for(std::chrono::milliseconds(int(3750)));
+ d.linear_x=0.0;
+ d.angular_z=0.0;
+ d.msg=0;
+ sendcommand(d);
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(500)));
+
 }
 
 void sendfinalsignal()
@@ -212,6 +300,7 @@ void sendfinalsignal()
  /*   cout<<"Prev: "<<prev_dir<<" Curr: "<<dir<<endl;
     prev_dir=dir;
 }*/
+<<<<<<< HEAD
 
 void Drive(int dir, float t, int &prev_dir) {
     // Calculate the exact angle difference between previous and current direction
@@ -253,6 +342,52 @@ void Drive(int dir, float t, int &prev_dir) {
 
 
 
+=======
+
+void Drive(int dir, float t, int &prev_dir) {
+    // Calculate the exact angle difference between previous and current direction
+    int angle_diff = (dir - prev_dir) * 45;
+    if (angle_diff > 180) angle_diff -= 360;
+    if (angle_diff < -180) angle_diff += 360;
+
+    cout << "Prev Dir: " << prev_dir << " | New Dir: " << dir << endl;
+    cout << "Angle Diff: " << angle_diff << endl;
+
+    // Rotate only if necessary
+    if (angle_diff == -90) {  
+            left();
+            angle_diff += 90;
+            cout << "Rotating left..." << endl;
+    } 
+    else if (angle_diff == 90) {  
+            right();
+            angle_diff -= 90;
+            cout << "Rotating right..." << endl;
+    }
+    else if(abs(angle_diff)==45)
+    {
+      diagonal_forward_right();
+      cout<<"Diagonal right"<<endl;
+    }
+    else if(abs(angle_diff)==-45)
+    {
+      diagonal_forward_left();
+      cout<<"Diagonal left"<<endl;
+    }
+
+
+    // Move after rotation OR if no rotation was needed
+    if (angle_diff == 0) {
+      forward();
+        cout << "Already aligned, moving immediately..." << endl;
+    }
+
+
+    // Ensure prev_dir is updated **after** movement
+    prev_dir = dir;
+    cout << "Updated Prev Dir: " << prev_dir << endl;
+}
+>>>>>>> final
 int PID(int target, int initial)
 {
   return 0;

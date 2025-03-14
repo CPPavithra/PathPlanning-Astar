@@ -39,8 +39,14 @@ int startx, starty, goalx, goaly;
 using namespace std;
 Pose rover_pose;
 bool input_ready=false;
+<<<<<<< HEAD
 int limit=2;
+=======
+int limit=20;
+>>>>>>> final
 int last_index=0;
+int prev_dir=0;
+int dir=0;
 std::string table_text = 
     "Color   | Signifies      | Cost\n\n"
     "--------|----------------|-------------\n\n"
@@ -55,7 +61,39 @@ std::string table_text =
 /********************************************************
  * ******************************************************/
 // TO FIND THE CHECKPOINTS
-Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
+/*Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
+    Node best_node = current_start;
+    double min_total_cost = std::numeric_limits<double>::max();
+
+    for (int x = gridmap.min_x; x <= gridmap.max_x; ++x) {
+        for (int y = gridmap.min_y; y <= gridmap.max_y; ++y) {
+          //CHECK IF ALREADY VISITED OR IN THE OCCUPANCY GRID
+          if (gridmap.occupancy_grid.find({x, y}) != gridmap.occupancy_grid.end() ||
+                visited_nodes.find({x, y}) != visited_nodes.end()) {
+                continue;
+            }
+
+            // calculate cost from start to that node
+            double cost_to_node = heuristic(current_start.x, current_start.y, x, y);
+            // alculate cost from this node to the final goal
+            double cost_to_goal = heuristic(x, y, final_goal.x, final_goal.y);
+
+            // Total cost = cost to node + cost to goal
+            double total_cost = cost_to_node + cost_to_goal;
+
+            // Select the node with the minimum total cost
+            if (total_cost < min_total_cost) {
+                min_total_cost = total_cost;
+                best_node = Node(x, y);
+            }
+        }
+    }
+
+    return best_node;
+}*/
+
+
+    Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
     Node best_node = current_start;
  initSerial("/dev/ttyACM0", 9600);
     double min_total_cost = std::numeric_limits<double>::max();
@@ -150,10 +188,8 @@ void log_rover_feedback(rerun::RecordingStream& rec) {
  * FUNCTION TO DETERMINE THE DIRECTION FOR THE ROVER TO MOVE (HARDCODED POSITIONS)
  * ****************************************************************************************/
 
-void moveRoverAlongPath(const std::vector<Node>& path) {
-    if (path.size() < 2) return;  // No movement needed
-
-    int prev_dir = 0;  // Start with no direction
+/*void moveRoverAlongPath(const std::vector<Node>& path) {
+    if (path.size() < 2) return;  // No movement needed  // Start with no direction
 
     for (size_t i = 1; i < path.size(); i++) {
         int dx = path[i].x - path[i - 1].x;
@@ -161,26 +197,79 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
 
         // Determine direction index (0-7 for 45-degree increments)
         int dir = 0;
-        if (dx > 0 && dy == 0) dir = 0;  // Right
-        else if (dx > 0 && dy > 0) dir = 1;  // Top-right
+       /* if (dx > 0 && dy == 0) dir = 0;  // Right
+        else if (dx > 0 && dy < 0) dir = 1;  // Top-right
+        else if (dx == 0 && dy > 0) dir = 2;  // Up
+        else if (dx < 0 && dy > 0) dir = 3;  // Top-left
+        else if (dx < 0 && dy == 0) dir = 4;  // Left*/
+                                              // if (dx > 0 && dy == 0) dir = 0;  // Right
+ /*       if (dx > 0 && dy > 0) dir = 1;  // Top-right
         else if (dx == 0 && dy > 0) dir = 2;  // Up
         else if (dx < 0 && dy > 0) dir = 3;  // Top-left
         else if (dx < 0 && dy == 0) dir = 4;  // Left
+<<<<<<< HEAD
         
+=======
+        else if (dx < 0 && dy < 0) dir = 5;  // Bottom-left
+        else if (dx == 0 && dy < 0) dir = 6;  // Down
+        else if (dx > 0 && dy < 0) dir = 7; //bottom-right
+        else if (dx > 0 && dy == 0); //right
+
+>>>>>>> final
         float distance = sqrt(dx*dx + dy*dy)*1.0f;//grid resolution=1.0f
         float time_needed = distance / 0.2;  
 
         Drive(dir, time_needed, prev_dir);//this function is in imu.cpp
+<<<<<<< HEAD
       //  std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
 
         prev_dir = dir;  //dont update it here as the rover does not know if the rotation has been updated or not. It should be updated in the drive function
+=======
+        //std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
+
+      //  prev_dir = dir;  //dont update it here as the rover does not know if the rotation has been updated or not. It should be updated in the drive function
+    }
+}*/
+
+
+void moveRoverAlongPath(const std::vector<Node>& path) {
+    static size_t last_index = 0; // Track last moved index persistently
+
+    if (path.size() < 2 || last_index >= path.size() - 1) return;  // No movement needed  
+
+    for (size_t i = last_index + 1; i < path.size(); i++) {  
+        int dx = path[i].x - path[i - 1].x;
+        int dy = path[i].y - path[i - 1].y;
+
+        if (dx == 0 && dy == 0) continue; // Skip redundant moves
+
+        // Determine direction index (0-7 for 45-degree increments)
+        //int dir = 0;
+        if (dx == 0 && dy == 0) dir = 0;  // front
+        else if (dx > 0 && dy > 0) dir = 1;  // top-right
+        else if (dx > 0 && dy == 0) dir = 2;  // right
+        else if (dx < 0 && dy > 0) dir = 7;  // Top-left
+        else if (dx < 0 && dy == 0) dir = 6;  // Left
+
+        if (dir == -1) continue; // Just in case, prevent an invalid move
+
+        float distance = sqrt(dx * dx + dy * dy) * 1.0f; // Grid resolution = 1.0f
+        float time_needed = distance / 0.2;  // Assuming speed is 0.2 units per second
+
+        Drive(dir, time_needed, prev_dir); // Call to movement function in imu.cpp
+
+        last_index = i; // Update last moved position
+       // prev_dir=dir;
+>>>>>>> final
     }
 }
+
 /***********************************************************************************************/
 
 int main()
 {
       	auto rec = rerun::RecordingStream("gridmap");
+      //  auto ret = rec.connect_tcp("192.168.80.73");
         rec.spawn().exit_on_failure(); //this is for realsense viewer- can be avoided
         log_views(rec);
         //std::system("realsense-viewer &");
@@ -189,7 +278,11 @@ int main()
        // cfg.enable_device_from_file("actualgoodvideo.bag"); 
         
         //SERIAL CONNECTION
+<<<<<<< HEAD
         initSerial("/dev/ttyACM0", 9600);
+=======
+        initSerial("/dev/serial/by-id/usb-ZEPHYR_Team_RUDRA_Tarzan_3339511100350023-if00", 9600);
+>>>>>>> final
 
         cfg.enable_stream(RS2_STREAM_DEPTH); 
         cfg.enable_stream(RS2_STREAM_GYRO);   
@@ -229,15 +322,17 @@ int main()
 
         //path planning- just setting the starting node
         cout<<"Setting boundaries...\n";
-        cout<<"Enter starting coordinates (x y): ";
-        cin>>startx>>starty;
-        cout<<"\nStart: ("<<startx<< ", " <<starty<< ")";
-        Node goal(15,15); //take goal as a user input later
+        cout<<"Enter goal coordinates (x y): ";
+        cin>>goalx>>goaly;
+        cout<<"\nGoal: ("<<goalx<< ", " <<goaly<< ")";
+        int startx=0;
+        int starty=0;//take goal as a user input later
        // cout << "Goal: (" << goal.x << ", " << goal.y << ")\n";  
      
    
         //create start and goal nodes
         Node start(startx, starty);
+        Node goal(goalx,goaly);
         Node current_start = start;
         std::vector<rerun::Position3D> full_path_points;
         std::set<std::pair<int, int>> tried_goals;
@@ -339,7 +434,8 @@ int main()
              voxel.setLeafSize(0.05f, 0.05f, 0.05f); //this is the size of each voxel in xyz dimension
              voxel.filter(*filtered_cloud);
 
-             point_vectors.clear();
+             //point_vectors.clear();
+             std::vector<Eigen::Vector3f>().swap(point_vectors); // Forces memory deallocation
              std::vector<float> z_values;
              z_values.reserve(filtered_cloud->points.size());
 
@@ -365,7 +461,7 @@ int main()
           }
           else
           {
-            while(pathplanning_flag)
+            /*while(pathplanning_flag)
             {
                // Mark the current start as visited
              visited_nodes.insert({current_start.x, current_start.y});
@@ -404,12 +500,22 @@ int main()
                     std::cout << "(" << node.x << "," << node.y << ") ";
                     subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f}); // z=0 for 2D
                  }*/
+<<<<<<< HEAD
                  moveRoverAlongPath(path);
                  for (size_t i = 0; i < path.size(); ++i) {
                       cout << "(" << path[i].x << "," << path[i].y << ") ";
                       subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f}); // z=0 for 2D
                                             // Move the rover every 5 points or at the last point
                      /* if ((i + 1) % 5 == 0 || i == path.size() - 1) {
+=======
+               //  moveRoverAlongPath(path);
+              /*   for (size_t i = 0; i < path.size(); ++i) {
+                      cout << "(" << path[i].x << "," << path[i].y << ") ";
+                      subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f}); // z=0 for 2D
+
+                      // Move the rover every 5 points or at the last point
+                     /*if ((i + 1) % 5 == 0 || i == path.size() - 1) {
+>>>>>>> final
                            cout << "\nMoving rover along path segment..." << std::endl;
                             if (last_index < path.size() && last_index <= i) {
                                  moveRoverAlongPath({path.begin() + last_index, path.begin() + i + 1});
@@ -423,22 +529,34 @@ int main()
                            {
                            pathplanning_flag = false;
                            continue;  // Exit to update grid and replan
+<<<<<<< HEAD
                            }*/
                       //}
                   }
+=======
+                           }
+                      }*/
+              //    }
+>>>>>>> final
 
-                 std::cout << std::endl;
+                // std::cout << std::endl;
 
                  // Log all nodes together instead of per node
-                 rec.log("full_path",rerun::Points3D(subpath)
+           /*      rec.log("full_path",rerun::Points3D(subpath)
                         .with_colors({rerun::Color(0, 0, 255)}) // Blue color
                         .with_radii({0.5f})); // Radius 0.5);
+<<<<<<< HEAD
                                               //
                   current_start = path.back();
              }
 
              // Update current start to the end of the current path
              //current_start = path.back();
+=======
+                 
+                  moveRoverAlongPath(path);
+                    current_start = path.back();
+>>>>>>> final
 
              if(current_goal==final_goal)
              {
@@ -448,12 +566,83 @@ int main()
                 //serial.close();
                 break;
              }
-             pathplanning_flag=false;
-            }
+           
+            }*/
+   while (pathplanning_flag) {
+    visited_nodes.insert({current_start.x, current_start.y});
+    std::vector<rerun::Position3D> subpath;
 
-        }
+    Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes);
+    
+    std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
+
+    if (gridmap.occupancy_grid.find({current_goal.x, current_goal.y}) != gridmap.occupancy_grid.end()) {
+        std::cout << "Selected goal is occupied. Planning failed." << std::endl;
+        break;
     }
+
+    rec.log("full_path", rerun::Clear(false));
+    std::vector<Node> path = astar(gridmap.occupancy_grid, current_start, current_goal);
+    
+    if (path.empty()) {
+        std::cout << "No path found to intermediate goal. Stopping!" << std::endl;
+        break; 
+    }
+      std::cout << "Path found:" << std::endl;
+
+                 // Clear subpath before using it
+                 subpath.clear();
+                //
+                
+
+                for (const Node& node : path) 
+                 {
+                    std::cout << "(" << node.x << "," << node.y << ") ";
+                    subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f}); // z=0 for 2D
+                 }
+                 
+               //  moveRoverAlongPath(path);
+                   // Log all nodes together instead of per node
+                 rec.log("full_path",rerun::Points3D(subpath)
+                        .with_colors({rerun::Color(0, 0, 255)}) // Blue color
+                        .with_radii({0.5f})); // Radius 0.5);
+    
+    moveRoverAlongPath(path); 
+    current_start = path.back(); //REDUCE THE THRESHOLD TOMORROW AND CHECK
+
+
+      /*  for (size_t i = 0; i < path.size() && i < 3; ++i) {  
+        std::cout << "(" << path[i].x << "," << path[i].y << ") ";
+        subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f});
+    }
+
+    rec.log("full_path", rerun::Points3D(subpath)
+        .with_colors({rerun::Color(0, 0, 255)}) // Blue color
+        .with_radii({0.5f})); // Radius 0.5
+
+    if (!subpath.empty()) {  
+        moveRoverAlongPath(subpath);  // Move rover along selected subpath
+        current_start = path[std::min((size_t)2, path.size() - 1)];  // Prevents out-of-bounds access
+    }
+*/
+
+    if (current_goal == final_goal) {
+        std::cout << "GOAL REACHED" << std::endl;
+        ArucoDetect();
+        sendfinalsignal();
+        serial.close();
+        break;
+    }
+       pathplanning_flag=false;
+
+   }
+
+
+          }  
+             // Update current start to the end of the current path
+          }
 return 0;
+       
 }        //create start and goal nodes
 
 
