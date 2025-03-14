@@ -401,7 +401,7 @@ int main()
              }
           //CHECK IF THE IMPLEMENTATIONS OF PASSTHROUGH AND VOXEL GRID IS CORRECT  
              //passthrough filter
-             /*pcl::PointCloud<pcl::PointXYZ>::Ptr passthrough_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+             pcl::PointCloud<pcl::PointXYZ>::Ptr passthrough_cloud(new pcl::PointCloud<pcl::PointXYZ>());
              pcl::PassThrough<pcl::PointXYZ> passthrough;
              passthrough.setInputCloud(pcl_cloud);
              passthrough.setFilterFieldName("z");  //this is based on depth
@@ -425,51 +425,8 @@ int main()
              {
                  point_vectors.emplace_back(point.x, point.y, point.z);
              }
-             create_gridmap(gridmap,point_vectors , rover_pose, grid_resolution);*/
-             
-             pcl::PointCloud<pcl::PointXYZ>::Ptr passthrough_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-             pcl::PassThrough<pcl::PointXYZ> passthrough;
-             passthrough.setInputCloud(pcl_cloud);
-             passthrough.setFilterFieldName("z");  // Depth-based filtering
-             passthrough.setFilterLimits(0.5, 5.0); // Range in meters
-             passthrough.filter(*passthrough_cloud);
+             create_gridmap(gridmap,point_vectors , rover_pose, grid_resolution);
 
-            //cout<<"After filtering AFTER PASSTHROUGH: "<<passthrough_cloud->size()<<" points."<<"\n"<<endl;
-
-            // Voxel Grid Downsampling
-            pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-            pcl::VoxelGrid<pcl::PointXYZ> voxel;
-            voxel.setInputCloud(passthrough_cloud);
-            voxel.setLeafSize(0.05f, 0.05f, 0.05f); // Size of each voxel in xyz dimension
-            voxel.filter(*filtered_cloud);
-
-            //          Clear previous points
-            std::vector<Eigen::Vector3f>().swap(point_vectors); // Forces memory deallocation
-            std::vector<float> z_values;
-            z_values.reserve(filtered_cloud->points.size());
-
-            // Extract yaw from quaternion
-            float theta = atan2(2.0f * (rover_pose.orientation.w() * rover_pose.orientation.z() +
-                            rover_pose.orientation.x() * rover_pose.orientation.y()), 
-                    1.0f - 2.0f * (rover_pose.orientation.y() * rover_pose.orientation.y() +
-                                   rover_pose.orientation.z() * rover_pose.orientation.z()));
-
-             float ned_theta = -(theta - M_PI_2);  // Adjust yaw for NED (North-East-Down)
-
-             for (const auto& point : filtered_cloud->points) 
-            {  
-                float dx = point.z();  // Z -> X (Forward)
-                float dy = -point.x(); // X -> -Y (Rightward)
-                float dz = -point.y(); // Y -> -Z (Downward)
-
-                float rotated_x = cos(ned_theta) * dx - sin(ned_theta) * dy;
-                float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
-
-                point_vectors.emplace_back(rotated_x, rotated_y, dz);
-             }
-
-             // **Pass Corrected Points to Grid Mapping**
-             create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
              if(gridmap.occupancy_grid.size()>=batch_threshold)
              {
                 draw_gridmap(gridmap,point_vectors, rover_pose, grid_resolution, rec);

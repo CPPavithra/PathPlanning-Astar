@@ -168,17 +168,19 @@ vector<Node> astar(const unordered_map<pair<int, int>, CellCost, pair_hash>& occ
                 path.push_back(*n);
             }
             reverse(path.begin(), path.end());
-            return path;  // ✅ Return reconstructed path
+            return path; 
         }
 
-        visited.insert(currentKey);  // ✅ Mark node as visited AFTER popping
+       // visited.insert(currentKey);  // ✅ Mark node as visited AFTER popping
 
         // **Explore neighbors**
-        for (int i = 0; i < 8; i++) {
+        /*for (int i = 0; i < 8; i++) {
             int newX = current->x + dx[i];
             int newY = current->y + dy[i];
            // double movementCost = (i < 4) ? 1.0 : 1.414;  // Straight = 1.0, Diagonal = 1.414
-           double movementCost = (abs(newX - goal.x) == abs(newY - goal.y)) ? 1.0 : ((i < 4) ? 1.0 : 1.414);
+           //double movementCost = (abs(newX - goal.x) == abs(newY - goal.y)) ? 1.0 : ((i < 4) ? 1.0 : 1.414);
+           
+            double movementCost = (dx[i] != 0 && dy[i] != 0) ? 1.414 : 1.0;
 
             // Get obstacle cost
             double obstacleCost = 1e6;  // Default: very high cost (impassable)
@@ -209,7 +211,43 @@ vector<Node> astar(const unordered_map<pair<int, int>, CellCost, pair_hash>& occ
                 allNodes[neighborKey] = neighbor;
                 visited.insert(neighborKey);  // ✅ Move this AFTER confirming a better path
             }
-        }
+        }*/
+        for (int i = 0; i < 8; i++) {
+    int newX = current->x + dx[i];
+    int newY = current->y + dy[i];
+    double movementCost = (dx[i] != 0 && dy[i] != 0) ? 1.414 : 1.0;
+    // Get obstacle cost
+    double obstacleCost = 1e6;  // Default: unexplored = very high cost (impassable)
+    auto it = occupancyGrid.find({newX, newY});
+    if (it != occupancyGrid.end()) {
+        obstacleCost = it->second.cost;  // Explored, with known obstacle cost
+    } 
+    else if (newX >= gridmap.min_x && newX <= gridmap.max_x &&
+             newY >= gridmap.min_y && newY <= gridmap.max_y) {
+        obstacleCost = 0.0;  // Explored, but free space
+    } 
+    else {
+        continue;  // Unexplored or out of bounds → skip this neighbor
+    }
+    if (obstacleCost >= 1e6) continue;  // Skip impassable cells
+    double newGCost = current->g_cost + movementCost + obstacleCost;
+    if (current->parent && (newX - current->x != current->x - current->parent->x || newY - current->y != current->y - current->parent->y)) {
+        newGCost += 0.1;  // Penalize unnecessary turns slightly
+    }
+    pair<int, int> neighborKey = {newX, newY};
+    //Ensure only better paths update the node
+    if (visited.find(neighborKey) == visited.end() &&
+        (allNodes.find(neighborKey) == allNodes.end() || newGCost < allNodes[neighborKey]->g_cost)) {
+
+        auto neighbor = make_shared<Node>(newX, newY, newGCost, heuristic(newX, newY, goal.x, goal.y), current);
+        neighbor->f_cost = neighbor->g_cost + neighbor->h_cost;
+
+        openList.push(neighbor);
+        allNodes[neighborKey] = neighbor;
+        visited.insert(neighborKey);  // ✅ Move this AFTER confirming a better path
+    }
+}
+
     }
 
     return {};  // No path found

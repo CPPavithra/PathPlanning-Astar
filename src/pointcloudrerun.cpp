@@ -62,57 +62,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
 	//cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
        for (const auto& point : point_vectors)
        {
-    /*      int grid_x = static_cast<int>((point.z() / grid_resolution)/1000); // Map to grid cell
-          int grid_y = static_cast<int>((point.x() / grid_resolution)/1000);
-//         int grid_x = static_cast<int>((point.x() - rover_x) / grid_resolution);
-  //      int grid_y = static_cast<int>((point.y() - rover_y) / grid_resolution);   
-         float height_at_point = point.y(); // Use z for height
-*/
-//////////////////////////////////////////////////////////////////////////
-/*std::unordered_map<std::pair<int, int>, std::pair<float, float>, pair_hash> height_map;  // {min_height, max_height}  
-       std::pair<int, int> grid_cell = {grid_x, grid_y};
-
-
-       auto it = height_map.find(grid_cell);
-if (it == height_map.end()) {
-    if (height_map.find(grid_cell) == height_map.end()) {
-              
-  height_map.emplace(grid_cell, std::make_pair(height_at_point, height_at_point));
-} else {
-    it->second.first = std::min(it->second.first, height_at_point);
-    it->second.second = std::max(it->second.second, height_at_point);
-}
-}*/
-////////////////////////////////////////////////////////////
-
-          //cout << "Mapped grid position: (" << grid_x << ", " <<grid_y << ")" <<endl;
-          // cout<<"Height at ("<<tolog_x<<" , "<<tolog_y<<") ->"<<roverpose.position.z()<<"\n"<<endl;
-      
- // Compute displacement from the rover's position
-/*float dx = point.x() - rover_x;
-float dy = point.y() - rover_y;  // y is the lateral
-float dz = point.z();  //z is height*/
-
-
-       ////////////////////////////
-/*float dx = point.z() - rover_x;  // Z becomes X (forward motion)
-float dy = -point.x() - rover_y; // X becomes -Y (rightward, with negative)
-float dz = -point.y();            // Y becomes -Z (height, flipped)
-
-float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
-                            roverpose.orientation.x() * roverpose.orientation.y()), 
-                    1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() + 
-                                   roverpose.orientation.z() * roverpose.orientation.z()));
-
-
-float local_x = cos(theta) * dx + sin(theta) * dy;
-float local_y = -sin(theta) * dx + cos(theta) * dy;
-
-
-int grid_x = static_cast<int>(local_x / 1.0);
-int grid_y = static_cast<int>(local_y / 1.0);
-float height_at_point = dz;*/
-///////////////////////////////////////
+ 
 cout << "Raw point data: (" << point.x() << ", " << point.y() << ", " << point.z() << ")" << endl;
 float dx = point.z();  // Z becomes X (forward motion)
 float dy = -point.x(); // X becomes -Y (rightward, with negative)
