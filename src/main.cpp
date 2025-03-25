@@ -107,7 +107,11 @@ std::string table_text =
             }
 
             // calculate cost from start to that node
-            double cost_to_node = heuristic(current_start.x, current_start.y, x, y);
+            double obstacle_cost = (gridmap.occupancy_grid.find({x, y}) != gridmap.occupancy_grid.end()) ?
+                       gridmap.occupancy_grid.at({x, y}).cost : 0;
+            double cost_to_node = heuristic(current_start.x, current_start.y, x, y) + obstacle_cost;
+
+            //double cost_to_node = heuristic(current_start.x, current_start.y, x, y);
             // alculate cost from this node to the final goal
             double cost_to_goal = heuristic(x, y, final_goal.x, final_goal.y);
 
@@ -189,50 +193,6 @@ void log_rover_feedback(rerun::RecordingStream& rec) {
  * ****************************************************************************************/
 
 /*void moveRoverAlongPath(const std::vector<Node>& path) {
-    if (path.size() < 2) return;  // No movement needed  // Start with no direction
-
-    for (size_t i = 1; i < path.size(); i++) {
-        int dx = path[i].x - path[i - 1].x;
-        int dy = path[i].y - path[i - 1].y;
-
-        // Determine direction index (0-7 for 45-degree increments)
-        int dir = 0;
-       /* if (dx > 0 && dy == 0) dir = 0;  // Right
-        else if (dx > 0 && dy < 0) dir = 1;  // Top-right
-        else if (dx == 0 && dy > 0) dir = 2;  // Up
-        else if (dx < 0 && dy > 0) dir = 3;  // Top-left
-        else if (dx < 0 && dy == 0) dir = 4;  // Left*/
-                                              // if (dx > 0 && dy == 0) dir = 0;  // Right
- /*       if (dx > 0 && dy > 0) dir = 1;  // Top-right
-        else if (dx == 0 && dy > 0) dir = 2;  // Up
-        else if (dx < 0 && dy > 0) dir = 3;  // Top-left
-        else if (dx < 0 && dy == 0) dir = 4;  // Left
-<<<<<<< HEAD
-        
-=======
-        else if (dx < 0 && dy < 0) dir = 5;  // Bottom-left
-        else if (dx == 0 && dy < 0) dir = 6;  // Down
-        else if (dx > 0 && dy < 0) dir = 7; //bottom-right
-        else if (dx > 0 && dy == 0); //right
-
->>>>>>> final
-        float distance = sqrt(dx*dx + dy*dy)*1.0f;//grid resolution=1.0f
-        float time_needed = distance / 0.2;  
-
-        Drive(dir, time_needed, prev_dir);//this function is in imu.cpp
-<<<<<<< HEAD
-      //  std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
-
-        prev_dir = dir;  //dont update it here as the rover does not know if the rotation has been updated or not. It should be updated in the drive function
-=======
-        //std::this_thread::sleep_for(std::chrono::milliseconds(int(time_needed * 1000)));
-
-      //  prev_dir = dir;  //dont update it here as the rover does not know if the rotation has been updated or not. It should be updated in the drive function
-    }
-}*/
-
-
-void moveRoverAlongPath(const std::vector<Node>& path) {
     static size_t last_index = 0; // Track last moved index persistently
 
     if (path.size() < 2 || last_index >= path.size() - 1) return;  // No movement needed  
@@ -262,8 +222,23 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
        // prev_dir=dir;
 >>>>>>> final
     }
+}*/
+void moveRoverAlongPath(const std::vector<Node>& path)
+{
+  static size_t last_index=0;
+  if(path.size()<2||last_index>=path.size()-1)
+    return;//no monement needed for this
+  for(size_t i=last_index+1;i<path.size();i++)
+  {
+    int goal_x = path[i].x;
+    int goal_y = path[i].y;
+    int prev_x = path[i-1].x;
+    int prev_y = path[i-1].y;
+    float goal_theta = atan2(goal_y - prev_y, goal_x - prev_x);
+    move(goal_x,goal_y,goal_theta);
+    last_index=i;
+  }
 }
-
 /***********************************************************************************************/
 
 int main()
@@ -533,10 +508,6 @@ int main()
                            }*/
                       //}
                   }
-=======
-                           }
-                      }*/
-              //    }
 >>>>>>> final
 
                 // std::cout << std::endl;

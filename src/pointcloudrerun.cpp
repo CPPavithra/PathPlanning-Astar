@@ -64,20 +64,18 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
        {
  
 cout << "Raw point data: (" << point.x() << ", " << point.y() << ", " << point.z() << ")" << endl;
-float dx = point.z();  // Z becomes X (forward motion)
-float dy = -point.x(); // X becomes -Y (rightward, with negative)
-float dz = -point.y();  
+float dx=point.z();  //forward motion)
+float dy=-point.x(); // X becomes -Y 
+float dz=-point.y();  
 
 
-float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
-                            roverpose.orientation.x() * roverpose.orientation.y()), 
-                    1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() +
+float theta=atan2(2.0f*(roverpose.orientation.w()*roverpose.orientation.z()+roverpose.orientation.x()*roverpose.orientation.y()),1.0f-2.0f*(roverpose.orientation.y() * roverpose.orientation.y() +
                                    roverpose.orientation.z() * roverpose.orientation.z()));
 
-float ned_theta = -(theta - M_PI_2);    // Adjust yaw for NED (North-East-Down)
+float ned_theta =-(theta -M_PI_2);
 
 
-float rotated_x = cos(ned_theta) * dx - sin(ned_theta) * dy;
+float rotated_x =cos(ned_theta)* dx - sin(ned_theta) * dy;
 float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
 
 
