@@ -30,6 +30,7 @@ public:
     float size;
     bool isLeaf;
     bool hasObstacle;
+    int pointCount = 0; 
     QuadtreeNode* children[4]; //one child for each direction
     QuadtreeNode(Point c, float s) : center(c),size(s),isLeaf(true),hasObstacle(false) {
         for (int i = 0; i < 4; i++) children[i] = nullptr;
@@ -43,7 +44,6 @@ public:
         isLeaf = false;
     }
   void insert(Point p) {
-    int pointCount;
     if (!inBounds(p)) return;
     if (size <= 0.5) {
         pointCount++;
@@ -70,42 +70,62 @@ public:
         }
     }
     }
-void updateQuadtreeWithPointCloud(QuadtreeNode* root, const std::vector<Vector3f>& point_vectors, const Pose& roverpose) {
+void updateQuadtreesWithPointCloud(
+    QuadtreeNode* lowQuadtree,
+    QuadtreeNode* midQuadtree,
+    QuadtreeNode* highQuadtree,
+    const std::vector<Vector3f>& point_vectors,
+    const Pose& roverpose) {
+
     float rover_x = roverpose.position.x();
     float rover_y = roverpose.position.y();
-    float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() + roverpose.orientation.x() * roverpose.orientation.y()),
-                        1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() + roverpose.orientation.z() * roverpose.orientation.z()));
+
+    float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
+                                roverpose.orientation.x() * roverpose.orientation.y()),
+                        1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() +
+                                       roverpose.orientation.z() * roverpose.orientation.z()));
     float ned_theta = -(theta - M_PI_2);
 
     for (const auto& point : point_vectors) {
-        float dx = point.z();  // Forward motion
-        float dy = -point.x(); // X becomes -Y
+        float dx = point.z();      // Forward
+        float dy = -point.x();     // X becomes -Y
+        float height = point.y();  // Y is height
+
         float rotated_x = cos(ned_theta) * dx - sin(ned_theta) * dy;
         float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
 
         Point p = {rover_x + rotated_x, rover_y + rotated_y};
-        root->insert(p);
+
+        if (height < 0.2f) {
+            lowQuadtree->insert(p);
+        } else if (height < 0.6f) {
+            midQuadtree->insert(p);
+        } else {
+            highQuadtree->insert(p);
+        }
     }
 
-    int densityThreshold = 30; // Define your own threshold
-    root->setObstaclesBasedOnDensity(densityThreshold);
+    int densityThreshold = 30; // You can tune this
+    lowQuadtree->setObstaclesBasedOnDensity(densityThreshold);
+    midQuadtree->setObstaclesBasedOnDensity(densityThreshold);
+    highQuadtree->setObstaclesBasedOnDensity(densityThreshold);
 }
-
-    bool inBounds(Point p) {
+    bool inBounds(Point p) const{
         return (p.x >= center.x - size/2 && p.x <= center.x + size/2 &&
                 p.y >= center.y - size/2 && p.y <= center.y + size/2);
     }
     void clear() {
-        for (int i = 0; i < 4; i++) {
-            if (children[i]) {
-                children[i]->clear();
-                delete children[i];
-                children[i] = nullptr;
-            }
+    for (int i = 0; i < 4; i++) {
+        if (children[i]) {
+            children[i]->clear();
+            delete children[i];
+            children[i] = nullptr;
         }
-        isLeaf = true;
-        hasObstacle = false;
     }
+    isLeaf = true;
+    hasObstacle = false;
+    pointCount = 0;
 }
+
 };
 
