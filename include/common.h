@@ -35,5 +35,9 @@ struct Gridmap {
         : occupancy_grid(grid), min_x(min_x), min_y(min_y), max_x(max_x), max_y(max_y) {}
 };
 
+struct Point {
+  float x,y;
+};
+
 #endif // COMMON_H
 

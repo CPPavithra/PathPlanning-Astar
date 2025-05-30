@@ -20,6 +20,7 @@
 #include <sstream>
 #include "../include/rerun.h"
 #include "common.h"
+#include "quadtree.h"
 
 struct Point {
     float x, y;
