@@ -93,7 +93,7 @@ std::string table_text =
 }*/
 
 
-    Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
+  /*  Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
     Node best_node = current_start;
  initSerial("/dev/ttyACM0", 9600);
     double min_total_cost = std::numeric_limits<double>::max();
@@ -119,6 +119,58 @@ std::string table_text =
             double total_cost = cost_to_node + cost_to_goal;
 
             // Select the node with the minimum total cost
+            if (total_cost < min_total_cost) {
+                min_total_cost = total_cost;
+                best_node = Node(x, y);
+            }
+        }
+    }
+
+    return best_node;
+}*/
+
+//better findcurrentgoal FIX IT MORE
+Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const Node& final_goal, const std::set<std::pair<int, int>>& visited_nodes) {
+    Node best_node = current_start;
+    double min_total_cost = std::numeric_limits<double>::max();
+    double current_to_goal_heuristic = heuristic(current_start.x, current_start.y, final_goal.x, final_goal.y);
+
+    for (int x = gridmap.min_x; x <= gridmap.max_x; ++x) {
+        for (int y = gridmap.min_y; y <= gridmap.max_y; ++y) {
+            // Skip if already visited or occupied
+            if (gridmap.occupancy_grid.find({x, y}) != gridmap.occupancy_grid.end() ||
+                visited_nodes.find({x, y}) != visited_nodes.end()) {
+                continue;
+            }
+            // Must be closer to goal than current
+            double new_to_goal = heuristic(x, y, final_goal.x, final_goal.y);
+            if (new_to_goal >= current_to_goal_heuristic) {
+                continue;
+            }
+            //CHECK IF THE DIRECTIONAL CONSTRAINT BELOW IS ACTUALLY NEEDED
+            double angle_to_node = atan2(y - current_start.y, x - current_start.x);
+            double angle_to_goal = atan2(final_goal.y - current_start.y, final_goal.x - current_start.x);
+            double angle_diff = fabs(angle_to_node - angle_to_goal);
+            // Normalize angle_diff to [0, ¿]
+            if (angle_diff > M_PI) angle_diff = 2 * M_PI - angle_diff;
+
+            if (angle_diff > (M_PI / 4)) { // > 45 degrees off
+                continue;
+            }
+
+            double obstacle_cost = 0;
+            if (gridmap.occupancy_grid.find({x, y}) != gridmap.occupancy_grid.end()) {
+                obstacle_cost = gridmap.occupancy_grid.at({x, y}).cost;
+            }
+
+            double cost_to_node = heuristic(current_start.x, current_start.y, x, y) + obstacle_cost;
+            double total_cost = cost_to_node + new_to_goal;
+
+            // Penalize zero or backward motion
+            if (x == current_start.x && y == current_start.y) {
+                total_cost += 1000;
+            }
+            // Select lowest cost valid node
             if (total_cost < min_total_cost) {
                 min_total_cost = total_cost;
                 best_node = Node(x, y);
@@ -189,8 +241,64 @@ void log_rover_feedback(rerun::RecordingStream& rec) {
  * ******************************************************************************************/
 
 /******************************************************************************************
+                    5. Realsense color enable_stream
+  ****************************************************************************/
+
+void log_views(rerun::RecordingStream& rec) {
+    // Define spatial views
+    rec.log_static("grid_map", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);  // Left 3/4th pane
+
+    rec.log_static("rgb_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Top-right
+    rec.log_static("heat_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Below RGB camera
+
+    rec.log_static("rover_feedback", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Bottom-right log
+    rec.log_static("cost_table", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN); // Bottom-right navigation
+
+    // Define views manually using SpaceView
+  }
+
+
+void log_camera_frames(rerun::RecordingStream& rec, const rs2::frameset& frameset) {
+    // Get color frame
+    auto color_frame = frameset.get_color_frame();
+    auto ir_frame = frameset.get_infrared_frame();  // Get IR frame from frameset
+
+    // Get color frame properties
+    uint32_t width = color_frame.get_width();
+    uint32_t height = color_frame.get_height();
+    const uint8_t* color_data = static_cast<const uint8_t*>(color_frame.get_data());
+
+    // Log color (RGB) frame
+    rec.log("rgb_camera",
+            rerun::Image::from_rgb24(std::vector<uint8_t>(color_data, color_data + (width * height * 3)),  
+                { width, height }));
+
+    // Get IR frame properties
+    uint32_t ir_width = ir_frame.get_width();
+    uint32_t ir_height = ir_frame.get_height();
+    const uint8_t* ir_data = static_cast<const uint8_t*>(ir_frame.get_data());
+
+    //stero cam
+    rec.log("heat_camera",
+        rerun::DepthImage(ir_data, {ir_width, ir_height}, rerun::datatypes::ChannelDatatype::U8));
+    
+}
+
+
+void log_rover_feedback(rerun::RecordingStream& rec) {
+    rec.log("rover_feedback", rerun::TextLog("Rover movement tracking enabled."));
+}
+
+/********************************************************************************************
+ * ******************************************************************************************/
+
+/******************************************************************************************
  * FUNCTION TO DETERMINE THE DIRECTION FOR THE ROVER TO MOVE (HARDCODED POSITIONS)
  * ****************************************************************************************/
+
+/*void moveRoverAlongPath(const std::vector<Node>& path) {
+    if (path.size() < 2) return;  // No movement needed  // Start with no direction
+
 
 /*void moveRoverAlongPath(const std::vector<Node>& path) {
     static size_t last_index = 0; // Track last moved index persistently
@@ -265,7 +373,8 @@ int main()
         cfg.enable_stream(RS2_STREAM_COLOR);
       
 
-       cfg.enable_stream(RS2_STREAM_INFRARED, 1); // Left IR
+     <t_€ý>hlua require"cmp.utils.feedkeys".run(1)
+       Ã½cfg.enable_stream(RS2_STREAM_INFRARED, 1); // Left IR
        cfg.enable_stream(RS2_STREAM_INFRARED, 2); // Right IR/ Enable only if available
           // Enable Right IR (optional)
  
@@ -537,14 +646,44 @@ int main()
                 //serial.close();
                 break;
              }
+>>>>>>> final
+
+                // std::cout << std::endl;
+
+                 // Log all nodes together instead of per node
+           /*      rec.log("full_path",rerun::Points3D(subpath)
+                        .with_colors({rerun::Color(0, 0, 255)}) // Blue color
+                        .with_radii({0.5f})); // Radius 0.5);
+<<<<<<< HEAD
+                                              //
+                  current_start = path.back();
+             }
+
+             // Update current start to the end of the current path
+             //current_start = path.back();
+=======
+                 
+                  moveRoverAlongPath(path);
+                    current_start = path.back();
+>>>>>>> final
+
+             if(current_goal==final_goal)
+             {
+                cout<<"GOAL REACHED"<<endl;
+                ArucoDetect();
+                sendfinalsignal();
+                //serial.close();
+                break;
+             }
            
             }*/
    while (pathplanning_flag) {
+     //CHANGE ONLY THE WAYPOINT LOGIC HERE- ONLY FOR WAYPOINT LOGIC DO THE QUADTREE, DONT NEED TO CHANGE THE ENTIRE CODEEEE!!!
     visited_nodes.insert({current_start.x, current_start.y});
     std::vector<rerun::Position3D> subpath;
 
     Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes);
-    
+   //after current goal is decided, move to current goal using the quadtree. 
     std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
 
     if (gridmap.occupancy_grid.find({current_goal.x, current_goal.y}) != gridmap.occupancy_grid.end()) {
@@ -552,58 +691,6 @@ int main()
         break;
     }
 
-    rec.log("full_path", rerun::Clear(false));
-    std::vector<Node> path = astar(gridmap.occupancy_grid, current_start, current_goal);
-    
-    if (path.empty()) {
-        std::cout << "No path found to intermediate goal. Stopping!" << std::endl;
-        break; 
-    }
-      std::cout << "Path found:" << std::endl;
-
-                 // Clear subpath before using it
-                 subpath.clear();
-                //
-                
-
-                for (const Node& node : path) 
-                 {
-                    std::cout << "(" << node.x << "," << node.y << ") ";
-                    subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f}); // z=0 for 2D
-                 }
-                 
-               //  moveRoverAlongPath(path);
-                   // Log all nodes together instead of per node
-                 rec.log("full_path",rerun::Points3D(subpath)
-                        .with_colors({rerun::Color(0, 0, 255)}) // Blue color
-                        .with_radii({0.5f})); // Radius 0.5);
-    
-    moveRoverAlongPath(path); 
-    current_start = path.back(); //REDUCE THE THRESHOLD TOMORROW AND CHECK
-
-
-      /*  for (size_t i = 0; i < path.size() && i < 3; ++i) {  
-        std::cout << "(" << path[i].x << "," << path[i].y << ") ";
-        subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f});
-    }
-
-    rec.log("full_path", rerun::Points3D(subpath)
-        .with_colors({rerun::Color(0, 0, 255)}) // Blue color
-        .with_radii({0.5f})); // Radius 0.5
-
-    if (!subpath.empty()) {  
-        moveRoverAlongPath(subpath);  // Move rover along selected subpath
-        current_start = path[std::min((size_t)2, path.size() - 1)];  // Prevents out-of-bounds access
-    }
-*/
-
-    if (current_goal == final_goal) {
-        std::cout << "GOAL REACHED" << std::endl;
-        ArucoDetect();
-        sendfinalsignal();
-        serial.close();
-        break;
-    }
        pathplanning_flag=false;
 
    }
