@@ -28,26 +28,9 @@
 #include "rerun.h"
 #include "common.h"
 #include <limits>
+#include "astarquadtree.h"
 
 using namespace std;
-
-struct Node {
-    float x, y;
-    double g, h;
-    Node* parent;
-    Node(float _x, float _y, double _g = 0, double _h = 0, Node* _parent = nullptr)
-        : x(_x), y(_y), g(_g), h(_h), parent(_parent) {}
-    double f() const { return g + h; }
-    bool operator==(const Node& other) const {
-        return abs(x - other.x) < 1e-3 && abs(y - other.y) < 1e-3;
-    }
-};
-
-struct NodeHasher {
-    size_t operator()(const pair<int, int>& p) const {
-        return hash<int>()(p.first) ^ hash<int>()(p.second << 1);
-    }
-};
 
 double heuristic(float x1, float y1, float x2, float y2) {
     return hypot(x2 - x1, y2 - y1);
@@ -74,6 +57,7 @@ int getCostAtPoint(Point p, QuadtreeNode* low, QuadtreeNode* mid, QuadtreeNode* 
     if (high->inBounds(p)) cost = max(cost, high->getCostAtPoint(p));
     return cost;
 }
+
 vector<Node> astar(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, Node start, Node goal, float resolution = 0.5f) {
     auto cmp = [](Node* a, Node* b) { return a->f() > b->f(); };
     priority_queue<Node*, vector<Node*>, decltype(cmp)> openSet(cmp);
