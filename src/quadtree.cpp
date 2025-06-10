@@ -19,12 +19,12 @@
 #include <unordered_set>
 #include <sstream>
 #include "../include/rerun.h"
-#include "common.h"
-#include "quadtree.h"
 
-struct Point {
+using namespace rerun;
+
+/*struct Point {
     float x, y;
-};
+};*/
 class QuadtreeNode {
 public:
     Point center;
@@ -85,6 +85,21 @@ void assignCostToObstacles(int assignedCost) {
             children[i]->assignCostToObstacles(assignedCost);
         }
     }
+}
+int getCostAtPoint(Point p) const {
+    if (!inBounds(p)) return 10000;  // Very high cost for out-of-bounds
+
+    if (isLeaf) {
+        return cost;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        if (children[i] && children[i]->inBounds(p)) {
+            return children[i]->getCostAtPoint(p);
+        }
+    }
+
+    return cost;  // Fallback, though ideally it should never hit this
 }
 void collectObstaclePoints(std::vector<Point>& obstacles) const {
     if (isLeaf) {
@@ -163,7 +178,8 @@ void updateQuadtreesWithPointCloud(
     pointCount = 0;
 }
 
-bool QuadtreeNode::isObstacleAtPoint(const Vector3f& point) const {
+// Fixed: Removed extra qualification 'QuadtreeNode::'
+bool isObstacleAtPoint(const Vector3f& point) const {
     if (!containsPoint(point)) return false;
     if (isLeaf) {
         return hasObstacle;
@@ -177,7 +193,7 @@ bool QuadtreeNode::isObstacleAtPoint(const Vector3f& point) const {
 }
 
 
-void collectObstaclePointsWithColor(std::vector<Point>& points, std::vector<components::Color>& colors, components::Color color) const {
+void collectObstaclePointsWithColor(std::vector<Point>& points, std::vector<rerun::Color>& colors, rerun::Color color) const {
     if (isLeaf) {
         if (hasObstacle) {
             points.push_back(center);
@@ -194,23 +210,22 @@ void collectObstaclePointsWithColor(std::vector<Point>& points, std::vector<comp
 
 void rerunvisualisation(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, rerun::RecordingStream& rec) {
     std::vector<Point> all_points;
-std::vector<rerun::Color> all_colors; // Use rerun::Color, not components::Color
+    std::vector<rerun::Color> all_colors;
 
-lowQuadtree->collectObstaclePointsWithColor(all_points, all_colors, rerun::Color{0, 255, 0});
-midQuadtree->collectObstaclePointsWithColor(all_points, all_colors, rerun::Color{255, 255, 0});
-highQuadtree->collectObstaclePointsWithColor(all_points, all_colors, rerun::Color{255, 0, 0});
+    lowQuadtree->collectObstaclePointsWithColor(all_points, all_colors, rerun::Color{0, 255, 0});
+    midQuadtree->collectObstaclePointsWithColor(all_points, all_colors, rerun::Color{255, 255, 0});
+    highQuadtree->collectObstaclePointsWithColor(all_points, all_colors, rerun::Color{255, 0, 0});
 
-std::vector<rerun::Position3D> positions;
-positions.reserve(all_points.size());
+    std::vector<rerun::Position3D> positions;
+    positions.reserve(all_points.size());
 
-for (const auto& p : all_points) {
-    positions.push_back(rerun::Position3D{p.x, 0.0f, p.y});  // Adjust height if needed
-}
+    for (const auto& p : all_points) {
+        positions.push_back(rerun::Position3D{p.x, 0.0f, p.y});  // Adjust height if needed
+    }
 
-rerun::Points3D points3d(positions);
-points3d = points3d.with_colors(all_colors);
-// Optional: points3d = points3d.with_radii(std::vector<float>(positions.size(), 0.5f));
-rec.log("obstacles", points3d);
+    // Fixed: Use move semantics properly with rerun Points3D
+    auto points3d = rerun::Points3D(positions).with_colors(all_colors);
+    // Optional: points3d = std::move(points3d).with_radii(std::vector<float>(positions.size(), 0.5f));
+    rec.log("obstacles", points3d);
 }
 };
-

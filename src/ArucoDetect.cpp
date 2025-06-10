@@ -13,11 +13,10 @@ int ArucoDetect() {
     cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
     cv::aruco::ArucoDetector detector(dictionary, detectorParams);
 
-<<<<<<< HEAD
-    cv::VideoCapture inputVideo(6);
-=======
+    //cv::VideoCapture inputVideo(6);
+
     cv::VideoCapture inputVideo(8);
->>>>>>> final
+
     if (!inputVideo.isOpened()) {
         cout << "Error: Couldn't open the video stream." << endl;
         return -1;
