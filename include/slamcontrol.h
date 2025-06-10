@@ -46,7 +46,7 @@ int PID(int target, int initial);
 void initSerial(const std::string& portname, unsigned int baud_rate);
 void serializeDrive(const drive &cmd, uint8_t *buffer, size_t buf_size);
 void sendcommand(const drive &cmd);
-void move(float goal_x, float goal_y, float goal_theta);
+void moving(float goal_x, float goal_y, float goal_theta);
 
 #endif // IMU_H
 

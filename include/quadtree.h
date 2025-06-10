@@ -5,7 +5,6 @@
 #include "common.h"  // For Point
 #include <cmath>     // For atan2, cos, sin, M_PI_2
 #include <Eigen/Dense> // For Vector3f, assuming you're using Eigen
-#include "pose.h"    // If you have a custom Pose struct/class
 
 // Forward declaration if you use rerun
 namespace rerun {
