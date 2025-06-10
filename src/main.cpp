@@ -543,162 +543,58 @@ int main()
                 adder=2;
              }
           }
-          else
-          {
-            /*while(pathplanning_flag)
-            {
-               // Mark the current start as visited
-             visited_nodes.insert({current_start.x, current_start.y});
-             std::vector<rerun::Position3D> subpath; // Store all nodes for logging
-        // Find the best intermediate goal
-             Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes);
+         
+else {
+    while (pathplanning_flag) {
+        visited_nodes.insert({current_start.x, current_start.y});
+        std::vector<rerun::Position3D> subpath;
+        //Select next goal using sparse hash map
+        Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes);
+        std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
 
-            // std::cout << "Current position: (" << current_start.x << "," << current_start.y << ")" << std::endl;
-             //std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
+        //Check if that goal is valid
+        if (gridmap.occupancy_grid.find({current_goal.x, current_goal.y}) != gridmap.occupancy_grid.end()) {
+            std::cout << "Selected goal is occupied. Planning failed." << std::endl;
+            break;
+        }
 
-             // Check if the selected goal is valid
-             if (gridmap.occupancy_grid.find({current_goal.x, current_goal.y}) != gridmap.occupancy_grid.end()) 
-             {
-                 std::cout << "Selected goal is occupied. Planning failed." << std::endl;
-                 break;
-             }
+        //Run A* on Quadtree map (local)
+        std::vector<Node> path = astar(quadtree.occupancy_grid, current_start, current_goal);
 
-             // Find path using A*
-             std::vector<Node> path = astar(gridmap.occupancy_grid, current_start, current_goal);
+        if (path.empty()) {
+            std::cout << "No path found. Will replan after collecting more data.\n";
+            break;  // Allow new sensor data
+        }
 
-             if (path.empty())
-             {
-                 std::cout << "No path found. Check grid or start/goal positions." << std::endl;
-                 break;
-        
-             } 
-             else
-             {
-                 std::cout << "Path found:" << std::endl;
+        //Log path and move
+        std::cout << "Path found:\n";
+        for (const Node& node : path) {
+            std::cout << "(" << node.x << "," << node.y << ") ";
+            subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f});
+        }
+        std::cout << "\n";
 
-                 // Clear subpath before using it
-                 subpath.clear();
+        //Log and move
+        rec.log("full_path", rerun::Points3D(subpath)
+                              .with_colors({rerun::Color(0, 0, 255)})
+                              .with_radii({0.5f}));
 
-                 /*for (const Node& node : path) 
-                 {
-                    std::cout << "(" << node.x << "," << node.y << ") ";
-                    subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f}); // z=0 for 2D
-                 }*/
-<<<<<<< HEAD
-                 moveRoverAlongPath(path);
-                 for (size_t i = 0; i < path.size(); ++i) {
-                      cout << "(" << path[i].x << "," << path[i].y << ") ";
-                      subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f}); // z=0 for 2D
-                                            // Move the rover every 5 points or at the last point
-                     /* if ((i + 1) % 5 == 0 || i == path.size() - 1) {
-=======
-               //  moveRoverAlongPath(path);
-              /*   for (size_t i = 0; i < path.size(); ++i) {
-                      cout << "(" << path[i].x << "," << path[i].y << ") ";
-                      subpath.push_back(rerun::Position3D{path[i].x, path[i].y, 0.0f}); // z=0 for 2D
+        moveRoverAlongPath(path);  // Moves rover to current_goal
+        current_start = path.back();  // Update position
+        visited_nodes.insert({current_start.x, current_start.y});
 
-                      // Move the rover every 5 points or at the last point
-                     /*if ((i + 1) % 5 == 0 || i == path.size() - 1) {
->>>>>>> final
-                           cout << "\nMoving rover along path segment..." << std::endl;
-                            if (last_index < path.size() && last_index <= i) {
-                                 moveRoverAlongPath({path.begin() + last_index, path.begin() + i + 1});
-                                 last_index = i + 1;
-                            }         */                //stop path planning to allow mapping updates
-                          /* if(path[i]==goal)
-                           {
-                             break; //break out of this while loop to check if current goal is equal to final goal but keeping pathplanning flag as true only
-                           }
-                           else
-                           {
-                           pathplanning_flag = false;
-                           continue;  // Exit to update grid and replan
-<<<<<<< HEAD
-                           }*/
-                      //}
-                  }
->>>>>>> final
+        //Final Goal Check
+        if (current_goal == final_goal) {
+            std::cout << "GOAL REACHED ¿\n";
+            ArucoDetect();         // Optional signal
+            sendfinalsignal();     // Stop or notify base
+            break;
+        }
 
-                // std::cout << std::endl;
-
-                 // Log all nodes together instead of per node
-           /*      rec.log("full_path",rerun::Points3D(subpath)
-                        .with_colors({rerun::Color(0, 0, 255)}) // Blue color
-                        .with_radii({0.5f})); // Radius 0.5);
-<<<<<<< HEAD
-                                              //
-                  current_start = path.back();
-             }
-
-             // Update current start to the end of the current path
-             //current_start = path.back();
-=======
-                 
-                  moveRoverAlongPath(path);
-                    current_start = path.back();
->>>>>>> final
-
-             if(current_goal==final_goal)
-             {
-                cout<<"GOAL REACHED"<<endl;
-                ArucoDetect();
-                sendfinalsignal();
-                //serial.close();
-                break;
-             }
->>>>>>> final
-
-                // std::cout << std::endl;
-
-                 // Log all nodes together instead of per node
-           /*      rec.log("full_path",rerun::Points3D(subpath)
-                        .with_colors({rerun::Color(0, 0, 255)}) // Blue color
-                        .with_radii({0.5f})); // Radius 0.5);
-<<<<<<< HEAD
-                                              //
-                  current_start = path.back();
-             }
-
-             // Update current start to the end of the current path
-             //current_start = path.back();
-=======
-                 
-                  moveRoverAlongPath(path);
-                    current_start = path.back();
->>>>>>> final
-
-             if(current_goal==final_goal)
-             {
-                cout<<"GOAL REACHED"<<endl;
-                ArucoDetect();
-                sendfinalsignal();
-                //serial.close();
-                break;
-             }
-           
-            }*/
-   while (pathplanning_flag) {
-     //CHANGE ONLY THE WAYPOINT LOGIC HERE- ONLY FOR WAYPOINT LOGIC DO THE QUADTREE, DONT NEED TO CHANGE THE ENTIRE CODEEEE!!!
-    visited_nodes.insert({current_start.x, current_start.y});
-    std::vector<rerun::Position3D> subpath;
-
-    Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes);
-   //after current goal is decided, move to current goal using the quadtree. 
-    std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
-
-    if (gridmap.occupancy_grid.find({current_goal.x, current_goal.y}) != gridmap.occupancy_grid.end()) {
-        std::cout << "Selected goal is occupied. Planning failed." << std::endl;
+        pathplanning_flag = false;
         break;
     }
-
-       pathplanning_flag=false;
-
-   }
-
-
-          }  
-             // Update current start to the end of the current path
-          }
+}
 return 0;
        
 }        //create start and goal nodes
