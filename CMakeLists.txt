@@ -58,6 +58,7 @@ src/ArucoDetect.cpp
 src/main.cpp
 src/astar.cpp
 src/pointcloudrerun.cpp
+src/quadtree.cpp
 lib/imu.cpp
 lib/cobs.c
 )
