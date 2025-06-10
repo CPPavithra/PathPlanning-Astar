@@ -59,7 +59,7 @@ void sendcommand(const drive &cmd) {
 }
 
 
-void move(float goal_x, float goal_y, float goal_theta) {
+/*void move(float goal_x, float goal_y, float goal_theta) {
     float current_x, current_y, current_theta;
     getCurrentPose(&current_x, &current_y, &current_theta); //pose from stella
 
@@ -88,5 +88,55 @@ void move(float goal_x, float goal_y, float goal_theta) {
     }
     
     sendcommand(d);
+}*/
+
+/***********************************************************************************************
+ * DO NOT KNOW IF THIS IS CORRECT
+ * **********************************************************************************************/
+
+struct RealsenseHandle {
+  rs2::frame_queue frame_q;
+  rs2::pointcloud pc;
+  rs2::pipeline pipe;
+  rs2::align align;
+  stella_vslam::system slam;
+  stella_vslam::config slam_cfg;
+};
+
+void getCurrentPose(float* x, float* y, float* theta, RealsenseHandle* handle) {
+    auto result = runLocalization(handle, nullptr);
+    if (std::holds_alternative<Error>(result)) {
+        std::cerr << "Localization Error!" << std::endl;
+        return;
+    }
+
+    Eigen::Matrix<double, 4, 4> inverse_pose = std::get<Eigen::Matrix<double, 4, 4>>(result);
+
+    *x = inverse_pose(0, 3);  // X position
+    *y = inverse_pose(1, 3);  // Y position
+    *theta = yawFromPose(inverse_pose);  // Extract theta (yaw)
+}
+
+void move(float goal_x, float goal_y, float goal_theta, RealsenseHandle* handle) {
+    float current_x, current_y, current_theta;
+    getCurrentPose(&current_x, &current_y, &current_theta, handle); // Get pose from Stella SLAM
+
+    float angle_diff = goal_theta - current_theta;
+
+    // Normalize angle (-180 to 180 degrees)
+    while (angle_diff > M_PI) angle_diff -= 2 * M_PI;
+    while (angle_diff < -M_PI) angle_diff += 2 * M_PI;
+
+    drive d;
+    if (abs(angle_diff) > 0.1) {  // Turn if not aligned
+        d.linear_x = 0.0f;
+        d.angular_z = (angle_diff > 0) ? 1.0f : -1.0f;  // Turn left/right
+    } 
+    else {
+        d.linear_x = 0.3f;  // Move forward
+        d.angular_z = 0.0f;
+    }
+
+    sendcommand(d);  // Send motion command
 }
 
