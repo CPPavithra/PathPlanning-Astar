@@ -8,7 +8,6 @@
 #include <fstream>
 #include <sstream>
 #include <librealsense2/rs.hpp>
-#include <iostream>
 #include <vector>
 #include <rerun.hpp>
 #include <Eigen/Dense>
@@ -18,7 +17,6 @@
 #include <unordered_map>
 #include <functional>
 #include <Eigen/Core>
-//for downsampling and filtering
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/passthrough.h>
@@ -26,16 +24,9 @@
 #include <cstdlib>
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
-#include <sstream>
 #include <set>
 #include "rerun.h"
 #include "common.h"
-
-
-#include <queue>
-#include <unordered_map>
-#include <cmath>
-#include <vector>
 #include <limits>
 
 using namespace std;
@@ -52,7 +43,6 @@ struct Node {
     }
 };
 
-// Hash function for Node position
 struct NodeHasher {
     size_t operator()(const pair<int, int>& p) const {
         return hash<int>()(p.first) ^ hash<int>()(p.second << 1);
@@ -77,11 +67,14 @@ int roundToGrid(float coord, float resolution) {
     return static_cast<int>(round(coord / resolution));
 }
 
-int getCostAtPoint(QuadtreeNode* root, Point p) {
-    return root->getCostAtPoint(p); // Defined inside QuadtreeNode class
+int getCostAtPoint(Point p, QuadtreeNode* low, QuadtreeNode* mid, QuadtreeNode* high) {
+    int cost = 1; // Default cost for free space
+    if (low->inBounds(p)) cost = max(cost, low->getCostAtPoint(p));
+    if (mid->inBounds(p)) cost = max(cost, mid->getCostAtPoint(p));
+    if (high->inBounds(p)) cost = max(cost, high->getCostAtPoint(p));
+    return cost;
 }
-
-vector<Node> astar(QuadtreeNode* quadtreeRoot, Node start, Node goal, float resolution = 0.5f) {
+vector<Node> astar(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, Node start, Node goal, float resolution = 0.5f) {
     auto cmp = [](Node* a, Node* b) { return a->f() > b->f(); };
     priority_queue<Node*, vector<Node*>, decltype(cmp)> openSet(cmp);
 
@@ -108,7 +101,6 @@ vector<Node> astar(QuadtreeNode* quadtreeRoot, Node start, Node goal, float reso
 
         if (heuristic(current->x, current->y, goal.x, goal.y) < resolution) {
             vector<Node> path = reconstruct_path(current);
-            // Cleanup memory
             for (auto& [_, node] : cameFrom) delete node;
             delete current;
             return path;
@@ -122,8 +114,8 @@ vector<Node> astar(QuadtreeNode* quadtreeRoot, Node start, Node goal, float reso
             if (closedSet[neighborKey]) continue;
 
             Point neighborP = {newX, newY};
-            int cost = getCostAtPoint(quadtreeRoot, neighborP);
-            if (cost >= 10000) continue; // obstacle or out of bounds
+            int cost = getCostAtPoint(neighborP, lowQuadtree, midQuadtree, highQuadtree);
+            if (cost >= 10000) continue;
 
             float tentative_gScore = current->g + resolution * cost;
             if (!gScore.count(neighborKey) || tentative_gScore < gScore[neighborKey]) {
@@ -135,8 +127,7 @@ vector<Node> astar(QuadtreeNode* quadtreeRoot, Node start, Node goal, float reso
         }
     }
 
-    // Cleanup on failure
     for (auto& [_, node] : cameFrom) delete node;
-    return {};  // No path found
+    return {};
 }
 
