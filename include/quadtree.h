@@ -3,9 +3,11 @@
 
 #include <vector>
 #include "common.h"  // For Point
-#include <cmath>     // For atan2, cos, sin, M_PI_2
-#include <Eigen/Dense> // For Vector3f, assuming you're using Eigen
-
+#include <cmath>     // For atan2, cos, sin, M_PI_2 // For Vector3f, assuming you're using Eigen
+#include <vector>
+#include <rerun.hpp>
+#include <Eigen/Dense>
+#include <Eigen/Core>
 // Forward declaration if you use rerun
 namespace rerun {
     class RecordingStream;
