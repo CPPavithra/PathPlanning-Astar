@@ -19,13 +19,14 @@
 #include <unordered_set>
 #include <sstream>
 #include "../include/rerun.h"
+#include "quadtree.h"
 
 using namespace rerun;
 
 /*struct Point {
     float x, y;
 };*/
-class QuadtreeNode {
+/*class QuadtreeNode {
 public:
     Point center;
     float size;
@@ -33,11 +34,11 @@ public:
     bool hasObstacle;
     int cost;
     int pointCount = 0; 
-    QuadtreeNode* children[4]; //one child for each direction
-    QuadtreeNode(Point c, float s, int co) : center(c),size(s),isLeaf(true),hasObstacle(false),cost(co) {
+    QuadtreeNode* children[4]; *///one child for each direction
+    QuadtreeNode::QuadtreeNode(Point c, float s, int co) : center(c),size(s),isLeaf(true),hasObstacle(false),cost(co) {
         for (int i = 0; i < 4; i++) children[i] = nullptr;
     }
-    void subdivide() {
+    void QuadtreeNode::subdivide() {
         float h=size/2;
         children[0] = new QuadtreeNode({center.x-h/2, center.y+h/2}, h, cost); //up-left->will be -h/2 from center in -x direction and +h/2 in +y direction
         children[1] = new QuadtreeNode({center.x+h/2, center.y+h/2}, h, cost); //up-right +h/2 in +x and +h/2 in +y
@@ -46,7 +47,7 @@ public:
         isLeaf = false;
     }
     //minimum leaf size 0.5 is the map resolution
-  void insert(Point p) {
+  void QuadtreeNode::insert(Point p) {
     if (!inBounds(p)) return;
     if (size <= 0.5) {
         pointCount++;
@@ -62,7 +63,7 @@ public:
         }
     }
 }
-    void setObstaclesBasedOnDensity(int threshold) {
+    void QuadtreeNode::setObstaclesBasedOnDensity(int threshold) {
     if (isLeaf) {
         hasObstacle = (pointCount >= threshold);
         return;
@@ -73,7 +74,7 @@ public:
         }
     }
     }
-void assignCostToObstacles(int assignedCost) {
+void QuadtreeNode::assignCostToObstacles(int assignedCost) {
     if (isLeaf) {
         if (hasObstacle) {
             cost = assignedCost;
@@ -86,7 +87,7 @@ void assignCostToObstacles(int assignedCost) {
         }
     }
 }
-int getCostAtPoint(Point p) const {
+int QuadtreeNode::getCostAtPoint(Point p) const {
     if (!inBounds(p)) return 10000;  // Very high cost for out-of-bounds
 
     if (isLeaf) {
@@ -101,7 +102,7 @@ int getCostAtPoint(Point p) const {
 
     return cost;  // Fallback, though ideally it should never hit this
 }
-void collectObstaclePoints(std::vector<Point>& obstacles) const {
+void QuadtreeNode::collectObstaclePoints(std::vector<Point>& obstacles) const {
     if (isLeaf) {
         if (hasObstacle) obstacles.push_back(center);
         return;
@@ -113,7 +114,7 @@ void collectObstaclePoints(std::vector<Point>& obstacles) const {
     }
 }
 
-bool containsPoint(const Vector3f& point) const {
+bool QuadtreeNode::containsPoint(const Vector3f& point) const {
     return (point.x() >= center.x - size/2 && point.x() <= center.x + size/2 &&
             point.y() >= center.y - size/2 && point.y() <= center.y + size/2);
 }
@@ -161,11 +162,11 @@ void updateQuadtreesWithPointCloud(
     midQuadtree->assignCostToObstacles(5);
     highQuadtree->assignCostToObstacles(10);
     }
-    bool inBounds(Point p) const{
+    bool QuadtreeNode::inBounds(Point p) const{
         return (p.x >= center.x - size/2 && p.x <= center.x + size/2 &&
                 p.y >= center.y - size/2 && p.y <= center.y + size/2);
     }
-    void clear() {
+    void QuadtreeNode::clear() {
     for (int i = 0; i < 4; i++) {
         if (children[i]) {
             children[i]->clear();
@@ -179,7 +180,7 @@ void updateQuadtreesWithPointCloud(
 }
 
 // Fixed: Removed extra qualification 'QuadtreeNode::'
-bool isObstacleAtPoint(const Vector3f& point) const {
+bool QuadtreeNode::isObstacleAtPoint(const Vector3f& point) const {
     if (!containsPoint(point)) return false;
     if (isLeaf) {
         return hasObstacle;
@@ -193,7 +194,7 @@ bool isObstacleAtPoint(const Vector3f& point) const {
 }
 
 
-void collectObstaclePointsWithColor(std::vector<Point>& points, std::vector<rerun::Color>& colors, rerun::Color color) const {
+void QuadtreeNode::collectObstaclePointsWithColor(std::vector<Point>& points, std::vector<rerun::Color>& colors, rerun::Color color) const {
     if (isLeaf) {
         if (hasObstacle) {
             points.push_back(center);
@@ -228,4 +229,3 @@ void rerunvisualisation(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, Qu
     // Optional: points3d = std::move(points3d).with_radii(std::vector<float>(positions.size(), 0.5f));
     rec.log("obstacles", points3d);
 }
-};

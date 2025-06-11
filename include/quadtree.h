@@ -2,54 +2,69 @@
 #define QUADTREE_H
 
 #include <vector>
-#include "common.h"  // For Point
-#include <cmath>     // For atan2, cos, sin, M_PI_2 // For Vector3f, assuming you're using Eigen
-#include <vector>
 #include <rerun.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Core>
-// Forward declaration if you use rerun
-namespace rerun {
+#include <cmath>
+#include "rerun.h"
+
+using namespace rerun;
+
+
+/*namespace rerun {
     class RecordingStream;
-    struct Color;
-    struct Position3D;
     class Points3D;
-}
+    class Color;
+    class Position3D;
+    struct Pose;
+}*/
+
+
+/*struct Point {
+    float x, y;
+};*/
+
 
 class QuadtreeNode {
 public:
-    Point center;
-    float size;
-    bool isLeaf;
-    bool hasObstacle;
-    int cost;
-    int pointCount;
+    Point center;           
+    float size;          
+    bool isLeaf;          
+    bool hasObstacle;       
+    int cost;                 
+    int pointCount;         
     QuadtreeNode* children[4];
 
     QuadtreeNode(Point c, float s, int co);
-    ~QuadtreeNode();
-    
+
+     ~QuadtreeNode() { clear(); }
+
     void subdivide();
     void insert(Point p);
     void setObstaclesBasedOnDensity(int threshold);
     void assignCostToObstacles(int assignedCost);
+    int getCostAtPoint(Point p) const;
     void collectObstaclePoints(std::vector<Point>& obstacles) const;
     bool containsPoint(const Eigen::Vector3f& point) const;
-    bool isObstacleAtPoint(const Eigen::Vector3f& point) const;
     bool inBounds(Point p) const;
     void clear();
+    bool isObstacleAtPoint(const Eigen::Vector3f& point) const;
+    void collectObstaclePointsWithColor(std::vector<Point>& points, 
+                                       std::vector<rerun::Color>& colors, 
+                                       rerun::Color color) const;
 
-    void collectObstaclePointsWithColor(std::vector<Point>& points, std::vector<rerun::Color>& colors, rerun::Color color) const;
+  };
+  
+void updateQuadtreesWithPointCloud(
+    QuadtreeNode* lowQuadtree,
+    QuadtreeNode* midQuadtree,
+    QuadtreeNode* highQuadtree,
+    const std::vector<Eigen::Vector3f>& point_vectors,
+    const Pose& roverpose);
 
-    static void updateQuadtreesWithPointCloud(
-        QuadtreeNode* lowQuadtree,
-        QuadtreeNode* midQuadtree,
-        QuadtreeNode* highQuadtree,
-        const std::vector<Eigen::Vector3f>& point_vectors,
-        const Pose& roverpose);
-
-    static void rerunvisualisation(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, rerun::RecordingStream& rec);
-};
+void rerunvisualisation(QuadtreeNode* lowQuadtree, 
+                       QuadtreeNode* midQuadtree, 
+                       QuadtreeNode* highQuadtree, 
+                       rerun::RecordingStream& rec);
 
 #endif // QUADTREE_H
-
