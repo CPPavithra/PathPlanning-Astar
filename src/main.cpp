@@ -221,7 +221,7 @@ int main() {
     
     rs2::pipeline pipe;
     rs2::config cfg;  
-    // cfg.enable_device_from_file("actualgoodvideo.bag"); 
+    //cfg.enable_device_from_file("actualgoodvideo.bag"); 
     
     // SERIAL CONNECTION
     // initSerial("/dev/ttyACM0", 9600);
@@ -397,9 +397,15 @@ int main() {
 
                 // Run A* on gridmap (should be gridmap, not quadtree)
                 //std::vector<Node> path = astar(gridmap.occupancy_grid, current_start, current_goal);
-                  std::vector<Node> path = astar(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
-
-
+                  std::vector<Node> path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
+                  //CHECK/CORRECT THE GRID RESOLUTION OVER HERE
+                 /*std::vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
+                if (sparse_path.empty()) {
+                      std::cout << "¿¿ Sparse A* failed from a to b. Abort.\n";
+                      break;
+                }  
+                */
+                
                 if (path.empty()) {
                     std::cout << "No path found. Will replan after collecting more data.\n";
                     break;  // Allow new sensor data
@@ -432,6 +438,42 @@ int main() {
 
                 pathplanning_flag = false;
                 break;
+               /* for(int i=1;i<sparse_path.size();i++)
+                {
+                    Node local_start = sparse_path[i - 1];
+                    Node local_goal = sparse_path[i];
+
+                     std::vector<Node> dense_path = astar(lowQuadtree, midQuadtree, highQuadtree, local_start, local_goal, 1.0f);
+                      if (dense_path.empty()) {
+                          std::cout << "¿¿ Local A* failed between sparse waypoints.\n";
+                          break;
+                      }
+          // Log path and move
+                std::cout << "Path found:\n";
+                for (const Node& node : path) {
+                    std::cout << "(" << node.x << "," << node.y << ") ";
+                    subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f});
+                }
+                std::cout << "\n";
+
+                // Log and move
+                rec.log("full_path", rerun::Points3D(subpath)
+                                      .with_colors({rerun::Color(0, 0, 255)})
+                                      .with_radii({0.5f}));
+       moveRoverAlongPath(dense_path);
+        a = dense_path.back();  // Update current rover position
+        visited_nodes.insert({a.x, a.y});
+                }
+              // Final Goal Check
+                if (a.x == final_goal.x && a.y == final_goal.y) {
+                    std::cout << "GOAL REACHED!\n";
+                    ArucoDetect();         // Optional signal
+                    sendfinalsignal();     // Stop or notify base
+                    break;
+                }
+
+                pathplanning_flag = false;
+                break;*/
             }
         }
     }

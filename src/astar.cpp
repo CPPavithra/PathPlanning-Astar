@@ -41,7 +41,7 @@ double heuristic(int x1, int y1, int x2, int y2) {
 
 
 
-vector<Node> astar(const unordered_map<pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal) {
+vector<Node> astarsparse(const unordered_map<pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal) {
     priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, comparenode> openList;
     unordered_map<pair<int, int>, shared_ptr<Node>, pair_hash> allNodes;
     unordered_set<pair<int, int>, pair_hash> visited;
@@ -72,48 +72,7 @@ vector<Node> astar(const unordered_map<pair<int, int>, CellCost, pair_hash>& occ
             return path; 
         }
 
-       // visited.insert(currentKey);  // ✅ Mark node as visited AFTER popping
-
-        // **Explore neighbors**
-        /*for (int i = 0; i < 8; i++) {
-            int newX = current->x + dx[i];
-            int newY = current->y + dy[i];
-           // double movementCost = (i < 4) ? 1.0 : 1.414;  // Straight = 1.0, Diagonal = 1.414
-           //double movementCost = (abs(newX - goal.x) == abs(newY - goal.y)) ? 1.0 : ((i < 4) ? 1.0 : 1.414);
-           
-            double movementCost = (dx[i] != 0 && dy[i] != 0) ? 1.414 : 1.0;
-
-            // Get obstacle cost
-            double obstacleCost = 1e6;  // Default: very high cost (impassable)
-            auto it = occupancyGrid.find({newX, newY});
-            if (it != occupancyGrid.end()) {
-                obstacleCost = it->second.cost;
-            } else {
-                obstacleCost = 0.0;  // Free space
-            }
-
-            if (obstacleCost >= 1e6) continue;  // Skip impassable cells
-
-            double newGCost = current->g_cost + movementCost + obstacleCost;
-            if (current->parent && (newX - current->x != current->x - current->parent->x || newY - current->y != current->y - current->parent->y)) {
-              newGCost += 0.1;  // Penalize unnecessary turns slightly
-            }
-
-            pair<int, int> neighborKey = {newX, newY};
-
-            // ✅ Fix: Ensure only better paths update the node
-            if (visited.find(neighborKey) == visited.end() &&
-                (allNodes.find(neighborKey) == allNodes.end() || newGCost < allNodes[neighborKey]->g_cost)) {
-
-                auto neighbor = make_shared<Node>(newX, newY, newGCost, heuristic(newX, newY, goal.x, goal.y), current);
-                neighbor->f_cost = neighbor->g_cost + neighbor->h_cost;
-
-                openList.push(neighbor);
-                allNodes[neighborKey] = neighbor;
-                visited.insert(neighborKey);  // ✅ Move this AFTER confirming a better path
-            }
-        }*/
-        for (int i = 0; i < 8; i++) {
+              for (int i = 0; i < 8; i++) {
     int newX = current->x + dx[i];
     int newY = current->y + dy[i];
     double movementCost = (dx[i] != 0 && dy[i] != 0) ? 1.414 : 1.0;

@@ -58,7 +58,7 @@ int getCostAtPoint(Point p, QuadtreeNode* low, QuadtreeNode* mid, QuadtreeNode* 
     return cost;
 }
 
-vector<Node> astar(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, Node start, Node goal, float resolution) {
+vector<Node> astarquad(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, Node start, Node goal, float resolution) {
     auto cmp = [](Node* a, Node* b) { return a->f() > b->f(); };
     priority_queue<Node*, vector<Node*>, decltype(cmp)> openSet(cmp);
 
