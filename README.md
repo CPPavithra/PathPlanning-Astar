@@ -1,7 +1,6 @@
 
 ---
 
-````markdown
 # 🤖 Efficient Path Planning Using Quadtree, A* Search, and Sparse Hash Maps + VSLAM
 
 This project is my complete implementation of a **memory-efficient path planning system** for robots. It combines **quadtree spatial mapping**, **A* algorithm**, and a **sparse hash table** to compute optimal paths over large terrain maps with obstacles.
@@ -48,7 +47,6 @@ For planning, I **don’t create a full grid**. Instead, I use a **sparse hash m
 - Very efficient for a 3km grid
 - Will be used for global path planning
 
-````
 
 This means:
 
