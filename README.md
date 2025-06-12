@@ -1,84 +1,174 @@
- PathPlanning-Astar
-
-
-##THIS REPO CONTAINS
-- Path Planning Code- Astar
-- Gridmap creation (occupancy grid map using sparse occupancy grid hash tables)
-- Main code which integrates path planning and grridmap (real time updates)
-- Using intel realsense depth cam d345i
-- Header files facilitating these
-- Integration with UKF
-
-## Table of Contents
-- [Overview](#overview)
-- [Astar](#astar)
-- [Gridmap creation](#gridmap-creation)
-- [Integrating with UKF](#ukf-integration)
-- [Intel Realsense Explanation](#intel-realsense)
-- [Main Code Explanation](#main-code)
-- [Future Improvements](future-improvements)
 
 ---
 
-## Overview
+````markdown
+# 🤖 Efficient Path Planning Using Quadtree, A* Search, and Sparse Hash Maps + VSLAM
 
-This project involves path planning using the Astar algorithm which essentially follows the cost approach for the movement cost along with addition of user defined obstacle costs based on the height/vicinity of the obstacles defined through the gridmap. The occupancy grid map is a 3km x 3km grid with a grid resolution of 1m x 1m. This is made using the height threshold from the point cloud data (y axis) and variable cost for each grid based on this. Neighbour cells cost has also been implemented. The grid map is being updated real time per some amount of frames based on change in orientation and position of the rover. (position and orientation should be taken from UKF). The main code integrates both of this and it calls the astar function after the occupancy grid reaches a certain size. The grid map is visualised in rerun io for the user's ease in debugging. 
+This project is my complete implementation of a **memory-efficient path planning system** for robots. It combines **quadtree spatial mapping**, **A* algorithm**, and a **sparse hash table** to compute optimal paths over large terrain maps with obstacles.
 
+---
 
-## Astar
+## 🧭 What This Project Does
 
-I have implemented Astar algorithm based on the following-
--> Movement cost (using the traditional astar method)
--> Obstacle cost (takes the obstacle cost based on the occupancy grid made (the value of each key x,y of the hash table))
--> Total gcost=movement cost+obstacle cost
--> Path formed based on the cost and only for the boundaries. If the user queries and out of bounds node it will show an error
+- Converts 3D point cloud data into a layered obstacle map using **quadtrees**
+- Categorizes obstacles based on height (low/mid/high)
+- Uses **sparse hash tables** instead of a full grid to reduce memory usage FOR GLOBAL MAPS
+- Computes shortest paths with **A* search** considering obstacle cost
+- Visualizes everything — obstacles, map, and path — using `rerun`
+- Designed for real-time robotic navigation and mapping tasks
 
+---
 
-## Gridmap Creation
+## 🧠 Core Concepts (Explained Simply)
 
+### 🟩 1. Quadtree Grid Mapping
 
-## Repo Guidance
-#to use with rerun
--> Usually rerun is on python/Rust
--> To run it in C++, in the documentation, a CMakeLists.txt is given with the following command
-include(FetchContent)
-FetchContent_Declare(rerun_sdk URL
-    https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
-FetchContent_MakeAvailable(rerun_sdk)
--> With this we will have to clone into the repo and build everytime we test or run it
--> Instead of this build directly from the repo 
-Commands for it
+Rather than dividing the entire area into a rigid full grid (which uses lots of memory), I use **quadtrees**. These only subdivide where needed — for example, if an area has dense obstacles. Each node stores:
+- Center position and size
+- Obstacle density
+- Cost value for path planning
 
-    git clone https://github.com/rerun-io/rerun.git
-    cd rerun
-    mkdir build
-    cd build
-    cmake ..
-    make
-    sudo make install
+We use **three separate quadtrees**:
+- `lowQuadtree`: close-to-ground obstacles
+- `midQuadtree`: medium height (e.g., humans, barriers)
+- `highQuadtree`: taller structures like poles, trees
 
+### 🧊 2. Point Cloud to Map Conversion
 
-Now, for this we might need rust as it will show error while building
+From the RealSense depth camera, I process point cloud data using PCL:
+- Voxel filtering
+- Pass-through slicing
 
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    source $HOME/.cargo/env
+Points are fed into the quadtrees and stored in a way that reflects the obstacle’s size and height.
 
-export the cargo path to $PATH variable to make it work
+### ⚡ 3. Sparse Hash Table
 
-- Main files-> the main files for real time testing
-- Motor Car-> Test code for the motor car using L298N
-- rrtstar1-> TEST code with arduino and serial connection (NOT THE FINAL CODE)
-- rrtwithimu-> Test code for imu calibiration and kf (NOT THE FINAL CODE)
-- printing output-> Code for visualisation
-- sensor codes-> Sensor codes for imu-135
-- FINAL CODE-> The code used for testing with the motor car+printing out the coordinates to test if it is being sent through serial connection or not.
-- NOTE- the valid.py code is just a sample code to check which is the valid empty coordinates in the SLAM data set so that I can put the inital nodes and the goal nodes.
+For planning, I **don’t create a full grid**. Instead, I use a **sparse hash map** to store only the grids with the obstacles, which is EXTREMELY MEMORY EFFICIENT:
+- There is dynamic cost handling based on height thresholds, adding high cost for taller obstacles
+- Very efficient for a 3km grid
+- Will be used for global path planning
 
-## Future Improvements
+````
 
-- Test the PID that has been included from motor control
-- Make the obstacle detection using grid map better; right now I have used the logic of height threshhold (z axis) to help the rover navigate through and avoid the obstacles in sight.
-The theshhold is set to 0.1, change it accordingly
-- Remote Piloting
-- Increase the threshold to reduce the error margin
+This means:
+
+* Less memory wasted
+* Faster access and updates
+* Scales to large maps without lag
+
+### 🌟 4. A\* Path Planning
+
+Using the cost-aware map:
+
+* A\* calculates the optimal path from a `start` to a `goal` node.
+* Costs from all three quadtrees are combined dynamically.
+* High-density zones = high cost = less likely to be chosen in path.
+
+Full Map (Sparse Hash Table)
+↓ Run global A*
+→ Waypoints: A → B → C → D
+
+For each (current_point, next_waypoint):
+    ↓
+    1. Extract local region in quadtrees around current_point
+    2. Bias low-level A* toward direction(current_point → next_waypoint)
+    3. Plan in that window only (5x5m or 10x10m)
+    4. Output refined path segment
+    5. Repeat from last point
+
+### 👀 5. Visualization
+
+I use **Rerun** to visualize:
+
+* Obstacle points (color-coded per layer)
+* Quadtree node borders
+* Final gridmaps
+* Final computed path (line segments from start to goal)
+
+---
+
+## 🧪 How To Run
+
+### ✅ Build & Run
+
+```bash
+cd PathPlanning-Astar
+mkdir build && cd build
+cmake ..
+make
+./main
+```
+
+### 📦 Dependencies
+
+Make sure the following libraries are installed:
+
+* `librealsense2`
+* `PCL`
+* `Eigen`
+* `Rerun`
+* `Boost`
+* `OpenCV` (for ArUco detection)
+* `CMake`
+
+---
+
+## 📁 Project Structure
+
+```bash
+PathPlanning-Astar/
+├── include/                 # All headers
+│   ├── quadtree.h
+│   ├── astarquadtree.h
+│   ├── gridmap.h, imu.h, common.h, rerun.h, etc.
+├── lib/                     # Core logic + hardware interfaces
+│   ├── slamcontrol.cpp, imu.cpp, gps.cpp, tarzan.cpp
+├── src/                     # Main logic
+│   ├── main.cpp             # Entry point
+│   ├── quadtree.cpp         # Quadtree logic
+│   ├── astarquadtree.cpp    # A* pathfinding
+│   ├── pointcloudrerun.cpp  # Point cloud visualisation
+│   ├── astar.cpp            # Sparse A* algorithm
+│   ├── ArucoDetect.cpp      # Marker detection logic
+│   └── tune.cpp             # Param tuning
+├── build/                   # Compiled outputs (after build)
+├── rerun_rec/               # Saved rerun logs
+├── *.bag                    # ROS bag recordings (RealSense data)
+├── gridmap*                 # Executables
+├── imu_data.log, new_plan.txt
+├── CMakeLists.txt           # Build config
+└── README.md                # You’re here!
+```
+
+---
+
+## 🧠 Why This Approach?
+
+Instead of blindly scanning an entire area, this project focuses only on what matters:
+
+* Quadtrees allow for smart obstacle representation
+* Sparse hash tables ensure we don’t waste memory
+* A\* makes sure we get the **best** path, fast
+* Real-world data (point cloud, IMU, GPS) makes it deployable on actual rovers
+
+---
+---
+
+## 🙋‍♀️ Author
+
+Built with a lot of love (and debugging) by me, Pavithra ❤️
+I’m deeply passionate about robotics, efficient planning systems, and building things that *actually work* on hardware!
+
+Feel free to connect with me:
+🔗 [LinkedIn](https://linkedin.com/in/pavithra-cp)
+✉️ [cppavithra05@gmail.com](mailto:cppavithra05@gmail.com)
+
+---
+
+## 📄 License
+
+This project is under MIT License.
+```
+
+---
 
