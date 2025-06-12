@@ -59,6 +59,7 @@ src/main.cpp
 src/astar.cpp
 src/pointcloudrerun.cpp
 src/quadtree.cpp
+src/astarquadtree.cpp
 lib/imu.cpp
 lib/cobs.c
 )
