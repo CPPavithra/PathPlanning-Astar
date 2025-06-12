@@ -1,5 +1,4 @@
 #include <iostream>
-#include "astar.h"
 #include <ostream>
 #include <vector>
 #include <cmath>
@@ -19,17 +18,22 @@
 #include <pcl/filters/voxel_grid.h>
 #include <cstdlib>
 #include <rerun/demo_utils.hpp>
+#include "quadtree.h"
+#include "astarquadtree.h"
+#include "imu.h"
 #include "rerun.h"
-#include "common.h"  
-#include "imu.h" 
-#include <boost/asio.hpp> 
+#include "common.h"
 #include "ArucoDetect.h"
+#include <boost/asio.hpp> 
 #include <set>
 
 /***********************************************
  * DEFINING GLOBAL VARIABLES HERE*
  ***********************************************/
 
+QuadtreeNode* lowQuadtree = nullptr;
+QuadtreeNode* midQuadtree = nullptr;
+QuadtreeNode* highQuadtree = nullptr;
 Gridmap gridmap;          // Define and initialize here
 float grid_resolution = 0.001f; // Initialize with a value
 int batch_threshold = 1;      // Initialize with a value
@@ -95,7 +99,7 @@ Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const No
 
             // Penalize zero or backward motion
             if (x == current_start.x && y == current_start.y) {
-                total_cost += 1000;
+                total_cost += 10;
             }
             // Select lowest cost valid node
             if (total_cost < min_total_cost) {
@@ -361,6 +365,8 @@ int main() {
             }
             
             create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
+            updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, point_vectors, rover_pose);
+            rerunvisualisation(lowQuadtree, midQuadtree, highQuadtree, rec);
 
             if (gridmap.occupancy_grid.size() >= batch_threshold) {
                 draw_gridmap(gridmap, point_vectors, rover_pose, grid_resolution, rec);
@@ -390,7 +396,9 @@ int main() {
                 }
 
                 // Run A* on gridmap (should be gridmap, not quadtree)
-                std::vector<Node> path = astar(gridmap.occupancy_grid, current_start, current_goal);
+                //std::vector<Node> path = astar(gridmap.occupancy_grid, current_start, current_goal);
+                  std::vector<Node> path = astar(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
+
 
                 if (path.empty()) {
                     std::cout << "No path found. Will replan after collecting more data.\n";

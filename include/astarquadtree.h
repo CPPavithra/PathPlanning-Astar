@@ -5,6 +5,7 @@
 #include <set>
 #include <unordered_map>
 #include <functional>
+#include "quadtree.h"
 
 using namespace std;
 
@@ -30,7 +31,7 @@ double heuristic(float x1, float y1, float x2, float y2);
 vector<Node> reconstruct_path(Node* current);
 int roundToGrid(float coord, float resolution); 
 int getCostAtPoint(Point p, QuadtreeNode* low, QuadtreeNode* mid, QuadtreeNode* high);
-vector<Node> astar(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, Node start, Node goal, float resolution = 0.5f);
+vector<Node> astar(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, Node start, Node goal, float resolution = 1.0f);
 
  
 
