@@ -63,7 +63,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
        for (const auto& point : point_vectors)
        {
  
-cout << "Raw point data: (" << point.x() << ", " << point.y() << ", " << point.z() << ")" << endl;
+//cout << "Raw point data: (" << point.x() << ", " << point.y() << ", " << point.z() << ")" << endl;
 float dx=point.z();  //forward motion)
 float dy=-point.x(); // X becomes -Y 
 float dz=-point.y();  
@@ -86,8 +86,10 @@ int grid_y = static_cast<int>(rotated_y / 1.0f);
 float height_at_point = dz;
 
     // Debugging output
-    cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << endl;
-    cout << "Height at (" << grid_x << " , " << grid_y << ") -> " << height_at_point << "\n" << endl;
+    // *********************UNCOMMENT THE PRINT STATEMENTS IF NEEDED******************//
+   // cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << endl;
+   // cout << "Height at (" << grid_x << " , " << grid_y << ") -> " << height_at_point << "\n" << endl;
+/******************************************/
 
 //TO UPDATE BASED ON THE HIGHEST POINT DETECTED
 //	std::map<std::pair<int, int>, std::pair<float, float>> height_map; // {min, max}
@@ -109,7 +111,7 @@ if (it == height_map.end()) {
           float adjusted_height = height_at_point+0.; // Adjust by 30 cm (0.3m)
      //    float adjusted_height = height_map[grid_cell].second;
 
-         cout<<"Real height = "<<height_at_point<<" & Height adjusted: "<<adjusted_height<<"\n"<<endl;
+         //cout<<"Real height = "<<height_at_point<<" & Height adjusted: "<<adjusted_height<<"\n"<<endl;
 
           float cost=0.0f;
           if(adjusted_height>height)
@@ -152,7 +154,7 @@ if (it == height_map.end()) {
            updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,false);
          }  // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
        }
-       cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
+      // cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
 
 //////////////////////////////////////////////////
 //NEIGHBOURING COST PADDING
@@ -177,7 +179,7 @@ if (it == height_map.end()) {
        
         //calculate proximity cost
         float dist = sqrt(dx *dx + dy*dy);  /*grid_resolution*/;//euclidean distance between them. 
-   /*    float proxcost = (proxfactor*2.0f)/(0.1f+dist);
+/*       float proxcost = (proxfactor*2.0f)/(0.1f+dist);
 
         //update proximity cost only if not already updated
        if (neighbor_cell.proxvisited==false) {
@@ -211,17 +213,18 @@ gridmap.min_y=min_y;
 gridmap.max_x=max_x;
 gridmap.max_y=max_y;
 
-    std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
-    for (const auto& [key, value] : updated_occupancy_grid) 
+   // std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
+ /*   for (const auto& [key, value] : updated_occupancy_grid) 
     {
 	std::cout << "Grid: (" << key.first << ", " << key.second << ") -> " << value.cost << std::endl;
-    }
+    }*/
    gridmap.occupancy_grid=updated_occupancy_grid;
-   std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
+ //  std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
    //updated_occupancy_grid[current]=CLOSED; //after everything
 
 }
 /////////////////////////
+
 }
 
 
