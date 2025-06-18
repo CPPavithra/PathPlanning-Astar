@@ -34,7 +34,7 @@
 using namespace std;
 
 // Heuristic function (Euclidean Distance)
-double heuristic(int x1, int y1, int x2, int y2) {
+double heuristic_astar(int x1, int y1, int x2, int y2) {
     return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
@@ -46,7 +46,7 @@ vector<Node> astarsparse(const unordered_map<pair<int, int>, CellCost, pair_hash
     unordered_map<pair<int, int>, shared_ptr<Node>, pair_hash> allNodes;
     unordered_set<pair<int, int>, pair_hash> visited;
 
-    start.h_cost = heuristic(start.x, start.y, goal.x, goal.y);
+    start.h_cost = heuristic_astar(start.x, start.y, goal.x, goal.y);
     start.f_cost = start.g_cost + start.h_cost;
 
     auto startNode = make_shared<Node>(start);
@@ -99,7 +99,7 @@ vector<Node> astarsparse(const unordered_map<pair<int, int>, CellCost, pair_hash
     if (visited.find(neighborKey) == visited.end() &&
         (allNodes.find(neighborKey) == allNodes.end() || newGCost < allNodes[neighborKey]->g_cost)) {
 
-        auto neighbor = make_shared<Node>(newX, newY, newGCost, heuristic(newX, newY, goal.x, goal.y), current);
+        auto neighbor = make_shared<Node>(newX, newY, newGCost, heuristic_astar(newX, newY, goal.x, goal.y), current);
         neighbor->f_cost = neighbor->g_cost + neighbor->h_cost;
 
         openList.push(neighbor);

@@ -38,7 +38,7 @@ struct comparenode {
     }
 };
 
-double heuristic(int x1, int y1, int x2, int y2);
+double heuristic_astar(int x1, int y1, int x2, int y2);
 
 // ✅ Use shared_ptr for consistency
 //vector<Node> astar(const unordered_map<pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal);

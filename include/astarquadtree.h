@@ -6,10 +6,10 @@
 #include <unordered_map>
 #include <functional>
 #include "quadtree.h"
-
+#include "astar.h"
 using namespace std;
 
-struct Node {
+/*struct Node {
     float x, y;
     double g, h;
     Node* parent;
@@ -19,7 +19,7 @@ struct Node {
     bool operator==(const Node& other) const {
         return abs(x - other.x) < 1e-3 && abs(y - other.y) < 1e-3;
     }
-};
+};*/
 
 struct NodeHasher {
     size_t operator()(const pair<int, int>& p) const {
