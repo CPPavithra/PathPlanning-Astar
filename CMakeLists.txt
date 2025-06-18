@@ -63,8 +63,11 @@ src/astarquadtree.cpp
 lib/imu.cpp
 lib/cobs.c
 )
-# add_executable(tune
-# src/tune.cpp
+#add_executable(simulation
+#src/simulation.cpp
+#)
+#add_executable(tune
+   # src/tune.cpp
 # lib/imu.cpp
 # lib/cobs.c
 # )
