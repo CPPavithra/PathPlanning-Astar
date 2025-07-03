@@ -46,6 +46,7 @@ bool input_ready = false;
 int limit = 20;
 int last_index = 0;
 int prev_dir = 0;
+std::deque<Node> recent_goals;
 int dir = 0;
 
 std::string table_text = 
@@ -64,53 +65,62 @@ std::string table_text =
 
 // Function to find the next checkpoint/goal
 
+
+
 Node findcurrentgoal(const Gridmap& gridmap, 
                      const Node& current_start, 
                      const Node& final_goal, 
                      const std::set<std::pair<int, int>>& visited_nodes,
                      const std::set<std::pair<int, int>>& failed_goals,
-                     bool &pathplanning_flag) 
+                     std::deque<Node>& recent_goals,
+                     bool& pathplanning_flag) 
 {
-    double current_to_goal_heuristic = heuristic(current_start.x, current_start.y, final_goal.x, final_goal.y);
+    double dist_to_final = heuristic(current_start.x, current_start.y, final_goal.x, final_goal.y);
 
-    // ✅ Snap to goal if already close
-    if (current_to_goal_heuristic < 1.5) {
-    std::pair<int, int> goal_cell = {final_goal.x, final_goal.y};
-    if (!gridmap.occupancy_grid.count(goal_cell) && 
-        !visited_nodes.count(goal_cell) &&
-        !failed_goals.count(goal_cell)) 
-    {
-        std::cout << "🎯 Final goal reached approximately: (" << final_goal.x << "," << final_goal.y << ")\n";
-        return final_goal;
-    } else {
-        std::cout << "❌ Final goal (" << final_goal.x << "," << final_goal.y 
-                  << ") is occupied or already failed. Skipping snap.\n";
-        //failed_goals.insert(goal_cell);
+    // 🎯 Snap to final goal if close
+    if (dist_to_final < 1.5) {
+        std::pair<int, int> goal_cell = {final_goal.x, final_goal.y};
+        if (!gridmap.occupancy_grid.count(goal_cell) &&
+            !visited_nodes.count(goal_cell) &&
+            !failed_goals.count(goal_cell)) 
+        {
+            std::cout << "🎯 Final goal close enough. Trying snap...\n";
+            auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, final_goal, 1.0f);
+            if (!dry_path.empty()) {
+                return final_goal;
+            } else {
+                std::cout << "❌ Snap to final goal failed. Skipping.\n";
+            }
+        }
     }
-}  
-Node best_node = current_start;
+
+    Node best_node = current_start;
     double min_total_cost = std::numeric_limits<double>::max();
-    bool found_better = false;
+    bool found_candidate = false;
 
     for (int x = gridmap.min_x; x <= gridmap.max_x; ++x) {
         for (int y = gridmap.min_y; y <= gridmap.max_y; ++y) {
             std::pair<int, int> cell = {x, y};
 
-            if (gridmap.occupancy_grid.count(cell) || 
+            if (gridmap.occupancy_grid.count(cell) ||
                 visited_nodes.count(cell) ||
                 failed_goals.count(cell)) continue;
 
-            double to_goal = heuristic(x, y, final_goal.x, final_goal.y);
-            if (to_goal >= current_to_goal_heuristic) continue;  // ✅ Always prefer nodes closer to goal
+            Node candidate(x, y);
 
-            // Directional constraint (relaxed to 90° cone)
+            // Avoid recent local loops
+            if (std::find(recent_goals.begin(), recent_goals.end(), candidate) != recent_goals.end()) continue;
+
+            double to_goal = heuristic(x, y, final_goal.x, final_goal.y);
+            if (to_goal >= dist_to_final) continue;
+
+            // Directional pruning
             double angle_to_node = atan2(y - current_start.y, x - current_start.x);
             double angle_to_goal = atan2(final_goal.y - current_start.y, final_goal.x - current_start.x);
             double angle_diff = fabs(angle_to_node - angle_to_goal);
             if (angle_diff > M_PI) angle_diff = 2 * M_PI - angle_diff;
-            if (angle_diff > M_PI / 2) continue;  // ✅ Relaxed directional limit
+            if (angle_diff > M_PI / 2) continue;
 
-            // Cost calculation
             double obstacle_cost = 0.0;
             if (gridmap.occupancy_grid.count(cell)) {
                 obstacle_cost = gridmap.occupancy_grid.at(cell).cost;
@@ -119,54 +129,32 @@ Node best_node = current_start;
             double cost_to_node = heuristic(current_start.x, current_start.y, x, y) + obstacle_cost;
             double total_cost = cost_to_node + to_goal;
 
-            if (x == current_start.x && y == current_start.y) total_cost += 10;  // Penalize no movement
+            if (x == current_start.x && y == current_start.y) total_cost += 10.0;
 
             if (total_cost < min_total_cost) {
-                min_total_cost = total_cost;
-                best_node = Node(x, y);
-                found_better = true;
-            }
-        }
-    }
-
-    //orce goal if it's reachable and better wasn't found
-    if (!found_better &&
-        !gridmap.occupancy_grid.count({final_goal.x, final_goal.y}) &&
-        !visited_nodes.count({final_goal.x, final_goal.y}) &&
-        !failed_goals.count({final_goal.x, final_goal.y})) {
-        std::cout << "✅ Final goal is reachable. Forcing goal (" 
-                  << final_goal.x << "," << final_goal.y << ")\n";
-        return final_goal;
-    }
-
-  
- if (!found_better) {
-        std::cout << "No better goal found. Trying fallback ring...\n";
-        for (int radius = 1; radius <= 5; ++radius) {
-            for (int dx = -radius; dx <= radius; ++dx) {
-                for (int dy = -radius; dy <= radius; ++dy) {
-                    if (abs(dx) != radius && abs(dy) != radius) continue;
-                    int rx = current_start.x + dx;
-                    int ry = current_start.y + dy;
-                    std::pair<int, int> rcell = {rx, ry};
-
-                    if (!gridmap.occupancy_grid.count(rcell) && 
-                        !visited_nodes.count(rcell) && 
-                        !failed_goals.count(rcell)) 
-                    {
-                        std::cout << "📍 Fallback ring goal: (" << rx << "," << ry << ")\n";
-                        return Node(rx, ry);
-                    }
+                // Dry-run validation before accepting
+                Node test_candidate(x, y);
+                auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, test_candidate, 1.0f);
+                if (!dry_path.empty()) {
+                    best_node = test_candidate;
+                    min_total_cost = total_cost;
+                    found_candidate = true;
                 }
             }
         }
-
-        std::cout << "⚠️ No fallback goals found. Aborting.\n";
-        pathplanning_flag = false;
-        return current_start;
     }
 
-    return best_node;
+    if (found_candidate) {
+        std::cout << "🧠 Best reachable intermediate goal: (" << best_node.x << "," << best_node.y << ")\n";
+        recent_goals.push_back(best_node);
+        if (recent_goals.size() > 10) recent_goals.pop_front();
+        return best_node;
+    }
+
+    // ❌ Nothing reachable
+    std::cout << "⚠️ No good goal found.\n";
+    pathplanning_flag = false;
+    return current_start;
 }
 /*********************************************************************
  * LIKE THE PYTHON SIMULATION- MORE MODULAR AND BETTER 
@@ -573,109 +561,133 @@ const int MAX_RETRIES = 5;
 while (pathplanning_flag) {
     visited_nodes.insert({current_start.x, current_start.y});
 
-    Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes, failed_goals, pathplanning_flag);
+    Node current_goal = findcurrentgoal(gridmap, current_start, final_goal,
+                                        visited_nodes, failed_goals, recent_goals, pathplanning_flag);
+
+    if (!pathplanning_flag) break;  // findcurrentgoal might disable it
+
     std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
 
-    if (gridmap.occupancy_grid.find({current_goal.x, current_goal.y}) != gridmap.occupancy_grid.end()) {
-        std::cout << "Selected goal is occupied. Marking as failed.\n";
+    // Check if selected goal is occupied
+    if (gridmap.occupancy_grid.count({current_goal.x, current_goal.y})) {
+        std::cout << "❌ Selected goal is occupied. Marking as failed.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
         retry_attempts++;
         if (retry_attempts >= MAX_RETRIES) {
-            std::cout << "Too many failed attempts. Aborting path planning.\n";
-            break;
-        }
-        continue;  // Retry with a different goal
-    }
-
-  
-std::vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
-std::vector<Node> dense_path;
-
-if (sparse_path.empty()) {
-    std::cout << " Sparse A* failed. Attempting dense A* with quadtrees...\n";
-    dense_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
-    
-    if (dense_path.empty()) {
-        std::cout << "Dense A* also failed. Marking goal as failed.\n";
-        failed_goals.insert({current_goal.x, current_goal.y});
-        retry_attempts++;
-        if (retry_attempts >= MAX_RETRIES) {
-            std::cout << "Too many failed attempts. Aborting path planning.\n";
-            break;
+            std::cout << "🚫 Too many failed attempts. Aborting path planning.\n";
+            pathplanning_flag = false;
         }
         continue;
     }
-} else {
-    // Convert sparse waypoints to dense paths
-    for (int i = 1; i < sparse_path.size(); ++i) {
-        std::vector<Node> segment = astarquad(lowQuadtree, midQuadtree, highQuadtree,
-                                              sparse_path[i - 1], sparse_path[i], 1.0f);
-        if (!segment.empty()) {
-            dense_path.insert(dense_path.end(), segment.begin(), segment.end());
-        } else {
-            std::cout << "⚠️ Local A* failed between sparse waypoints. Skipping segment.\n";
+
+    // Step 1: Try Global Sparse A*
+    std::vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
+    std::vector<Node> dense_path;
+
+    if (sparse_path.empty()) {
+        std::cout << "🧪 Sparse A* failed. Attempting Dense A*...\n";
+        dense_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
+        if (dense_path.empty()) {
+            std::cout << "❌ Dense A* also failed. Marking goal as failed.\n";
+            failed_goals.insert({current_goal.x, current_goal.y});
+            retry_attempts++;
+            if (retry_attempts >= MAX_RETRIES) {
+                std::cout << "🚫 Too many failed attempts. Aborting path planning.\n";
+                pathplanning_flag = false;
+            }
+            continue;
+        }
+    } else {
+        // Step 2: Refine Sparse path segments using Dense A*
+        for (int i = 1; i < sparse_path.size(); ++i) {
+            std::vector<Node> segment = astarquad(lowQuadtree, midQuadtree, highQuadtree,
+                                                  sparse_path[i - 1], sparse_path[i], 1.0f);
+            if (!segment.empty()) {
+                dense_path.insert(dense_path.end(), segment.begin(), segment.end());
+            } else {
+                std::cout << "⚠️ Dense segment failed between sparse nodes. Skipping segment.\n";
+            }
         }
     }
-}
+
+    // Step 3: Prune duplicates
+    std::vector<Node> pruned_path;
+    if (!dense_path.empty()) pruned_path.push_back(dense_path[0]);
+    for (int i = 1; i < dense_path.size(); ++i) {
+        if (!(dense_path[i] == dense_path[i - 1])) {
+            pruned_path.push_back(dense_path[i]);
+        }
+    }
+
+    // Safety check
+    if (pruned_path.size() <= 1) {
+        std::cout << "⚠️ Pruned path too short. Marking goal as failed.\n";
+        failed_goals.insert({current_goal.x, current_goal.y});
+        retry_attempts++;
+        continue;
+    }
+
+    // Step 4: Execute the path
     bool stuck = true;
     Node previous_start = current_start;
 
-  
-for (int i = 1; i < dense_path.size(); ++i) {
-    Node local_start = dense_path[i - 1];
-    Node local_goal = dense_path[i];
+    for (int i = 1; i < pruned_path.size(); ++i) {
+        Node local_start = pruned_path[i - 1];
+        Node local_goal = pruned_path[i];
 
-    std::vector<Node> segment = {local_start, local_goal};
+        std::cout << "Path segment:\n";
+        std::cout << "(" << local_start.x << "," << local_start.y << ") -> ("
+                  << local_goal.x << "," << local_goal.y << ")\n";
 
-    std::cout << "Path segment:\n";
-    std::cout << "(" << local_start.x << "," << local_start.y << ") -> (" << local_goal.x << "," << local_goal.y << ")\n";
+        std::vector<Node> segment = {local_start, local_goal};
+        moveRoverAlongPath(segment);
 
-    moveRoverAlongPath(segment);
-
-    std::vector<rerun::Position3D> subpath;
-    for (const Node& node : segment) {
-        subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f});
-        if (full_path.empty() || !(full_path.back().x == node.x && full_path.back().y == node.y)) {
-            full_path.push_back(node);
+        std::vector<rerun::Position3D> subpath;
+        for (const Node& node : segment) {
+            subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f});
+            if (full_path.empty() || !(full_path.back().x == node.x && full_path.back().y == node.y)) {
+                full_path.push_back(node);
+            }
+            visited_nodes.insert({node.x, node.y});
         }
-        visited_nodes.insert({node.x, node.y});
+
+        rec.log("full_path", rerun::Points3D(subpath)
+                             .with_colors({rerun::Color(0, 0, 255)})
+                             .with_radii({0.5f}));
+
+        current_start = local_goal;
+        if (current_start.x != previous_start.x || current_start.y != previous_start.y) {
+            stuck = false;
+        }
+        previous_start = current_start;
+
+        if (current_start == final_goal) {
+            std::cout << "🏁 GOAL REACHED!\n";
+            ArucoDetect();
+            sendfinalsignal();
+            pathplanning_flag = false;
+            break;
+        }
     }
 
-    rec.log("full_path", rerun::Points3D(subpath)
-                         .with_colors({rerun::Color(0, 0, 255)})
-                         .with_radii({0.5f}));
-
-    current_start = local_goal;
-
-    if (current_start.x != previous_start.x || current_start.y != previous_start.y) {
-        stuck = false;
-    }
-
-    if (local_goal == final_goal) {
-        std::cout << "🏁 GOAL REACHED!\n";
-        ArucoDetect();
-        sendfinalsignal();
-        pathplanning_flag = false;
-        break;
-    }
-
-    previous_start = current_start;
-}
-/* if (stuck) {
-        std::cout << "⚠️ Stuck at same point. Marking current goal as failed and retrying.\n";
+    // Step 5: Handle failure or retry
+    if (pathplanning_flag && stuck) {
+        std::cout << "⚠️ Rover appears stuck. Retrying with a different goal.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
         retry_attempts++;
         if (retry_attempts >= MAX_RETRIES) {
             std::cout << "🚫 Too many retries. Aborting planning.\n";
+            pathplanning_flag = false;
             break;
         }
         continue;
-    }*/
-
-    pathplanning_flag = false;
-    break;
-}
-        }
     }
+
+    if (pathplanning_flag) {
+        std::cout << "✅ Intermediate goal reached. Continuing planning...\n";
+    }
+}
+}
+}
     return 0;
 }
