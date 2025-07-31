@@ -33,7 +33,7 @@
  * DEFINING GLOBAL VARIABLES HERE*
  ***********************************************/
 
-
+using namespace std;
 Gridmap gridmap;          // Define and initialize here
 float grid_resolution = 0.001f; // Initialize with a value
 int batch_threshold = 1;      // Initialize with a value
@@ -65,8 +65,6 @@ std::string table_text =
 
 // Function to find the next checkpoint/goal
 
-
-
 Node findcurrentgoal(const Gridmap& gridmap, 
                      const Node& current_start, 
                      const Node& final_goal, 
@@ -75,71 +73,70 @@ Node findcurrentgoal(const Gridmap& gridmap,
                      std::deque<Node>& recent_goals,
                      bool& pathplanning_flag) 
 {
-    double dist_to_final = heuristic(current_start.x, current_start.y, final_goal.x, final_goal.y);
+    double dist_to_final=heuristic(current_start.x,current_start.y,final_goal.x,final_goal.y);
+    std::pair<int,int> goal_cell={final_goal.x,final_goal.y};
+    /*if (dist_to_final<1.5&& !gridmap.occupancy_grid.count(goal_cell) && !visited_nodes.count(goal_cell) && !failed_goals.count(goal_cell)) 
+    {
+        cout << "Final goal close enough. Trying snap...\n";
+        auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, final_goal, 1.0f);
+        if (!dry_path.empty()) return final_goal;
+        cout << "Snap to final goal failed. Skipping.\n";
+    }*/  //CHECK IF WE HAVE TO DO THIS
 
-    // 🎯 Snap to final goal if close
-    if (dist_to_final < 1.5) {
-        std::pair<int, int> goal_cell = {final_goal.x, final_goal.y};
-        if (!gridmap.occupancy_grid.count(goal_cell) &&
-            !visited_nodes.count(goal_cell) &&
-            !failed_goals.count(goal_cell)) 
-        {
-            std::cout << "🎯 Final goal close enough. Trying snap...\n";
-            auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, final_goal, 1.0f);
-            if (!dry_path.empty()) {
-                return final_goal;
-            } else {
-                std::cout << "❌ Snap to final goal failed. Skipping.\n";
-            }
-        }
-    }
+    //Intermediate goal search
+    Node best_node =current_start;
+    double min_total_cost =std::numeric_limits<double>::max();
+    bool found_candidate =false;
 
-    Node best_node = current_start;
-    double min_total_cost = std::numeric_limits<double>::max();
-    bool found_candidate = false;
+    //Search within a cropped frontier window (not entire grid!)
+    int margin = 6; // Search range from current_start- PASS IT AS A VARIABLE AND NOT AS A CONST 
+    for (int x = current_start.x - margin; x <= current_start.x + margin; ++x) {
+        for (int y = current_start.y; y <= current_start.y + margin; ++y) {
+            std::pair<int, int> cell ={x, y};
 
-    for (int x = gridmap.min_x; x <= gridmap.max_x; ++x) {
-        for (int y = gridmap.min_y; y <= gridmap.max_y; ++y) {
-            std::pair<int, int> cell = {x, y};
+            //Skip occupied, visited, failed, or recent
+            if (gridmap.occupancy_grid.count(cell) || visited_nodes.count(cell) || failed_goals.count(cell))
+                continue;
 
-            if (gridmap.occupancy_grid.count(cell) ||
-                visited_nodes.count(cell) ||
-                failed_goals.count(cell)) continue;
+            Node candidate(x,y);
+            if (std::find(recent_goals.begin(),recent_goals.end(),candidate)!=recent_goals.end())
+                continue;
 
-            Node candidate(x, y);
+            //To not go out og bounds 
+            if (!(x >= gridmap.min_x && x <= gridmap.max_x &&
+                  y >= gridmap.min_y && y <= gridmap.max_y))
+                continue;
 
-            // Avoid recent local loops
-            if (std::find(recent_goals.begin(), recent_goals.end(), candidate) != recent_goals.end()) continue;
+            // Skip unreachable outer boundary points
+            /*if (gridmap.occupancy_grid.find({x + 1, y}) == gridmap.occupancy_grid.end() &&
+                gridmap.occupancy_grid.find({x - 1, y}) == gridmap.occupancy_grid.end() &&
+                gridmap.occupancy_grid.find({x, y + 1}) == gridmap.occupancy_grid.end() &&
+                gridmap.occupancy_grid.find({x, y - 1}) == gridmap.occupancy_grid.end())
+                continue;*/
 
-            double to_goal = heuristic(x, y, final_goal.x, final_goal.y);
-            if (to_goal >= dist_to_final) continue;
+            //REPLACE THIS WITH A SMARTER LOGIC
+            /*double to_goal = heuristic(x, y, final_goal.x, final_goal.y);
+            if (to_goal>=dist_to_final) continue;*/
 
-            // Directional pruning
-            double angle_to_node = atan2(y - current_start.y, x - current_start.x);
-            double angle_to_goal = atan2(final_goal.y - current_start.y, final_goal.x - current_start.x);
-            double angle_diff = fabs(angle_to_node - angle_to_goal);
-            if (angle_diff > M_PI) angle_diff = 2 * M_PI - angle_diff;
+            //Directional alignment with final goal
+            double angle_to_node = atan2(y-current_start.y, x-current_start.x);
+            double angle_to_goal = atan2(final_goal.y-current_start.y, final_goal.x-current_start.x);
+            double angle_diff = fabs(angle_to_node-angle_to_goal);
+            if (angle_diff > M_PI) angle_diff = 2*M_PI - angle_diff;
             if (angle_diff > M_PI / 2) continue;
 
-            double obstacle_cost = 0.0;
-            if (gridmap.occupancy_grid.count(cell)) {
-                obstacle_cost = gridmap.occupancy_grid.at(cell).cost;
-            }
-
+            double obstacle_cost = gridmap.occupancy_grid.count(cell) ? gridmap.occupancy_grid.at(cell).cost : 0.0;
             double cost_to_node = heuristic(current_start.x, current_start.y, x, y) + obstacle_cost;
             double total_cost = cost_to_node + to_goal;
 
             if (x == current_start.x && y == current_start.y) total_cost += 10.0;
 
-            if (total_cost < min_total_cost) {
-                // Dry-run validation before accepting
-                Node test_candidate(x, y);
-                auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, test_candidate, 1.0f);
-                if (!dry_path.empty()) {
-                    best_node = test_candidate;
-                    min_total_cost = total_cost;
-                    found_candidate = true;
-                }
+            // 🧪 Validate reachability
+            auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, candidate, 1.0f);
+            if (!dry_path.empty() && total_cost < min_total_cost) {
+                best_node = candidate;
+                min_total_cost = total_cost;
+                found_candidate = true;
             }
         }
     }
@@ -151,8 +148,7 @@ Node findcurrentgoal(const Gridmap& gridmap,
         return best_node;
     }
 
-    // ❌ Nothing reachable
-    std::cout << "⚠️ No good goal found.\n";
+    std::cout << "⚠️ No good intermediate goal found.\n";
     pathplanning_flag = false;
     return current_start;
 }
@@ -563,18 +559,15 @@ while (pathplanning_flag) {
 
     Node current_goal = findcurrentgoal(gridmap, current_start, final_goal,
                                         visited_nodes, failed_goals, recent_goals, pathplanning_flag);
-
     if (!pathplanning_flag) break;  // findcurrentgoal might disable it
-
     std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
-
     // Check if selected goal is occupied
     if (gridmap.occupancy_grid.count({current_goal.x, current_goal.y})) {
-        std::cout << "❌ Selected goal is occupied. Marking as failed.\n";
+        std::cout << "Selected goal is occupied. Marking as failed.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
         retry_attempts++;
         if (retry_attempts >= MAX_RETRIES) {
-            std::cout << "🚫 Too many failed attempts. Aborting path planning.\n";
+            std::cout << "Too many failed attempts. Aborting path planning.\n";
             pathplanning_flag = false;
         }
         continue;
@@ -585,14 +578,14 @@ while (pathplanning_flag) {
     std::vector<Node> dense_path;
 
     if (sparse_path.empty()) {
-        std::cout << "🧪 Sparse A* failed. Attempting Dense A*...\n";
+        std::cout << "Sparse A* failed. Attempting Dense A*...\n";
         dense_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
         if (dense_path.empty()) {
-            std::cout << "❌ Dense A* also failed. Marking goal as failed.\n";
+            std::cout << "Dense A* also failed. Marking goal as failed.\n";
             failed_goals.insert({current_goal.x, current_goal.y});
             retry_attempts++;
             if (retry_attempts >= MAX_RETRIES) {
-                std::cout << "🚫 Too many failed attempts. Aborting path planning.\n";
+                std::cout << "Too many failed attempts. Aborting path planning.\n";
                 pathplanning_flag = false;
             }
             continue;
@@ -605,7 +598,7 @@ while (pathplanning_flag) {
             if (!segment.empty()) {
                 dense_path.insert(dense_path.end(), segment.begin(), segment.end());
             } else {
-                std::cout << "⚠️ Dense segment failed between sparse nodes. Skipping segment.\n";
+                std::cout << "Dense segment failed between sparse nodes. Skipping segment.\n";
             }
         }
     }
@@ -621,7 +614,7 @@ while (pathplanning_flag) {
 
     // Safety check
     if (pruned_path.size() <= 1) {
-        std::cout << "⚠️ Pruned path too short. Marking goal as failed.\n";
+        std::cout << "Pruned path too short. Marking goal as failed.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
         retry_attempts++;
         continue;
@@ -672,11 +665,11 @@ while (pathplanning_flag) {
 
     // Step 5: Handle failure or retry
     if (pathplanning_flag && stuck) {
-        std::cout << "⚠️ Rover appears stuck. Retrying with a different goal.\n";
+        std::cout << "Rover stuck. Retrying with a different goal.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
         retry_attempts++;
         if (retry_attempts >= MAX_RETRIES) {
-            std::cout << "🚫 Too many retries. Aborting planning.\n";
+            std::cout << "Too many retries. Aborting planning.\n";
             pathplanning_flag = false;
             break;
         }
@@ -684,7 +677,7 @@ while (pathplanning_flag) {
     }
 
     if (pathplanning_flag) {
-        std::cout << "✅ Intermediate goal reached. Continuing planning...\n";
+        std::cout << "Intermediate goal reached. Continuing planning...\n";
     }
 }
 }
