@@ -81,7 +81,7 @@ Node findcurrentgoal(const Gridmap& gridmap,
         auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, final_goal, 1.0f);
         if (!dry_path.empty()) return final_goal;
         cout << "Snap to final goal failed. Skipping.\n";
-    }*/  //CHECK IF WE HAVE TO DO THIS
+    }*/  //CHECK IF WE HAVE TO DO THIS- IF WE HAVE TO SNAP TO FINAL GOAL OR NOT
 
     //Intermediate goal search
     Node best_node =current_start;
@@ -107,33 +107,26 @@ Node findcurrentgoal(const Gridmap& gridmap,
                   y >= gridmap.min_y && y <= gridmap.max_y))
                 continue;
 
-            // Skip unreachable outer boundary points
-            /*if (gridmap.occupancy_grid.find({x + 1, y}) == gridmap.occupancy_grid.end() &&
-                gridmap.occupancy_grid.find({x - 1, y}) == gridmap.occupancy_grid.end() &&
-                gridmap.occupancy_grid.find({x, y + 1}) == gridmap.occupancy_grid.end() &&
-                gridmap.occupancy_grid.find({x, y - 1}) == gridmap.occupancy_grid.end())
-                continue;*/
-
             //REPLACE THIS WITH A SMARTER LOGIC
             /*double to_goal = heuristic(x, y, final_goal.x, final_goal.y);
             if (to_goal>=dist_to_final) continue;*/
 
-            //Directional alignment with final goal
             double angle_to_node = atan2(y-current_start.y, x-current_start.x);
             double angle_to_goal = atan2(final_goal.y-current_start.y, final_goal.x-current_start.x);
             double angle_diff = fabs(angle_to_node-angle_to_goal);
             if (angle_diff > M_PI) angle_diff = 2*M_PI - angle_diff;
-            if (angle_diff > M_PI / 2) continue;
+            if (angle_diff > M_PI / 2) continue; //nice logic- sort of like a cone logic
 
             double obstacle_cost = gridmap.occupancy_grid.count(cell) ? gridmap.occupancy_grid.at(cell).cost : 0.0;
             double cost_to_node = heuristic(current_start.x, current_start.y, x, y) + obstacle_cost;
-            double total_cost = cost_to_node + to_goal;
+            //double total_cost = cost_to_node + to_goal;
 
-            if (x == current_start.x && y == current_start.y) total_cost += 10.0;
+            if (x == current_start.x && y == current_start.y) cost_to_node+= 20.0;
 
-            // 🧪 Validate reachability
-            auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, candidate, 1.0f);
-            if (!dry_path.empty() && total_cost < min_total_cost) {
+            //Validating reachability
+            //auto dry_path =  astarsparse(gridmap.occupancy_grid, current_start, candidate);
+            auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, candidate, 1.0f);//check if astarsparse or quad needed
+            if (!dry_path.empty() && cost_to_node < min_total_cost) {
                 best_node = candidate;
                 min_total_cost = total_cost;
                 found_candidate = true;
