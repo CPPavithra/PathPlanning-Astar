@@ -704,12 +704,12 @@ if (!found_alternative) {
     }
 
     // Safety check
-    if (pruned_path.size() <= 1) {
+    /*if (pruned_path.size() <= 1) {
         std::cout << "Pruned path too short. Marking goal as failed.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
         retry_attempts++;
         continue;
-    }
+    }*/
 
     // Step 4: Execute the path
     bool stuck = true;
