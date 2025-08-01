@@ -64,7 +64,7 @@ std::string table_text =
  * ******************************************************/
 
 // Function to find the next checkpoint/goal
-
+/********************************************************************************
 Node findcurrentgoal(const Gridmap& gridmap, 
                      const Node& current_start, 
                      const Node& final_goal, 
@@ -84,7 +84,7 @@ Node findcurrentgoal(const Gridmap& gridmap,
     }*/  //CHECK IF WE HAVE TO DO THIS- IF WE HAVE TO SNAP TO FINAL GOAL OR NOT
 
     //Intermediate goal search
-    Node best_node =current_start;
+/*    Node best_node =current_start;
     double min_total_cost =std::numeric_limits<double>::max();
     bool found_candidate =false;
 
@@ -111,7 +111,7 @@ Node findcurrentgoal(const Gridmap& gridmap,
             /*double to_goal = heuristic(x, y, final_goal.x, final_goal.y);
             if (to_goal>=dist_to_final) continue;*/
 
-            double angle_to_node = atan2(y-current_start.y, x-current_start.x);
+ /*           double angle_to_node = atan2(y-current_start.y, x-current_start.x);
             double angle_to_goal = atan2(final_goal.y-current_start.y, final_goal.x-current_start.x);
             double angle_diff = fabs(angle_to_node-angle_to_goal);
             if (angle_diff > M_PI) angle_diff = 2*M_PI - angle_diff;
@@ -128,7 +128,7 @@ Node findcurrentgoal(const Gridmap& gridmap,
             auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, candidate, 1.0f);//check if astarsparse or quad needed
             if (!dry_path.empty() && cost_to_node < min_total_cost) {
                 best_node = candidate;
-                min_total_cost = total_cost;
+                min_total_cost = cost_to_node;
                 found_candidate = true;
             }
         }
@@ -144,7 +144,85 @@ Node findcurrentgoal(const Gridmap& gridmap,
     std::cout << "No good intermediate goal found.\n";
     pathplanning_flag = false;
     return current_start;
+}****************************************************/
+Node findcurrentgoal(const Gridmap& gridmap, 
+                     const Node& current_start, 
+                     const Node& final_goal, 
+                     const std::set<std::pair<int, int>>& visited_nodes,
+                     const std::set<std::pair<int, int>>& failed_goals,
+                     std::deque<Node>& recent_goals,
+                     bool& pathplanning_flag) 
+{
+    double dist_to_final = heuristic(current_start.x, current_start.y, final_goal.x, final_goal.y);
+    Node best_node = current_start;
+    double best_score = std::numeric_limits<double>::max();
+    bool found = false;
+
+    int margin = 6;
+    for (int x = current_start.x - margin; x <= current_start.x + margin; ++x) {
+        for (int y = current_start.y; y <= current_start.y + margin; ++y) {
+
+            std::pair<int, int> cell = {x, y};
+            Node candidate(x, y);
+
+            // Filter: bounds
+            if (x < gridmap.min_x || x > gridmap.max_x || y < gridmap.min_y || y > gridmap.max_y)
+                continue;
+
+            // Filter: already known
+            if (gridmap.occupancy_grid.count(cell) || visited_nodes.count(cell) || failed_goals.count(cell))
+                continue;
+            if (std::find(recent_goals.begin(), recent_goals.end(), candidate) != recent_goals.end())
+                continue;
+
+            // Directional alignment filter
+            double angle_to_node = atan2(y - current_start.y, x - current_start.x);
+            double angle_to_goal = atan2(final_goal.y - current_start.y, final_goal.x - current_start.x);
+            double angle_diff = fabs(angle_to_node - angle_to_goal);
+            if (angle_diff > M_PI) angle_diff = 2 * M_PI - angle_diff;
+            if (angle_diff > M_PI / 4) continue;  // Tightened cone: 45°
+
+            // Line distance filter (deviation from direct line to goal)
+            double dx = final_goal.x - current_start.x;
+            double dy = final_goal.y - current_start.y;
+            double num = fabs(dy * x - dx * y + final_goal.x * current_start.y - final_goal.y * current_start.x);
+            double denom = sqrt(dx * dx + dy * dy);
+            double dist_to_line = denom != 0 ? num / denom : 0;
+            if (dist_to_line > 3.0) continue;
+
+            // Progress check (make sure we aren't stepping back or sideways)
+            double dist_from_start = heuristic(current_start.x, current_start.y, x, y);
+            if (dist_from_start < 2.0) continue;
+
+            // Score = cost + distance to goal + alignment penalty
+            double obstacle_cost = gridmap.occupancy_grid.count(cell) ? gridmap.occupancy_grid.at(cell).cost : 0.0;
+            double alignment_penalty = angle_diff * 2.0;
+            double score = dist_from_start + heuristic(x, y, final_goal.x, final_goal.y) + obstacle_cost + alignment_penalty;
+
+            // Dry run check (optional, comment if too slow)
+            auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, candidate, 1.0f);
+            if (dry_path.empty()) continue;
+
+            if (score < best_score) {
+                best_score = score;
+                best_node = candidate;
+                found = true;
+            }
+        }
+    }
+
+    if (found) {
+        std::cout << "Best reachable intermediate goal: (" << best_node.x << "," << best_node.y << ")\n";
+        recent_goals.push_back(best_node);
+        if (recent_goals.size() > 10) recent_goals.pop_front();
+        return best_node;
+    }
+
+    std::cout << "No good intermediate goal found.\n";
+    pathplanning_flag = false;
+    return current_start;
 }
+
 /*********************************************************************
  * LIKE THE PYTHON SIMULATION- MORE MODULAR AND BETTER 
  * ****************************************************************/  
@@ -529,7 +607,7 @@ int main() {
             
             create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
             updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, point_vectors, rover_pose);
-            rerunvisualisation(lowQuadtree, midQuadtree, highQuadtree, rec);
+            //rerunvisualisation(lowQuadtree, midQuadtree, highQuadtree, rec);
 
             if (gridmap.occupancy_grid.size() >= batch_threshold) {
                 draw_gridmap(gridmap, point_vectors, rover_pose, grid_resolution, rec);
@@ -565,7 +643,7 @@ while (pathplanning_flag) {
         continue;
     }*/ 
     //SHORT NEARBY GOAL IF BY CHANCEEEE OCCUPIED (COMMENT OUT IF NEEDED)
-    bool found_alternative = false;
+  bool found_alternative = false;
   for (int dx = -1; dx <= 1 && !found_alternative; ++dx) {
     for (int dy = -1; dy <= 1 && !found_alternative; ++dy) {
         if (dx == 0 && dy == 0) continue;
