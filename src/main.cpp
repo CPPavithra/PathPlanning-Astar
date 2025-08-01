@@ -135,13 +135,13 @@ Node findcurrentgoal(const Gridmap& gridmap,
     }
 
     if (found_candidate) {
-        std::cout << "🧠 Best reachable intermediate goal: (" << best_node.x << "," << best_node.y << ")\n";
+        std::cout << "Best reachable intermediate goal: (" << best_node.x << "," << best_node.y << ")\n";
         recent_goals.push_back(best_node);
         if (recent_goals.size() > 10) recent_goals.pop_front();
         return best_node;
     }
 
-    std::cout << "⚠️ No good intermediate goal found.\n";
+    std::cout << "No good intermediate goal found.\n";
     pathplanning_flag = false;
     return current_start;
 }
@@ -418,7 +418,7 @@ int main() {
 
     rec.log("cost_table", rerun::archetypes::TextDocument(table_text));
 
-    // Path planning - setting the starting node
+    //Path planning-setting the starting node
     cout << "Setting boundaries...\n";
     cout << "Enter goal coordinates (x y): ";
     cin >> goalx >> goaly;
@@ -443,11 +443,11 @@ int main() {
             float delta_time = std::chrono::duration<float>(current_time - last_time).count();
             last_time = current_time;
             
-            // Declare variables to hold sensor data
+            //Declare variables to hold sensor data
             rs2_vector accel_data = {0.0f, 0.0f, 0.0f};
             rs2_vector gyro_data = {0.0f, 0.0f, 0.0f};
 
-            // Get frames from the RealSense camera
+            //Get frames from the RealSense camera
             rs2::frameset frameset;
             try {
                 frameset = pipe.wait_for_frames();
@@ -503,23 +503,23 @@ int main() {
                 processed_frames++;
             }
             
-            // Passthrough filter
+            //Passthrough filter
             pcl::PointCloud<pcl::PointXYZ>::Ptr passthrough_cloud(new pcl::PointCloud<pcl::PointXYZ>());
             pcl::PassThrough<pcl::PointXYZ> passthrough;
             passthrough.setInputCloud(pcl_cloud);
-            passthrough.setFilterFieldName("z");  // This is based on depth
-            passthrough.setFilterLimits(0.5, 5.0); // Range in metres
+            passthrough.setFilterFieldName("z");  //This is based on depth
+            passthrough.setFilterLimits(0.5, 5.0); //Range is in metres
             passthrough.filter(*passthrough_cloud);
 
-            // Voxel grid filter
+            //Voxel grid filter
             pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>());
             pcl::VoxelGrid<pcl::PointXYZ> voxel;
             voxel.setInputCloud(passthrough_cloud);
-            voxel.setLeafSize(0.05f, 0.05f, 0.05f); // Size of each voxel in xyz dimension
+            voxel.setLeafSize(0.05f, 0.05f, 0.05f); //Size of each voxel in xyz dimension
             voxel.filter(*filtered_cloud);
 
-            // Clear and rebuild point vectors
-            std::vector<Eigen::Vector3f>().swap(point_vectors); // Forces memory deallocation
+            //Clear and rebuild point vectors
+            std::vector<Eigen::Vector3f>().swap(point_vectors); //Forces memory deallocation
             std::vector<float> z_values;
             z_values.reserve(filtered_cloud->points.size());
 
@@ -539,7 +539,7 @@ int main() {
             counter = gridmap.occupancy_grid.size() - adder;
             if (counter >= limit) {
                 cout << "Mapping paused. Switching to path planning." << std::endl;
-                pathplanning_flag = true;    // Switching to path planning
+                pathplanning_flag = true;//Switching to path planning
                 adder = 20;
             }
         } else {
@@ -550,12 +550,11 @@ const int MAX_RETRIES = 5;
 while (pathplanning_flag) {
     visited_nodes.insert({current_start.x, current_start.y});
 
-    Node current_goal = findcurrentgoal(gridmap, current_start, final_goal,
-                                        visited_nodes, failed_goals, recent_goals, pathplanning_flag);
+    Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes, failed_goals, recent_goals, pathplanning_flag);
     if (!pathplanning_flag) break;  // findcurrentgoal might disable it
     std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
     // Check if selected goal is occupied
-    if (gridmap.occupancy_grid.count({current_goal.x, current_goal.y})) {
+    /*if (gridmap.occupancy_grid.count({current_goal.x, current_goal.y})) {
         std::cout << "Selected goal is occupied. Marking as failed.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
         retry_attempts++;
@@ -564,8 +563,29 @@ while (pathplanning_flag) {
             pathplanning_flag = false;
         }
         continue;
+    }*/ 
+    //SHORT NEARBY GOAL IF BY CHANCEEEE OCCUPIED (COMMENT OUT IF NEEDED)
+    bool found_alternative = false;
+  for (int dx = -1; dx <= 1 && !found_alternative; ++dx) {
+    for (int dy = -1; dy <= 1 && !found_alternative; ++dy) {
+        if (dx == 0 && dy == 0) continue;
+        Node adjusted_goal = {current_goal.x + dx, current_goal.y + dy};
+        if (!gridmap.occupancy_grid.count({adjusted_goal.x, adjusted_goal.y})) {
+            current_goal = adjusted_goal;
+            found_alternative = true;
+        }
     }
-
+}
+if (!found_alternative) {
+    std::cout << "All nearby options are occupied. Marking goal as failed.\n";
+    failed_goals.insert({current_goal.x, current_goal.y});
+    retry_attempts++;
+    if (retry_attempts >= MAX_RETRIES) {
+        std::cout << "Too many failed attempts. Aborting path planning.\n";
+        pathplanning_flag = false;
+    }
+    continue;
+}
     // Step 1: Try Global Sparse A*
     std::vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
     std::vector<Node> dense_path;
