@@ -451,6 +451,37 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
     }
 }
 /***********************************************************************************************/
+bool is_risky(const Node& A, const Node& B, const Gridmap& gridmap, int cost_threshold=8)
+{
+  int steps= std::max(abs(B.x-A.x), abs(B.y-A.y));
+  float dx= (B.x-A.x)/float(steps);
+  float dy= (B.y-A.y)/float(steps);
+
+  for(int i=0; i<=steps; i++)
+  {
+    int x=std::round(A.x+i*dx);
+    int y=std::round(A.y+i*dy);
+    for(int dx_n=-1;dx+n<=1;dx_n++)
+    {
+      for(int dy_n=-1;dy_n<=1;dy_n++)
+      {
+        int nx= x+dx_n;
+        int ny= y+dy_n;
+        auto it= gridmap.find({nx,ny});
+        if(it != gridmap.end())
+        {
+          int cost= it->second.cost;
+          if(cost >= cost_threshold)
+          {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
 
 int main() {
     auto rec = rerun::RecordingStream("gridmap");
@@ -643,6 +674,8 @@ while (pathplanning_flag) {
         continue;
     }*/ 
     //SHORT NEARBY GOAL IF BY CHANCEEEE OCCUPIED (COMMENT OUT IF NEEDED)
+  if(gridmap.occupancy_grid.count({current_goal.x,current_goal.y}))
+  {
   bool found_alternative = false;
   for (int dx = -1; dx <= 1 && !found_alternative; ++dx) {
     for (int dy = -1; dy <= 1 && !found_alternative; ++dy) {
@@ -653,7 +686,8 @@ while (pathplanning_flag) {
             found_alternative = true;
         }
     }
-}
+  }
+  }
 if (!found_alternative) {
     std::cout << "All nearby options are occupied. Marking goal as failed.\n";
     failed_goals.insert({current_goal.x, current_goal.y});
@@ -663,8 +697,9 @@ if (!found_alternative) {
         pathplanning_flag = false;
     }
     continue;
-}
-    // Step 1: Try Global Sparse A*
+}//check for alternative   
+ 
+//AT THIS STEP, WE HAVE ALREADY CHOSEN OUR GOAL-> Either from the alternative or from the output of the findcurrentgoal function itself.
     std::vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
     std::vector<Node> dense_path;
 
