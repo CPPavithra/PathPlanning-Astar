@@ -639,7 +639,7 @@ int main() {
             create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
             updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, point_vectors, rover_pose);
             //rerunvisualisation(lowQuadtree, midQuadtree, highQuadtree, rec);
-
+            //we are just not draw quadtree map
             if (gridmap.occupancy_grid.size() >= batch_threshold) {
                 draw_gridmap(gridmap, point_vectors, rover_pose, grid_resolution, rec);
                 batch_threshold = batch_threshold + gridmap.occupancy_grid.size();
@@ -789,7 +789,7 @@ if (!found_alternative) {
         }
     }
 
-    // Step 5: Handle failure or retry
+    //DONT THINK I REALLY HAVEEE TO DO THIS
     if (pathplanning_flag && stuck) {
         std::cout << "Rover stuck. Retrying with a different goal.\n";
         failed_goals.insert({current_goal.x, current_goal.y});
