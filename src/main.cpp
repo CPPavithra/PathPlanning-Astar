@@ -298,37 +298,31 @@ void log_rover_feedback(rerun::RecordingStream& rec) {
     }
 }*/
 void moveRoverAlongPath(const std::vector<Node>& path) {
-    static size_t last_index = 0; // Track last moved index persistently
+    size_t last_index = 0; // Local, reset per segment
 
-    if (path.size() < 2 || last_index >= path.size() - 1) return;  // No movement needed  
+    if (path.size() < 2) return;
 
-    for (size_t i = last_index + 1; i < path.size(); i++) {  
+    for (size_t i = last_index + 1; i < path.size(); i++) {
         int dx = path[i].x - path[i - 1].x;
         int dy = path[i].y - path[i - 1].y;
 
-        if (dx == 0 && dy == 0) continue; // Skip redundant moves
+        if (dx == 0 && dy == 0) continue;
 
-        // Determine direction index (0-7 for 45-degree increments)
-        //int dir = 0;
-        // Map dx,dy to rover directions (0–7)
-        if (dx == 0 && dy > 0)       dir = 0; // front (up)
-        else if (dx > 0 && dy > 0)   dir = 1; // top-right
-        else if (dx > 0 && dy == 0)  dir = 2; // right
-        else if (dx > 0 && dy < 0)   dir = 3; // bottom-right
-        else if (dx == 0 && dy < 0)  dir = 4; // back (down)
-        else if (dx < 0 && dy < 0)   dir = 5; // bottom-left
-        else if (dx < 0 && dy == 0)  dir = 6; // left
-        else if (dx < 0 && dy > 0)   dir = 7; // top-left
+        if (dx == 0 && dy > 0)       dir = 0;
+        else if (dx > 0 && dy > 0)   dir = 1;
+        else if (dx > 0 && dy == 0)  dir = 2;
+        else if (dx > 0 && dy < 0)   dir = 3;
+        else if (dx == 0 && dy < 0)  dir = 4;
+        else if (dx < 0 && dy < 0)   dir = 5;
+        else if (dx < 0 && dy == 0)  dir = 6;
+        else if (dx < 0 && dy > 0)   dir = 7;
 
-        if (dir == -1) continue; // Just in case, prevent an invalid move
+        float distance = sqrt(dx * dx + dy * dy) * 1.0f;
+        float time_needed = distance / 0.2;
 
-        float distance = sqrt(dx * dx + dy * dy) * 1.0f; // Grid resolution = 1.0f
-        float time_needed = distance / 0.2;  // Assuming speed is 0.2 units per second
+        Drive(dir, time_needed, prev_dir);
 
-        Drive(dir, time_needed, prev_dir); // Call to movement function in imu.cpp
-
-        last_index = i; // Update last moved position
-       // prev_dir=dir;
+        last_index = i;
     }
 }
 /***********************************************************************************************/
