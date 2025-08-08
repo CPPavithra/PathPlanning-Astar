@@ -145,63 +145,55 @@ Node findcurrentgoal(const Gridmap& gridmap,
     pathplanning_flag = false;
     return current_start;
 }****************************************************/
-Node findcurrentgoal(const Gridmap& gridmap, 
-                     const Node& current_start, 
-                     const Node& final_goal, 
-                     const std::set<std::pair<int, int>>& visited_nodes,
-                     const std::set<std::pair<int, int>>& failed_goals,
-                     std::deque<Node>& recent_goals,
-                     bool& pathplanning_flag) 
+Node findcurrentgoal(const Gridmap& gridmap,const Node& current_start,const Node& final_goal, 
+                     const std::set<std::pair<int, int>>& visited_nodes,const std::set<std::pair<int, int>>& failed_goals,
+                     std::deque<Node>& recent_goals,bool& pathplanning_flag) 
 {
-    double dist_to_final = heuristic(current_start.x, current_start.y, final_goal.x, final_goal.y);
-    Node best_node = current_start;
-    double best_score = std::numeric_limits<double>::max();
-    bool found = false;
+    double dist_to_final=heuristic(current_start.x,current_start.y,final_goal.x,final_goal.y);
+    Node best_node=current_start;
+    double best_score=std::numeric_limits<double>::max();
+    bool found=false;
 
-    int margin = 6;
-    for (int x = current_start.x - margin; x <= current_start.x + margin; ++x) {
-        for (int y = current_start.y; y <= current_start.y + margin; ++y) {
+    int margin=6;
+    for (int x =current_start.x-margin; x <= current_start.x+margin; ++x) {
+        for (int y = current_start.y; y <= current_start.y+margin; ++y) {//because frontier exploration
 
-            std::pair<int, int> cell = {x, y};
+            std::pair<int, int> cell={x, y};
             Node candidate(x, y);
 
-            // Filter: bounds
+            // Bounds check
             if (x < gridmap.min_x || x > gridmap.max_x || y < gridmap.min_y || y > gridmap.max_y)
                 continue;
 
-            // Filter: already known
+            // Already known/visited/fail
             if (gridmap.occupancy_grid.count(cell) || visited_nodes.count(cell) || failed_goals.count(cell))
                 continue;
             if (std::find(recent_goals.begin(), recent_goals.end(), candidate) != recent_goals.end())
                 continue;
 
-            // Directional alignment filter
+            // Direction alignment (relaxed to 60°)
             double angle_to_node = atan2(y - current_start.y, x - current_start.x);
             double angle_to_goal = atan2(final_goal.y - current_start.y, final_goal.x - current_start.x);
             double angle_diff = fabs(angle_to_node - angle_to_goal);
             if (angle_diff > M_PI) angle_diff = 2 * M_PI - angle_diff;
-            if (angle_diff > M_PI / 4) continue;  // Tightened cone: 45°
+            if (angle_diff > M_PI / 3) continue;
 
-            // Line distance filter (deviation from direct line to goal)
+            // Distance-to-line tolerance (relaxed)
             double dx = final_goal.x - current_start.x;
             double dy = final_goal.y - current_start.y;
             double num = fabs(dy * x - dx * y + final_goal.x * current_start.y - final_goal.y * current_start.x);
             double denom = sqrt(dx * dx + dy * dy);
             double dist_to_line = denom != 0 ? num / denom : 0;
-            if (dist_to_line > 3.0) continue;
+            if (dist_to_line > 5.0) continue;
 
-            // Progress check (make sure we aren't stepping back or sideways)
+            // Progress check (reduced)
             double dist_from_start = heuristic(current_start.x, current_start.y, x, y);
-            if (dist_from_start < 2.0) continue;
+            if (dist_from_start < 1.0) continue;
 
-            // Score = cost + distance to goal + alignment penalty
+            // Scoring
             double obstacle_cost = gridmap.occupancy_grid.count(cell) ? gridmap.occupancy_grid.at(cell).cost : 0.0;
             double alignment_penalty = angle_diff * 2.0;
             double score = dist_from_start + heuristic(x, y, final_goal.x, final_goal.y) + obstacle_cost + alignment_penalty;
-
-            // Dry run check (optional, comment if too slow)
-            auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, candidate, 1.0f);
-            if (dry_path.empty()) continue;
 
             if (score < best_score) {
                 best_score = score;
@@ -211,146 +203,32 @@ Node findcurrentgoal(const Gridmap& gridmap,
         }
     }
 
+    // Only run A* dry check on best candidate if found
     if (found) {
-        std::cout << "Best reachable intermediate goal: (" << best_node.x << "," << best_node.y << ")\n";
-        recent_goals.push_back(best_node);
-        if (recent_goals.size() > 10) recent_goals.pop_front();
-        return best_node;
+        auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, best_node, 1.0f);
+        if (!dry_path.empty()) {
+            std::cout << "Best reachable intermediate goal: (" << best_node.x << "," << best_node.y << ")\n";
+            recent_goals.push_back(best_node);
+            if (recent_goals.size() > 10) recent_goals.pop_front();
+            return best_node;
+        }
     }
+
+    /*// Fallback: choose nearest unvisited node if no valid goal
+    for (int x = current_start.x - margin; x <= current_start.x + margin; ++x) {
+        for (int y = current_start.y; y <= current_start.y + margin; ++y) {
+            std::pair<int, int> cell = {x, y};
+            if (!visited_nodes.count(cell) && !gridmap.occupancy_grid.count(cell)) {
+                std::cout << "Fallback goal: (" << x << "," << y << ")\n";
+                return Node(x, y);
+            }
+        }
+    }*/
 
     std::cout << "No good intermediate goal found.\n";
     pathplanning_flag = false;
     return current_start;
 }
-
-/*********************************************************************
- * LIKE THE PYTHON SIMULATION- MORE MODULAR AND BETTER 
- * ****************************************************************/  
-/*void update_visibility(Gridmap& gridmap, const Node& rover_pos, int visibility_range) {
-    for (int dx = -visibility_range; dx <= visibility_range; ++dx) {
-        for (int dy = -visibility_range; dy <= visibility_range; ++dy) {
-            int x = rover_pos.x + dx;
-            int y = rover_pos.y + dy;
-            if (dx * dx + dy * dy <= visibility_range * visibility_range) {
-                if (x >= gridmap.min_x && x <= gridmap.max_x && y >= gridmap.min_y && y <= gridmap.max_y) {
-                    auto key = std::make_pair(x, y);
-                    // Only mark as known if not already in occupancy grid
-                    if (gridmap.occupancy_grid.find(key) == gridmap.occupancy_grid.end()) {
-                        gridmap.occupancy_grid[key] = CellCost{0, true};
- /*                   }
-                }
-            }
-        }
-    }
-}
-
-std::optional<Node> find_closest_unknown(const Gridmap& gridmap, const Node& rover_pos, int visibility_range) {
-    double min_distance = std::numeric_limits<double>::max();
-    std::optional<Node> closest_unknown;
-
-    // Search in a spiral pattern outward from the rover position
-    for (int radius = visibility_range + 1; radius <= 2 * visibility_range; radius++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dy = -radius; dy <= radius; dy++) {
-                if (dx * dx + dy * dy <= radius * radius && 
-                    dx * dx + dy * dy > (radius - 1) * (radius - 1)) {
-                    
-                    int x = rover_pos.x + dx;
-                    int y = rover_pos.y + dy;
-                    
-                    if (x >= gridmap.min_x && x <= gridmap.max_x && 
-                        y >= gridmap.min_y && y <= gridmap.max_y) {
-                        
-                        auto key = std::make_pair(x, y);
-                        if (gridmap.occupancy_grid.find(key) == gridmap.occupancy_grid.end()) {
-                            double distance = std::hypot(dx, dy);
-                            if (distance < min_distance) {
-                                min_distance = distance;
-                                closest_unknown = Node(x, y);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (closest_unknown.has_value()) {
-            return closest_unknown;
-        }
-    }
-
-    return closest_unknown;
-}
-
-bool can_see_goal(const Node& rover_pos, const Node& goal, int visibility_range) {
-    // Check line of sight using Bresenham's algorithm
-    int x0 = rover_pos.x, y0 = rover_pos.y;
-    int x1 = goal.x, y1 = goal.y;
-    
-    int dx = abs(x1 - x0);
-    int dy = abs(y1 - y0);
-    int sx = x0 < x1 ? 1 : -1;
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx - dy;
-    
-    while (true) {
-        // Check if current point is occupied
-        auto key = std::make_pair(x0, y0);
-        if (gridmap.occupancy_grid.find(key) != gridmap.occupancy_grid.end() && 
-            gridmap.occupancy_grid.at(key).cost > 0) {
-            return false; // Obstacle in the way
-        }
-        
-        if (x0 == x1 && y0 == y1) break;
-        
-        int e2 = 2 * err;
-        if (e2 > -dy) {
-            err -= dy;
-            x0 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y0 += sy;
-        }
-        
-        // Check if we've gone beyond visibility range
-        if (std::hypot(x0 - rover_pos.x, y0 - rover_pos.y) > visibility_range) {
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-bool plan_next_move(Gridmap& gridmap, const Node& rover_pos, const Node& final_goal,
-                   std::vector<Node>& path, Node& selected_target, int visibility_range) {
-    // First check if we can see and reach the final goal
-    if (can_see_goal(rover_pos, final_goal, visibility_range)) {
-        path = astarsparse(gridmap.occupancy_grid, rover_pos, final_goal);
-        if (!path.empty()) {
-            selected_target = final_goal;
-            return true;
-        }
-    }
-
-    // If not, look for closest unknown area
-    auto unknown = find_closest_unknown(gridmap, rover_pos, visibility_range);
-    if (unknown.has_value()) {
-        path = astarsparse(gridmap.occupancy_grid, rover_pos, unknown.value());
-        if (!path.empty()) {
-            selected_target = unknown.value();
-            return true;
-        }
-    }
-
-    // Fallback: try to make progress toward final goal
-    path = astarsparse(gridmap.occupancy_grid, rover_pos, final_goal);
-    if (!path.empty()) {
-        selected_target = final_goal;
-        return true;
-    }
-
-    return false;
-}*/
 /*****************************************************************************
  * Functions to log views in the rerun viewer.
  * The Blueprint attribute is not being recognised so we have to manually adjust the screen view.
@@ -432,11 +310,15 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
 
         // Determine direction index (0-7 for 45-degree increments)
         //int dir = 0;
-        if (dx == 0 && dy == 0) dir = 0;  // front
-        else if (dx > 0 && dy > 0) dir = 1;  // top-right
-        else if (dx > 0 && dy == 0) dir = 2;  // right
-        else if (dx < 0 && dy > 0) dir = 7;  // Top-left
-        else if (dx < 0 && dy == 0) dir = 6;  // Left
+        // Map dx,dy to rover directions (0–7)
+        if (dx == 0 && dy > 0)       dir = 0; // front (up)
+        else if (dx > 0 && dy > 0)   dir = 1; // top-right
+        else if (dx > 0 && dy == 0)  dir = 2; // right
+        else if (dx > 0 && dy < 0)   dir = 3; // bottom-right
+        else if (dx == 0 && dy < 0)  dir = 4; // back (down)
+        else if (dx < 0 && dy < 0)   dir = 5; // bottom-left
+        else if (dx < 0 && dy == 0)  dir = 6; // left
+        else if (dx < 0 && dy > 0)   dir = 7; // top-left
 
         if (dir == -1) continue; // Just in case, prevent an invalid move
 
@@ -447,11 +329,10 @@ void moveRoverAlongPath(const std::vector<Node>& path) {
 
         last_index = i; // Update last moved position
        // prev_dir=dir;
-
     }
 }
 /***********************************************************************************************/
-bool is_risky(const Node& A, const Node& B, const Gridmap& gridmap, int cost_threshold=8)
+/*bool is_risky(const Node& A, const Node& B, const Gridmap& gridmap, int cost_threshold=8)
 {
   int steps= std::max(abs(B.x-A.x), abs(B.y-A.y));
   float dx= (B.x-A.x)/float(steps);
@@ -481,7 +362,7 @@ bool is_risky(const Node& A, const Node& B, const Gridmap& gridmap, int cost_thr
   }
   return false;
 }
-
+*/
 
 int main() {
     auto rec = rerun::RecordingStream("gridmap");
@@ -673,10 +554,10 @@ while (pathplanning_flag) {
         }
         continue;
     }*/ 
+  /*bool found_alternative = false;
     //SHORT NEARBY GOAL IF BY CHANCEEEE OCCUPIED (COMMENT OUT IF NEEDED)
   if(gridmap.occupancy_grid.count({current_goal.x,current_goal.y}))
   {
-  bool found_alternative = false;
   for (int dx = -1; dx <= 1 && !found_alternative; ++dx) {
     for (int dy = -1; dy <= 1 && !found_alternative; ++dy) {
         if (dx == 0 && dy == 0) continue;
@@ -697,7 +578,7 @@ if (!found_alternative) {
         pathplanning_flag = false;
     }
     continue;
-}//check for alternative   
+}//check for alternative   */
  
 //AT THIS STEP, WE HAVE ALREADY CHOSEN OUR GOAL-> Either from the alternative or from the output of the findcurrentgoal function itself.
     std::vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
