@@ -621,39 +621,51 @@ if (!found_alternative) {
         continue;
     }*/
 
-    // Step 4: Execute the path
-    bool stuck = true;
-    Node previous_start = current_start;
 
-    for (int i = 1; i < pruned_path.size(); ++i) {
-        Node local_start = pruned_path[i - 1];
-        Node local_goal = pruned_path[i];
+// Step 4: Execute the path
+bool stuck = true;
+Node previous_start = current_start;
 
-        std::cout << "Path segment:\n";
-        std::cout << "(" << local_start.x << "," << local_start.y << ") -> ("
-                  << local_goal.x << "," << local_goal.y << ")\n";
+bool found_start = false;
+for (int i = 0; i < pruned_path.size() - 1; ++i) {
 
-        std::vector<Node> segment = {local_start, local_goal};
-        moveRoverAlongPath(segment);
-
-        std::vector<rerun::Position3D> subpath;
-        for (const Node& node : segment) {
-            subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f});
-            if (full_path.empty() || !(full_path.back().x == node.x && full_path.back().y == node.y)) {
-                full_path.push_back(node);
-            }
-            visited_nodes.insert({node.x, node.y});
+    // Skip until we find the actual current position
+    if (!found_start) {
+        if (pruned_path[i] == current_start) {
+            found_start = true;
+        } else {
+            continue; // keep skipping
         }
+    }
 
-        rec.log("full_path", rerun::Points3D(subpath)
-                             .with_colors({rerun::Color(0, 0, 255)})
-                             .with_radii({0.5f}));
+    Node local_start = pruned_path[i];
+    Node local_goal  = pruned_path[i + 1];
 
-        current_start = local_goal;
-        if (current_start.x != previous_start.x || current_start.y != previous_start.y) {
-            stuck = false;
+    std::cout << "Path segment:\n";
+    std::cout << "(" << local_start.x << "," << local_start.y << ") -> ("
+              << local_goal.x << "," << local_goal.y << ")\n";
+
+    std::vector<Node> segment = {local_start, local_goal};
+    moveRoverAlongPath(segment);
+
+    std::vector<rerun::Position3D> subpath;
+    for (const Node& node : segment) {
+        subpath.push_back(rerun::Position3D{node.x, node.y, 0.0f});
+        if (full_path.empty() || !(full_path.back().x == node.x && full_path.back().y == node.y)) {
+            full_path.push_back(node);
         }
-        previous_start = current_start;
+        visited_nodes.insert({node.x, node.y});
+    }
+
+    rec.log("full_path", rerun::Points3D(subpath)
+                         .with_colors({rerun::Color(0, 0, 255)})
+                         .with_radii({0.5f}));
+
+    current_start = local_goal;
+    if (current_start.x != previous_start.x || current_start.y != previous_start.y) {
+        stuck = false;
+    }
+    previous_start = current_start;
 
         if (current_start == final_goal) {
             std::cout << "🏁 GOAL REACHED!\n";
