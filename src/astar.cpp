@@ -1,5 +1,4 @@
 #include <iostream>
-#include "astar.h"
 #include <vector>
 #include <cmath>
 #include <unordered_map>
@@ -18,6 +17,7 @@
 #include <unordered_map>
 #include <functional>
 #include <Eigen/Core>
+#include <unordered_set>
 //for downsampling and filtering
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -25,11 +25,8 @@
 #include <pcl/filters/voxel_grid.h>
 #include <cstdlib>
 #include <rerun/demo_utils.hpp>
-#include <unordered_set>
-#include <sstream>
-#include <set>
 #include "rerun.h"
-#include "common.h"
+#include "pathplanning.h"
 
 using namespace std;
 

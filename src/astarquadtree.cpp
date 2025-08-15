@@ -25,10 +25,9 @@
 #include <unordered_set>
 #include <set>
 #include "rerun.h"
-#include "common.h"
 #include "quadtree.h"
 #include <limits>
-#include "astarquadtree.h"
+#include "pathplanning.h"
 
 using namespace std;
 
