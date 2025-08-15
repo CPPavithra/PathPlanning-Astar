@@ -10,7 +10,7 @@
 #include <memory>
 #include <cmath>
 
-// From astar.h
+//from astar.h
 struct Node {
     float x, y;
     double g_cost, h_cost, f_cost;
@@ -32,7 +32,7 @@ struct comparenode {
 double heuristic_astar(int x1, int y1, int x2, int y2);
 std::vector<Node> astarsparse(const std::unordered_map<std::pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal);
 
-// From astarquadtree.h
+//this is from astarquadtree.h
 struct NodeHasher {
     size_t operator()(const std::pair<int, int>& p) const {
         return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
