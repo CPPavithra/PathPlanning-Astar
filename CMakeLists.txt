@@ -33,8 +33,7 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
     /usr/include/eigen3
     /usr/include/GL
-    /usr/local/include/rerun
-)
+    /usr/local/include/rerun )
 
 # Library directories
 link_directories(
