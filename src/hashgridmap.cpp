@@ -320,15 +320,6 @@ void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, 
 colors.clear();
 }
 
-/*void log_navigation_pane(rerun::RecordingStream& rec,  const Pose& roverpose) {
-    std::ostringstream nav_data;
-    nav_data << "Navigation Status: \n";
-    nav_data << "- Path planning active\n";
-    nav_data << "- Obstacle detection enabled\n";
-    nav_data << "- Current pose: (" << roverpose.position.x << ", " << roverpose.position.y << ")\n";
-    rec.log("navigation_pane", rerun::TextLog(nav_data.str()));
-}*/
-
 Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
 	return Eigen::Vector3f(rs2_vec.x, rs2_vec.y, rs2_vec.z);
 }//helper function to convert rs2 to eigen vector3f
@@ -362,7 +353,7 @@ void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& g
         cloud->points.emplace_back(point.x(), point.y(), point.z());
     }
     cloud->width = cloud->points.size();
-    cloud->height = 1; // Unorganized cloud
+    cloud->height = 1; //Unorganized cloud
     return cloud;
 }
 
