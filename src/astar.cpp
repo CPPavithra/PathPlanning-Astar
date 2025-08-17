@@ -36,8 +36,6 @@ double heuristic_astar(int x1, int y1, int x2, int y2) {
 }
 
 
-
-
 vector<Node> astarsparse(const unordered_map<pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal) {
     priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, comparenode> openList;
     unordered_map<pair<int, int>, shared_ptr<Node>, pair_hash> allNodes;

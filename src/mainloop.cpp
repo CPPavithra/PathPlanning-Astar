@@ -11,6 +11,8 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/voxel_grid.h>
 
+using namespace std; 
+
 Gridmap gridmap;
 float grid_resolution = 0.001f;
 int batch_threshold = 1;
@@ -26,9 +28,9 @@ int dir = 0;
 
 // Initialize Node objects here to solve the constructor error
 Node start(0, 0), goal(0, 0), current_start(0, 0), final_goal(0, 0);
-std::vector<rerun::Position3D> full_path_points;
-std::set<std::pair<int, int>> tried_goals;
-std::vector<Node> full_path;
+vector<rerun::Position3D> full_path_points;
+set<std::pair<int, int>> tried_goals;
+vector<Node> full_path;
 
 std::string table_text =
     "Color   | Signifies      | Cost\n\n"
@@ -55,22 +57,23 @@ void setup(rerun::RecordingStream &rec) {
     rec.log("cost_table", rerun::archetypes::TextDocument(table_text));
 
     // Path planning-setting the starting node
-    cout << "Setting boundaries...\n";
-    cout << "Enter goal coordinates (x y): ";
-    cin >> goalx >> goaly;
-    cout << "\nGoal: (" << goalx << ", " << goaly << ")";
+    cout <<"Setting boundaries...\n";
+    cout <<"Enter goal coordinates (x y): ";
+    cin >>goalx>>goaly;
+    cout <<"\nGoal: ("<<goalx<<", "<<goaly<< ")";
     startx = 0;
     starty = 0;
 
-    // Create start and goal nodes
-    start = Node(startx, starty);
-    goal = Node(goalx, goaly);
+    //Create start and goal nodes
+    start =Node(startx, starty);
+    goal =Node(goalx, goaly);
     current_start = start;
     final_goal = goal;
 }
-// Forward declaration for a helper function used in setup
+//Forward declaration for a helper function used in setup
 void log_views(rerun::RecordingStream& rec);
 
+//the entire workflow and function for MAPPING.
 bool mapping(
     rs2::pipeline &pipe,
     rs2::pointcloud &pc,
@@ -89,46 +92,45 @@ bool mapping(
     auto current_time = std::chrono::high_resolution_clock::now();
     float delta_time = std::chrono::duration<float>(current_time - last_time).count();
     last_time = current_time;
-
-    // Declare variables to hold sensor data
+    //this holds the sensor data- we are going to use SLAM instead of this
     rs2_vector accel_data = {0.0f, 0.0f, 0.0f};
     rs2_vector gyro_data = {0.0f, 0.0f, 0.0f};
 
-    // Get frames from the RealSense camera
     rs2::frameset frameset;
     try {
         frameset = pipe.wait_for_frames();
     } catch (const rs2::error& e) {
-        std::cerr << "RealSense error: " << e.what() << std::endl;
+        cerr<<"RealSense error: "<<e.what()<<endl;
         return false;
     }
 
-    // Get accelerometer data
+    //Get accelerometer data
     if (rs2::motion_frame accel_frame = frameset.first_or_default(RS2_STREAM_ACCEL)) {
         accel_data = accel_frame.get_motion_data();
     } else {
         cerr << "Failed to retrieve accelerometer data" << endl;
     }
 
-    // Get gyroscope data
+    //Get gyroscope data
     if (rs2::motion_frame gyro_frame = frameset.first_or_default(RS2_STREAM_GYRO)) {
         gyro_data = gyro_frame.get_motion_data();
     } else {
         cerr << "Failed to retrieve gyroscope data" << endl;
     }
 
-    // Update rover pose
+    //Update rover pose- TAKE FROM SLAM LATER
     Eigen::Vector3f accel_eigen = convert_to_eigen_vector(accel_data);
     Eigen::Vector3f gyro_eigen = convert_to_eigen_vector(gyro_data);
     update_rover_pose(rover_pose, accel_eigen, gyro_eigen, delta_time);
 
-    // Process depth data to create point cloud
+    //Process depth data to create point cloud
     rs2::depth_frame depth_frame = frameset.get_depth_frame();
     rs2::points points = pc.calculate(depth_frame);
 
     log_camera_frames(rec, frameset);
+  
 
-    // Collect and transform point cloud data
+    //Collect and transform point cloud data to Eigen
     vector<Eigen::Vector3f> point_vectors;
     for (size_t i = 0; i < points.size(); ++i) {
         auto point = points.get_vertices()[i];
@@ -138,7 +140,7 @@ bool mapping(
         }
     }
 
-    // Convert to PCL and filter
+    //Convert to PCL and filter out the noise using passthrough and voxel
     auto pcl_cloud = convert_to_pcl(point_vectors);
     pcl::PointCloud<pcl::PointXYZ>::Ptr passthrough_cloud(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PassThrough<pcl::PointXYZ> passthrough;
@@ -160,7 +162,8 @@ bool mapping(
 
     create_gridmap(gridmap, point_vectors, rover_pose, grid_resolution);
     updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, point_vectors, rover_pose);
-
+    //rerunvisualisation(lowQuadtree, midQuadtree, highQuadtree, rec);
+    //we are just not LOGGING the quadtree cuz it looks messy. We are making it.
     if (gridmap.occupancy_grid.size() >= batch_threshold) {
         draw_gridmap(gridmap, point_vectors, rover_pose, grid_resolution, rec);
         batch_threshold += gridmap.occupancy_grid.size();
@@ -168,67 +171,68 @@ bool mapping(
 
     counter = gridmap.occupancy_grid.size() - adder;
     if (counter >= limit) {
-        cout << "Mapping paused. Switching to path planning." << std::endl;
+        cout <<"Mapping paused. Switching to path planning." << std::endl;
         pathplanning_flag = true;
-        adder = 20;
+        adder = 20;//this is just to add to the batch threshold calculation during every calculation
     }
 
     return true;
 }
 
-
+//ENTIRE WORKFLOW FOR PATH PLANNING
 void pathPlanning(
     Gridmap &gridmap,
     QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree,
     Node &current_start,
     Node &final_goal,
-    std::vector<Node> &full_path,
-    std::set<std::pair<int, int>> &visited_nodes,
-    std::set<std::pair<int, int>> &failed_goals,
-    std::deque<Node> &recent_goals,
+    vector<Node> &full_path,
+    set<std::pair<int, int>> &visited_nodes,
+    set<std::pair<int, int>> &failed_goals,
+    deque<Node> &recent_goals,
     bool &pathplanning_flag,
     rerun::RecordingStream &rec
 ) {
-    const int MAX_RETRIES = 5;
+    const int MAX_RETRIES = 5;//THIS IS JUST FOR A RETRY LOGIC, CAN AVOID THIS LATER
     int retry_attempts = 0;
 
     while (pathplanning_flag) {
         visited_nodes.insert({current_start.x, current_start.y});
-
+        //WE FIRST CHOOSE OUR GOAL WITH THIS FUNC.
         Node current_goal = findcurrentgoal(gridmap, current_start, final_goal, visited_nodes, failed_goals, recent_goals, pathplanning_flag);
         if (!pathplanning_flag) break;
 
-        std::cout << "Selected intermediate goal: (" << current_goal.x << "," << current_goal.y << ")" << std::endl;
+        cout << "Selected intermediate goal: ("<< current_goal.x<<","<<current_goal.y << ")" << std::endl;
 
-        std::vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
-        std::vector<Node> dense_path;
-
+        vector<Node> sparse_path = astarsparse(gridmap.occupancy_grid, current_start, current_goal);
+        vector<Node> dense_path;
+        //FIRST FIND SPARSE PATH, IF SPARSE FAILS FIND DENSE BUT IN FIND CURRENT GOAL WE RUN IT ACROSS THE DENSE ONE
         if (sparse_path.empty()) {
-            std::cout << "Sparse A* failed. Attempting Dense A*...\n";
+            cout <<"Sparse A* failed. Attempting Dense A*...\n";
             dense_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
         } else {
             for (size_t i = 1; i < sparse_path.size(); ++i) {
-                std::vector<Node> segment = astarquad(lowQuadtree, midQuadtree, highQuadtree, sparse_path[i - 1], sparse_path[i], 1.0f);
+                vector<Node> segment = astarquad(lowQuadtree, midQuadtree, highQuadtree, sparse_path[i - 1], sparse_path[i], 1.0f);
                 if (!segment.empty()) {
                     dense_path.insert(dense_path.end(), segment.begin(), segment.end());
                 } else {
-                    std::cout << "Dense segment failed between sparse nodes. Skipping segment.\n";
+                    cout << "Dense segment failed between sparse nodes. Skipping segment.\n";
                 }
             }
         }
 
         if (dense_path.empty()) {
-            std::cout << "Pathfinding failed for this goal. Marking as failed.\n";
+            cout << "Pathfinding failed for this goal. Marking as failed.\n";
             failed_goals.insert({current_goal.x, current_goal.y});
             retry_attempts++;
             if (retry_attempts >= MAX_RETRIES) {
-                std::cout << "Too many failed attempts. Aborting path planning.\n";
+                cout << "Too many failed attempts. Aborting path planning.\n";
                 pathplanning_flag = false;
             }
             continue;
         }
 
-        // Prune duplicates
+        // Prune duplicates- THIS IS TO AVOID TAKING THE LAST ONE OF THE PREVIOUS ITERATION
+        // eg- (0,0),(0,1) IN FIRST ITERATION. In the second one it should not include (0,1)
         std::vector<Node> pruned_path;
         if (!dense_path.empty()) {
             pruned_path.push_back(dense_path[0]);
@@ -239,14 +243,14 @@ void pathPlanning(
             }
         }
 
-        // Execute path
+        //Execute path
         bool stuck = true;
         for (size_t i = 0; i < pruned_path.size() - 1; ++i) {
             Node local_start = pruned_path[i];
             Node local_goal  = pruned_path[i + 1];
             std::vector<Node> segment = {local_start, local_goal};
             
-            moveRoverAlongPath(segment);
+            moveRoverAlongPath(segment);//DRIVE FUNC TO MOVE ROVER
 
             std::vector<rerun::Position3D> subpath;
             for (const Node& node : segment) {
@@ -262,10 +266,10 @@ void pathPlanning(
                                      .with_radii({0.5f}));
             
             current_start = local_goal;
-            stuck = false; // If we moved at all, we are not stuck
+            stuck = false; //If we moved at all, we are not stuck
 
             if (current_start == final_goal) {
-                std::cout << "🏁 GOAL REACHED!\n";
+                std::cout << "GOAL REACHED!\n";
                 ArucoDetect();
                 sendfinalsignal();
                 pathplanning_flag = false;
@@ -320,7 +324,7 @@ void log_camera_frames(rerun::RecordingStream& rec, const rs2::frameset& framese
     }
 }
 
-void moveRoverAlongPath(const std::vector<Node>& path) {
+void moveRoverAlongPath(const std::vector<Node>& path) {//Drive func with grid logic
     if (path.size() < 2) return;
 
     for (size_t i = 1; i < path.size(); i++) {
@@ -352,7 +356,7 @@ Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const No
     Node best_node = current_start;
     double best_score = std::numeric_limits<double>::max();
     bool found = false;
-    int margin = 6;
+    int margin = 6;//change the margin if wanted. It is better to pass it by reference.
 
     for (int x = current_start.x - margin; x <= current_start.x + margin; ++x) {
         for (int y = current_start.y; y <= current_start.y + margin; ++y) {
@@ -367,7 +371,7 @@ Node findcurrentgoal(const Gridmap& gridmap, const Node& current_start, const No
             double angle_to_goal = atan2(final_goal.y - current_start.y, final_goal.x - current_start.x);
             double angle_diff = fabs(angle_to_node - angle_to_goal);
             if (angle_diff > M_PI) angle_diff = 2 * M_PI - angle_diff;
-            if (angle_diff > M_PI / 3) continue;
+            if (angle_diff > M_PI/3) continue; //only the starting arc in front of the rover.
 
             double dist_from_start = heuristic(current_start.x, current_start.y, x, y);
             if (dist_from_start < 1.0) continue;
