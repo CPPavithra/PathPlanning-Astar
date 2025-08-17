@@ -7,6 +7,12 @@ int main() {
     rec.spawn().exit_on_failure();
     rs2::pipeline pipe;
     rs2::config cfg;
+
+    //cfg.enable_device_from_file("actualgoodvideo.bag"); 
+    // SERIAL CONNECTION
+     //initSerial("/dev/ttyACM0", 9600);
+    //initSerial("/dev/serial/by-id/usb-ZEPHYR_Team_RUDRA_Tarzan_3339511100350023-if00", 9600);
+
     cfg.enable_stream(RS2_STREAM_DEPTH);
     cfg.enable_stream(RS2_STREAM_GYRO);
     cfg.enable_stream(RS2_STREAM_ACCEL);
