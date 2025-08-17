@@ -1,172 +1,40 @@
 
 ---
 
-# 🤖 Efficient Path Planning Using Quadtree, A* Search, and Sparse Hash Maps + VSLAM
+# 🤖 Efficient Path Planning Using Quadtree, A* Search, and Sparse Hash Maps
 
 This project is my complete implementation of a **memory-efficient path planning system** for robots. It combines **quadtree spatial mapping**, **A* algorithm**, and a **sparse hash table** to compute optimal paths over large terrain maps with obstacles.
 
 ---
 
-## 🧭 What This Project Does
+## FILES NEEDED
+Files that are needed for execution and what they do
+-> From src/
+  1. main.cpp - the main code executable- intialise rerun also
+  2. mainloop.cpp- helper functions and other func containing COMPLETE mapping and path planning logic and workflow. setup camera frames and log.
+  3. ArucoDetect.cpp- to detect the aruco tags
+  4. astarquadtree.cpp- to run dense A* on quadtree mapping
+  5. astar.cpp- to run sparse A* on sparse hash maps occupancy grid
+  6. hashgridmap.cpp- to create the sparse hash table grid map from point cloud and also to log them to rerun. (There is a function to convert pointcloud to pcl also here)
+  7. quadtree.cpp- to create the quadtree map and also to log it. Here, we are not calling the log function in main as it will be messy.
 
-- Converts 3D point cloud data into a layered obstacle map using **quadtrees**
-- Categorizes obstacles based on height (low/mid/high)
-- Uses **sparse hash tables** instead of a full grid to reduce memory usage FOR GLOBAL MAPS
-- Computes shortest paths with **A* search** considering obstacle cost
-- Visualizes everything — obstacles, map, and path — using `rerun`
-- Designed for real-time robotic navigation and mapping tasks
+-> From include/
+  1. mainloop.h- helper for mainloop.cpp
+  2. ArucoDetect.h- helper for ArucoDetect.cpp
+  3. common.h- the common struct definitions used everywhere (esp mapping) . extern has not been used here to avoid build complexity. Like the pair hash and cellcost structs.
+  4. imu.h- header for drive function to move the rover and also to serialise it before COBS encoding
+  5. pathplanning.h- ENTIRE pathplanning (quadtree+sparsemap)
+  6. quadtree.h, quadtreecommon.h, rerun.h- all of these are for mapping. This can be merged in the future. However, it might be a little tricky as extern global vars has been used.
 
----
-
-## 🧠 Core Concepts (Explained Simply)
-
-### 🟩 1. Quadtree Grid Mapping
-
-Rather than dividing the entire area into a rigid full grid (which uses lots of memory), I use **quadtrees**. These only subdivide where needed — for example, if an area has dense obstacles. Each node stores:
-- Center position and size
-- Obstacle density
-- Cost value for path planning
-
-We use **three separate quadtrees**:
-- `lowQuadtree`: close-to-ground obstacles
-- `midQuadtree`: medium height (e.g., humans, barriers)
-- `highQuadtree`: taller structures like poles, trees
-
-### 🧊 2. Point Cloud to Map Conversion
-
-From the RealSense depth camera, I process point cloud data using PCL:
-- Voxel filtering
-- Pass-through slicing
-
-Points are fed into the quadtrees and stored in a way that reflects the obstacle’s size and height.
-
-### ⚡ 3. Sparse Hash Table
-
-For planning, I **don’t create a full grid**. Instead, I use a **sparse hash map** to store only the grids with the obstacles, which is EXTREMELY MEMORY EFFICIENT:
-- There is dynamic cost handling based on height thresholds, adding high cost for taller obstacles
-- Very efficient for a 3km grid
-- Will be used for global path planning
-
-
-This means:
-
-* Less memory wasted
-* Faster access and updates
-* Scales to large maps without lag
-
-### 🌟 4. A\* Path Planning
-
-Using the cost-aware map:
-
-* A\* calculates the optimal path from a `start` to a `goal` node.
-* Costs from all three quadtrees are combined dynamically.
-* High-density zones = high cost = less likely to be chosen in path.
-
-Full Map (Sparse Hash Table)
-↓ Run global A*
-→ Waypoints: A → B → C → D
-
-For each (current_point, next_waypoint):
-    ↓
-    1. Extract local region in quadtrees around current_point
-    2. Bias low-level A* toward direction(current_point → next_waypoint)
-    3. Plan in that window only (5x5m or 10x10m)
-    4. Output refined path segment
-    5. Repeat from last point
-
-### 👀 5. Visualization
-
-I use **Rerun** to visualize:
-
-* Obstacle points (color-coded per layer)
-* Quadtree node borders
-* Final gridmaps
-* Final computed path (line segments from start to goal)
+-> From lib/
+  1. cobs.c, cobs.h- for COBS 
+  2. gps.cpp, imu.cpp- for the drive
 
 ---
 
-## 🧪 How To Run
-
-### ✅ Build & Run
-
-```bash
-cd PathPlanning-Astar
-mkdir build && cd build
-cmake ..
-make
-./main
-```
-
-### 📦 Dependencies
-
-Make sure the following libraries are installed:
-
-* `librealsense2`
-* `PCL`
-* `Eigen`
-* `Rerun`
-* `Boost`
-* `OpenCV` (for ArUco detection)
-* `CMake`
-
----
-
-## 📁 Project Structure
-
-```bash
-PathPlanning-Astar/
-├── include/                 # All headers
-│   ├── quadtree.h
-│   ├── astarquadtree.h
-│   ├── gridmap.h, imu.h, common.h, rerun.h, etc.
-├── lib/                     # Core logic + hardware interfaces
-│   ├── slamcontrol.cpp, imu.cpp, gps.cpp, tarzan.cpp
-├── src/                     # Main logic
-│   ├── main.cpp             # Entry point
-│   ├── quadtree.cpp         # Quadtree logic
-│   ├── astarquadtree.cpp    # A* pathfinding
-│   ├── pointcloudrerun.cpp  # Point cloud visualisation
-│   ├── astar.cpp            # Sparse A* algorithm
-│   ├── ArucoDetect.cpp      # Marker detection logic
-│   └── tune.cpp             # Param tuning
-├── build/                   # Compiled outputs (after build)
-├── rerun_rec/               # Saved rerun logs
-├── *.bag                    # ROS bag recordings (RealSense data)
-├── gridmap*                 # Executables
-├── imu_data.log, new_plan.txt
-├── CMakeLists.txt           # Build config
-└── README.md                # You’re here!
-```
-
----
-
-## 🧠 Why This Approach?
-
-Instead of blindly scanning an entire area, this project focuses only on what matters:
-
-* Quadtrees allow for smart obstacle representation
-* Sparse hash tables ensure we don’t waste memory
-* A\* makes sure we get the **best** path, fast
-* Real-world data (point cloud, IMU, GPS) makes it deployable on actual rovers
-
----
----
-
-## 🙋‍♀️ Author
-
-Built with a lot of love (and debugging) by me, Pavithra ❤️
-I’m deeply passionate about robotics, efficient planning systems, and building things that *actually work* on hardware!
-
-Feel free to connect with me:
-🔗 [LinkedIn](https://linkedin.com/in/pavithra-cp)
-✉️ [cppavithra05@gmail.com](mailto:cppavithra05@gmail.com)
-
----
-
-## 📄 License
-
-This project is under MIT License.
-```
-
----
-
+## WHAT IS NOT NEEDED (DEPRECATED) BUT I HAVE KEPT IT IN THE REPO FOR REFERENCE
+1. lib/slamcontrol.cpp- to test the drive with slam later on 
+2. lib/tarzan.cpp- not currently used
+3. src/simulation.cpp- this was to check how much memory will about 1M grid cells take if we run it to that extent with random int.
+4. src/tune.cpp- this was used during initial test runs 
+5. python_simulation- this is just a python simulation on how our rover will actually run. 
