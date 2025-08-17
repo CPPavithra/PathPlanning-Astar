@@ -35,6 +35,7 @@ Files that are needed for execution and what they do
 ## WHAT IS NOT NEEDED (DEPRECATED) BUT I HAVE KEPT IT IN THE REPO FOR REFERENCE
 1. lib/slamcontrol.cpp- to test the drive with slam later on 
 2. lib/tarzan.cpp- not currently used
-3. src/simulation.cpp- this was to check how much memory will about 1M grid cells take if we run it to that extent with random int.
-4. src/tune.cpp- this was used during initial test runs 
-5. python_simulation- this is just a python simulation on how our rover will actually run. 
+3. src/main.cpp- this is the old main.cpp which combines EVERYTHING (now divided to mainloop.cpp and main.cpp and mainloop.h). This is simply kept in the repo for reference
+4. src/simulation.cpp- this was to check how much memory will about 1M grid cells take if we run it to that extent with random int.
+5. src/tune.cpp- this was used during initial test runs 
+6. python_simulation- this is just a python simulation on how our rover will actually run. 
