@@ -25,7 +25,6 @@
 #include <pcl/filters/voxel_grid.h>
 #include <cstdlib>
 #include <rerun/demo_utils.hpp>
-#include "rerun.h"
 #include "pathplanning.h"
 
 using namespace std;
@@ -36,7 +35,7 @@ double heuristic_astar(int x1, int y1, int x2, int y2) {
 }
 
 
-vector<Node> astarsparse(const unordered_map<pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal) {
+vector<Node> astarsparse(const Gridmap& gridmap, Node start, Node goal) {
     priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, comparenode> openList;
     unordered_map<pair<int, int>, shared_ptr<Node>, pair_hash> allNodes;
     unordered_set<pair<int, int>, pair_hash> visited;
@@ -73,8 +72,8 @@ vector<Node> astarsparse(const unordered_map<pair<int, int>, CellCost, pair_hash
     double movementCost = (dx[i] != 0 && dy[i] != 0) ? 1.414 : 1.0;
     // Get obstacle cost
     double obstacleCost = 1e6;  // Default: unexplored = very high cost (impassable)
-    auto it = occupancyGrid.find({newX, newY});
-    if (it != occupancyGrid.end()) {
+    auto it = gridmap.occupancy_grid.find({newX, newY});
+    if (it != gridmap.occupancy_grid.end()) {
         obstacleCost = it->second.cost;  // Explored, with known obstacle cost
     } 
     else if (newX >= gridmap.min_x && newX <= gridmap.max_x &&
@@ -99,7 +98,7 @@ vector<Node> astarsparse(const unordered_map<pair<int, int>, CellCost, pair_hash
 
         openList.push(neighbor);
         allNodes[neighborKey] = neighbor;
-        visited.insert(neighborKey);  // ✅ Move this AFTER confirming a better path
+        visited.insert(neighborKey);  // Move this AFTER confirming a better path
     }
 }
 

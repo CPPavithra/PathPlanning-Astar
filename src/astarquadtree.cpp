@@ -24,8 +24,6 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <set>
-#include "rerun.h"
-#include "quadtree.h"
 #include <limits>
 #include "pathplanning.h"
 

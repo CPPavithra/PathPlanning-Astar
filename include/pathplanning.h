@@ -1,7 +1,7 @@
 #ifndef PATHPLANNING_H
 #define PATHPLANNING_H
 
-#include "common.h"      // Already has pair_hash, CellCost, Gridmap, Point
+#include "mapping.h"      // Already has pair_hash, CellCost, Gridmap, Point
 #include "quadtree.h"
 #include <vector>
 #include <unordered_map>
@@ -30,7 +30,7 @@ struct comparenode {
 };
 
 double heuristic_astar(int x1, int y1, int x2, int y2);
-std::vector<Node> astarsparse(const std::unordered_map<std::pair<int, int>, CellCost, pair_hash>& occupancyGrid, Node start, Node goal);
+std::vector<Node> astarsparse(const Gridmap& gridmap, Node start, Node goal);
 
 //this is from astarquadtree.h
 struct NodeHasher {

@@ -1,46 +1,45 @@
 #include "rovercontrol.h"
-#include <librealsense2/rs.hpp>
 #include <rerun.hpp>
+#include <iostream>
 
 int main() {
-    auto rec = rerun::RecordingStream("gridmap");
-    rec.spawn().exit_on_failure();
-    rs2::pipeline pipe;
-    rs2::config cfg;
+    try {
+        // 1. Initialize Rerun and the Controller
+        auto rec = rerun::RecordingStream("rover_simulation");
+        rec.spawn().exit_on_failure();
+        RoverControl controller(rec);
 
-    //cfg.enable_device_from_file("actualgoodvideo.bag"); 
-    // SERIAL CONNECTION
-     //initSerial("/dev/ttyACM0", 9600);
-    //initSerial("/dev/serial/by-id/usb-ZEPHYR_Team_RUDRA_Tarzan_3339511100350023-if00", 9600);
+        // 2. Perform initial setup (e.g., get user input for goal)
+        controller.setup();
 
-    cfg.enable_stream(RS2_STREAM_DEPTH);
-    cfg.enable_stream(RS2_STREAM_GYRO);
-    cfg.enable_stream(RS2_STREAM_ACCEL);
-    cfg.enable_stream(RS2_STREAM_COLOR);
-    cfg.enable_stream(RS2_STREAM_INFRARED, 1); //Use stream index 1 for IR
-    pipe.start(cfg);
-
-    rs2::pointcloud pc;
-    
-    //setup(goalx, goaly, start, goal, current_start, final_goal, rec);
-    setup(rec);
-    const int maxgrid = (3 / grid_resolution) * (3 / grid_resolution);
-    bool pathplanning_flag = false;
-    int counter = 0;
-    int adder = 0;
-
-    //this is the main loop
-    while (gridmap.occupancy_grid.size() < maxgrid) {
-        if (!pathplanning_flag) {
-            mapping(pipe, pc, rover_pose, gridmap, lowQuadtree, midQuadtree, highQuadtree,
-                    grid_resolution, batch_threshold, counter, adder, limit, rec, pathplanning_flag);
-        } else {
-            pathPlanning(gridmap, lowQuadtree, midQuadtree, highQuadtree,
-                         current_start, final_goal, full_path,
-                         visited_nodes, failed_goals, recent_goals,
-                         pathplanning_flag, rec);
+        // 3. Main application loop
+        bool needs_planning = false;
+        while (true) { // Replace with your actual exit condition
+            if (needs_planning) {
+                // If planning is needed, run the planning step.
+                // This step will run until it's done or aborted, then switch the flag.
+                controller.runPathPlanning();
+                needs_planning = false; // Assume planning is done, switch back to mapping
+            } else {
+                // Run a mapping step. The method returns true if it decides
+                // that path planning is now required.
+                if (controller.runMapping()) {
+                    needs_planning = true;
+                }
+            }
         }
+
+    } catch (const rs2::error& e) {
+        std::cerr << "RealSense error caught in main: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    } catch (const std::exception& e) {
+        std::cerr << "Standard exception caught in main: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    } catch (...) {
+        std::cerr << "Unknown exception caught in main." << std::endl;
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
+
