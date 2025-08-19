@@ -79,7 +79,7 @@ bool mapping(
     rs2::pointcloud &pc,
     Pose &rover_pose,
     Gridmap &gridmap,
-    QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree,
+    QuadtreeNode *lowQuadtree, QuadtreeNode *midQuadtree, QuadtreeNode *highQuadtree,
     float &grid_resolution,
     int &batch_threshold,
     int &counter,
@@ -182,7 +182,7 @@ bool mapping(
 //ENTIRE WORKFLOW FOR PATH PLANNING
 void pathPlanning(
     Gridmap &gridmap,
-    QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree,
+    QuadtreeNode *lowQuadtree, QuadtreeNode *midQuadtree, QuadtreeNode *highQuadtree,
     Node &current_start,
     Node &final_goal,
     vector<Node> &full_path,

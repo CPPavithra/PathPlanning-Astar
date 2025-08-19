@@ -53,7 +53,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
        unordered_map<pair<int,int>,CellCost, pair_hash>updated_occupancy_grid=gridmap.occupancy_grid;
        int proxradius=3;
       	 
-   	float rover_x=roverpose.position.x();
+   	    float rover_x=roverpose.position.x();
         float rover_y=roverpose.position.y();
 //ORIENTATION theta
 

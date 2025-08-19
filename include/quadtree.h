@@ -10,7 +10,6 @@
 
 using namespace rerun;
 
-
 /*namespace rerun {
     class RecordingStream;
     class Points3D;
@@ -18,12 +17,9 @@ using namespace rerun;
     class Position3D;
     struct Pose;
 }*/
-
-
 /*struct Point {
     float x, y;
-};*/
-
+*/
 
 class QuadtreeNode {
 public:
@@ -34,9 +30,7 @@ public:
     int cost;                 
     int pointCount;         
     QuadtreeNode* children[4];
-
     QuadtreeNode(Point c, float s, int co);
-
      ~QuadtreeNode() { clear(); }
 
     void subdivide();
@@ -54,17 +48,16 @@ public:
                                        rerun::Color color) const;
 
   };
-  
 void updateQuadtreesWithPointCloud(
-    QuadtreeNode* lowQuadtree,
-    QuadtreeNode* midQuadtree,
-    QuadtreeNode* highQuadtree,
+    QuadtreeNode *lowQuadtree,
+    QuadtreeNode *midQuadtree,
+    QuadtreeNode *highQuadtree,
     const std::vector<Eigen::Vector3f>& point_vectors,
     const Pose& roverpose);
 
-void rerunvisualisation(QuadtreeNode* lowQuadtree, 
-                       QuadtreeNode* midQuadtree, 
-                       QuadtreeNode* highQuadtree, 
+void rerunvisualisation(QuadtreeNode *lowQuadtree, 
+                       QuadtreeNode *midQuadtree, 
+                       QuadtreeNode *highQuadtree, 
                        rerun::RecordingStream& rec);
 
 #endif // QUADTREE_H

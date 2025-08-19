@@ -20,7 +20,6 @@
 #include <sstream>
 #include "../include/rerun.h"
 #include "quadtree.h"
-#include "quadtreecommon.h"
 
 using namespace rerun;
 
@@ -30,6 +29,9 @@ float rootSize = 100.0f;
 QuadtreeNode* lowQuadtree  = new QuadtreeNode(center, rootSize, 1);
 QuadtreeNode* midQuadtree  = new QuadtreeNode(center, rootSize, 1);
 QuadtreeNode* highQuadtree = new QuadtreeNode(center, rootSize, 1);
+/*QuadtreeNode lowQuadtree(center, rootSize, 1);
+QuadtreeNode midQuadtree(center, rootSize, 1);
+QuadtreeNode highQuadtree(center, rootSize, 1);*/
 /*struct Point {
     float x, y;
 };*/
@@ -125,10 +127,10 @@ bool QuadtreeNode::containsPoint(const Vector3f& point) const {
     return (point.x() >= center.x - size/2 && point.x() <= center.x + size/2 &&
             point.y() >= center.y - size/2 && point.y() <= center.y + size/2);
 }
-void updateQuadtreesWithPointCloud(
-    QuadtreeNode* lowQuadtree,
-    QuadtreeNode* midQuadtree,
-    QuadtreeNode* highQuadtree,
+void updateQuadtreesWithPointCloud( 
+    QuadtreeNode *lowQuadtree, 
+    QuadtreeNode *midQuadtree, 
+    QuadtreeNode *highQuadtree, 
     const std::vector<Vector3f>& point_vectors,
     const Pose& roverpose) 
 {
@@ -226,11 +228,9 @@ void QuadtreeNode::collectObstaclePointsWithColor(std::vector<Point>& points, st
     }
 }
 
-void rerunvisualisation(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, 
-                       QuadtreeNode* highQuadtree, rerun::RecordingStream& rec) {
+void rerunvisualisation( QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, rerun::RecordingStream& rec) {
     std::vector<Point> low_points, mid_points, high_points;
     std::vector<rerun::Color> low_colors, mid_colors, high_colors;
-
     // Collect points separately for each quadtree
     lowQuadtree->collectObstaclePointsWithColor(low_points, low_colors, rerun::Color{0, 255, 0});   // Green
     midQuadtree->collectObstaclePointsWithColor(mid_points, mid_colors, rerun::Color{255, 255, 0}); // Yellow

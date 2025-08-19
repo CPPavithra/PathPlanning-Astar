@@ -12,7 +12,6 @@
 
 // --- Forward-include project headers ---
 #include "pathplanning.h"
-#include "quadtreecommon.h"
 #include "quadtree.h"
 #include "common.h"
 #include "imu.h"
@@ -31,6 +30,11 @@ extern int limit;
 extern int last_index;
 extern int prev_dir;
 extern std::deque<Node> recent_goals;
+extern Point center;
+extern float rootSize;
+extern QuadtreeNode *lowQuadtree;
+extern QuadtreeNode *midQuadtree;
+extern QuadtreeNode *highQuadtree;
 extern int dir;
 class Quadtree;
 
@@ -57,7 +61,7 @@ bool mapping(
     rs2::pointcloud &pc,
     Pose &rover_pose,
     Gridmap &gridmap,
-    QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree,
+    QuadtreeNode *lowQuadtree, QuadtreeNode *midQuadtree, QuadtreeNode *highQuadtree,
     float &grid_resolution,
     int &batch_threshold,
     int &counter,
