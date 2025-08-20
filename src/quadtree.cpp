@@ -18,10 +18,11 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <sstream>
-#include "../include/rerun.h"
 #include "quadtree.h"
 
 using namespace rerun;
+using namespace Eigen;
+using namespace std;
 
 Point center = {0.0f, 0.0f};
 float rootSize = 100.0f;
@@ -29,34 +30,22 @@ float rootSize = 100.0f;
 QuadtreeNode* lowQuadtree  = new QuadtreeNode(center, rootSize, 1);
 QuadtreeNode* midQuadtree  = new QuadtreeNode(center, rootSize, 1);
 QuadtreeNode* highQuadtree = new QuadtreeNode(center, rootSize, 1);
-/*QuadtreeNode lowQuadtree(center, rootSize, 1);
-QuadtreeNode midQuadtree(center, rootSize, 1);
-QuadtreeNode highQuadtree(center, rootSize, 1);*/
-/*struct Point {
-    float x, y;
-};*/
-/*class QuadtreeNode {
-public:
-    Point center;
-    float size;
-    bool isLeaf;
-    bool hasObstacle;
-    int cost;
-    int pointCount = 0; 
-    QuadtreeNode* children[4]; *///one child for each direction
-    QuadtreeNode::QuadtreeNode(Point c, float s, int co) : center(c),size(s),isLeaf(true),hasObstacle(false),cost(co) {
-        for (int i = 0; i < 4; i++) children[i] = nullptr;
-    }
-    void QuadtreeNode::subdivide() {
-        float h=size/2;
-        children[0] = new QuadtreeNode({center.x-h/2, center.y+h/2}, h, cost); //up-left->will be -h/2 from center in -x direction and +h/2 in +y direction
-        children[1] = new QuadtreeNode({center.x+h/2, center.y+h/2}, h, cost); //up-right +h/2 in +x and +h/2 in +y
-        children[2] = new QuadtreeNode({center.x-h/2, center.y-h/2}, h, cost); //down-left -h/2 in -x and -h/2 in -y
-        children[3] = new QuadtreeNode({center.x+h/2, center.y-h/2}, h, cost); //down-right +h/2 in +x and -h/2 in -y
-        isLeaf = false;
-    }
-    //minimum leaf size 0.5 is the map resolution
-  void QuadtreeNode::insert(Point p) {
+
+
+QuadtreeNode::QuadtreeNode(Point c, float s, int co) : center(c),size(s),isLeaf(true),hasObstacle(false),cost(co) {
+    for (int i = 0; i < 4; i++) children[i] = nullptr;
+}
+void QuadtreeNode::subdivide() { 
+    float h=size/2;
+    children[0] = new QuadtreeNode({center.x-h/2, center.y+h/2}, h, cost); //up-left->will be -h/2 from center in -x direction and +h/2 in +y direction
+    children[1] = new QuadtreeNode({center.x+h/2, center.y+h/2}, h, cost); //up-right +h/2 in +x and +h/2 in +y
+    children[2] = new QuadtreeNode({center.x-h/2, center.y-h/2}, h, cost); //down-left -h/2 in -x and -h/2 in -y
+    children[3] = new QuadtreeNode({center.x+h/2, center.y-h/2}, h, cost); //down-right +h/2 in +x and -h/2 in -y
+    isLeaf = false;
+}
+
+//minimum leaf size 0.5 is the map resolution
+void QuadtreeNode::insert(Point p) {
     if (!inBounds(p)) return;
     if (size <= 1.0) {
         pointCount++;
@@ -66,13 +55,14 @@ public:
         subdivide();
     }
     for (int i = 0; i < 4; i++) {
-        if (children[i]->inBounds(p)) {
+        if (children[i] && children[i]->inBounds(p)) {
             children[i]->insert(p);
             return;
         }
     }
 }
-    void QuadtreeNode::setObstaclesBasedOnDensity(int threshold) {
+
+void QuadtreeNode::setObstaclesBasedOnDensity(int threshold) {
     if (isLeaf) {
         hasObstacle = (pointCount >= threshold);
         return;
@@ -82,7 +72,8 @@ public:
             children[i]->setObstaclesBasedOnDensity(threshold);
         }
     }
-    }
+}
+
 void QuadtreeNode::assignCostToObstacles(int assignedCost) {
     if (isLeaf) {
         if (hasObstacle) {
@@ -96,6 +87,7 @@ void QuadtreeNode::assignCostToObstacles(int assignedCost) {
         }
     }
 }
+
 int QuadtreeNode::getCostAtPoint(Point p) const {
     if (!inBounds(p)) return 10000;  // Very high cost for out-of-bounds
 
@@ -111,6 +103,7 @@ int QuadtreeNode::getCostAtPoint(Point p) const {
 
     return cost;  // Fallback, though ideally it should never hit this
 }
+
 void QuadtreeNode::collectObstaclePoints(std::vector<Point>& obstacles) const {
     if (isLeaf) {
         if (hasObstacle) obstacles.push_back(center);
@@ -127,6 +120,7 @@ bool QuadtreeNode::containsPoint(const Vector3f& point) const {
     return (point.x() >= center.x - size/2 && point.x() <= center.x + size/2 &&
             point.y() >= center.y - size/2 && point.y() <= center.y + size/2);
 }
+
 void updateQuadtreesWithPointCloud( 
     QuadtreeNode *lowQuadtree, 
     QuadtreeNode *midQuadtree, 
@@ -198,7 +192,7 @@ void updateQuadtreesWithPointCloud(
     pointCount = 0;
 }
 
-// Fixed: Removed extra qualification 'QuadtreeNode::'
+
 bool QuadtreeNode::isObstacleAtPoint(const Vector3f& point) const {
     if (!containsPoint(point)) return false;
     if (isLeaf) {
@@ -261,4 +255,9 @@ void rerunvisualisation( QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, Q
         rerun::Points3D(convert_points(high_points))
         .with_colors(high_colors)
         .with_radii({0.5f}));  // Largest for high obstacles
+}
+QuadtreeNode::~QuadtreeNode() {
+    for (int i = 0; i < 4; ++i) {
+        delete children[i]; // This calls the destructor for each child node
+    }
 }

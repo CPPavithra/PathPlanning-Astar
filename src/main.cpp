@@ -4,27 +4,19 @@
 
 int main() {
     try {
-        // 1. Initialize Rerun and the Controller
         auto rec = rerun::RecordingStream("rover_simulation");
         rec.spawn().exit_on_failure();
         RoverControl controller(rec);
-
-        // 2. Perform initial setup (e.g., get user input for goal)
         controller.setup();
-
-        // 3. Main application loop
-        bool needs_planning = false;
-        while (true) { // Replace with your actual exit condition
+        //Main loop
+        bool needs_planning=false;
+        while (true) {
             if (needs_planning) {
-                // If planning is needed, run the planning step.
-                // This step will run until it's done or aborted, then switch the flag.
                 controller.runPathPlanning();
-                needs_planning = false; // Assume planning is done, switch back to mapping
+                needs_planning=false; 
             } else {
-                // Run a mapping step. The method returns true if it decides
-                // that path planning is now required.
                 if (controller.runMapping()) {
-                    needs_planning = true;
+                    needs_planning=true;
                 }
             }
         }

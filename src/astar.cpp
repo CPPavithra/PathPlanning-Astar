@@ -1,7 +1,5 @@
 #include <iostream>
-#include <vector>
 #include <cmath>
-#include <unordered_map>
 #include <queue>
 #include <algorithm>
 #include <fstream>
@@ -11,8 +9,6 @@
 #include <vector>
 #include <rerun.hpp>
 #include <Eigen/Dense>
-#include <thread>
-#include <mutex>
 #include <chrono>
 #include <unordered_map>
 #include <functional>

@@ -13,9 +13,8 @@
 // --- Forward-include project headers ---
 #include "pathplanning.h"
 #include "quadtree.h"
-#include "common.h"
+#include "mapping.h"
 #include "imu.h"
-#include "rerun.h"
 #include "ArucoDetect.h"
 
 class QuadtreeNode;

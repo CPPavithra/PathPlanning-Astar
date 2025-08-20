@@ -18,31 +18,26 @@
 #include <rerun/demo_utils.hpp>
 #include <unordered_set>
 #include <sstream>
-#include "../include/rerun.h"
-#include "common.h"
+#include "mapping.h"
 
-//chrono is for time
 using namespace rerun;
 using namespace rs2;
-
-//GLOBALLY
-/*Gridmap gridmap;
-grid_resolution = 0.001f; //because the distance is in mm and we have to convert it o metr 
-batch_threshold = 2;*/
+using namespace std;
+using namespace Eigen;
 
 void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, const Pose& roverpose,float grid_resolution, float height,float proxfactor)//declare only in rerun.h
 {
         float boundary_threshold = 0.01f;
-	if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
-	{
+	      if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
+	      {
            gridmap.min_x-=(grid_resolution*50.0f);
         }
         if (roverpose.position.x()>gridmap.max_x-boundary_threshold) 
-	{
+	      {
            gridmap.max_x+=(grid_resolution*50.0f);
         }
         if (roverpose.position.y()<gridmap.min_y+boundary_threshold) 
-	{
+	      {
            gridmap.min_y-=(grid_resolution*50.0f);
         }
         if (roverpose.position.y()>gridmap.max_y-boundary_threshold)
@@ -51,93 +46,76 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
         }
 
        unordered_map<pair<int,int>,CellCost, pair_hash>updated_occupancy_grid=gridmap.occupancy_grid;
-       int proxradius=3;
-      	 
-   	    float rover_x=roverpose.position.x();
-        float rover_y=roverpose.position.y();
-//ORIENTATION theta
+       int proxradius=3; //proxradius for padding logic
+       float rover_x=roverpose.position.x();
+       float rover_y=roverpose.position.y();
+        //ORIENTATION theta
 
-
-      	// to verify if it is valid
-	//cout<<"Rover position (real-world): ("<<rover_x<<", "<<rover_y<<")"<<endl;
        for (const auto& point : point_vectors)
        {
- 
-//cout << "Raw point data: (" << point.x() << ", " << point.y() << ", " << point.z() << ")" << endl;
-float dx=point.z();  //forward motion)
-float dy=-point.x(); // X becomes -Y 
-float dz=-point.y();  
-
-
-float theta=atan2(2.0f*(roverpose.orientation.w()*roverpose.orientation.z()+roverpose.orientation.x()*roverpose.orientation.y()),1.0f-2.0f*(roverpose.orientation.y() * roverpose.orientation.y() +
+          float dx=point.z();  //forward motion)
+          float dy=-point.x(); // X becomes -Y 
+          float dz=-point.y();  
+          float theta=atan2(2.0f*(roverpose.orientation.w()*roverpose.orientation.z()+roverpose.orientation.x()*roverpose.orientation.y()),1.0f-2.0f*(roverpose.orientation.y() * roverpose.orientation.y() +
                                    roverpose.orientation.z() * roverpose.orientation.z()));
 
-float ned_theta =-(theta -M_PI_2);
+          float ned_theta =-(theta -M_PI_2);
+          float rotated_x =cos(ned_theta)* dx - sin(ned_theta) * dy;
+          float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
+
+          int grid_x = static_cast<int>(rotated_x / 1.0f);  //grid coordinates
+          int grid_y = static_cast<int>(rotated_y / 1.0f); 
+
+          //Height remains the same, assuming you're checking for obstacles based on height
+          float height_at_point = dz;
+
+          // Debugging output
+          // *********************UNCOMMENT THE PRINT STATEMENTS IF NEEDED******************//
+          // cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << endl;
+          // cout << "Height at (" << grid_x << " , " << grid_y << ") -> " << height_at_point << "\n" << endl;
+          /******************************************/
+
+          //TO UPDATE BASED ON THE HIGHEST POINT DETECTED
+          //	std::map<std::pair<int, int>, std::pair<float, float>> height_map; // {min, max}
+          /*std::unordered_map<std::pair<int, int>, std::pair<float, float>, pair_hash> height_map;  // {min_height, max_height}  
+            std::pair<int, int> grid_cell = {grid_x, grid_y};
 
 
-float rotated_x =cos(ned_theta)* dx - sin(ned_theta) * dy;
-float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
-
-
-int grid_x = static_cast<int>(rotated_x / 1.0f);  //grid coordinates
-int grid_y = static_cast<int>(rotated_y / 1.0f); 
-
-// Height remains the same, assuming you're checking for obstacles based on height
-float height_at_point = dz;
-
-    // Debugging output
-    // *********************UNCOMMENT THE PRINT STATEMENTS IF NEEDED******************//
-   // cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << endl;
-   // cout << "Height at (" << grid_x << " , " << grid_y << ") -> " << height_at_point << "\n" << endl;
-/******************************************/
-
-//TO UPDATE BASED ON THE HIGHEST POINT DETECTED
-//	std::map<std::pair<int, int>, std::pair<float, float>> height_map; // {min, max}
-/*std::unordered_map<std::pair<int, int>, std::pair<float, float>, pair_hash> height_map;  // {min_height, max_height}  
-       std::pair<int, int> grid_cell = {grid_x, grid_y};
-
-
-       auto it = height_map.find(grid_cell);
-if (it == height_map.end()) {
-    if (height_map.find(grid_cell) == height_map.end()) {
-              
-  height_map.emplace(grid_cell, std::make_pair(height_at_point, height_at_point));
-} else {
-    it->second.first = std::min(it->second.first, height_at_point);
-    it->second.second = std::max(it->second.second, height_at_point);
-}
-}*/
-
-          float adjusted_height = height_at_point+0.; // Adjust by 30 cm (0.3m)
-     //    float adjusted_height = height_map[grid_cell].second;
-
-         //cout<<"Real height = "<<height_at_point<<" & Height adjusted: "<<adjusted_height<<"\n"<<endl;
-
-          float cost=0.0f;
-          if(adjusted_height>height)
-          {
-                cost=10.0f; //very high=cant go cost is from range 0 to 10
+          auto it = height_map.find(grid_cell);
+          if (it == height_map.end()) {
+          if (height_map.find(grid_cell) == height_map.end()) {
+              height_map.emplace(grid_cell, std::make_pair(height_at_point, height_at_point));
+          } else {
+              it->second.first = std::min(it->second.first, height_at_point);
+              it->second.second = std::max(it->second.second, height_at_point);
           }
-          else if(adjusted_height>(height/2) &&adjusted_height<=(height))
-          {
-                cost=5.0f;
-          }
-          else if(adjusted_height>(height/4) && adjusted_height<=(height/2))
-          {
-                cost=1.0f;
-          }
+       }*/
+
+       float adjusted_height = height_at_point+0.; // Adjust by 30 cm (0.3m)
+       float cost=0.0f;
+       if(adjusted_height>height)
+       {
+           cost=10.0f; //very high=cant go cost is from range 0 to 10
+       }
+       else if(adjusted_height>(height/2) &&adjusted_height<=(height))
+       {
+           cost=5.0f;
+       }
+       else if(adjusted_height>(height/4) && adjusted_height<=(height/2))
+       {
+           cost=1.0f;
+       }
 
 
-//	  std::cout << "Mapped grid position: (" << grid_x  << ", " << grid_y << "), COST ->" <<cost<<"\n"<< std::endl;
-	 
+ 
     
      // USE BIT MASK ENCODING TO CHECK IF THE NODE IS VISITED OR NOT, I have used visited and proxvisited boolean visited and proxvisited with the cost proxcost.
-         pair<int, int> current = {grid_x,grid_y};
+        pair<int, int> current = {grid_x,grid_y};
          //std::cout << "Before updating: (" << current.first << ", " << current.second << ") -> Cost: " << cost << std::endl;
-	 CellCost& cell=updated_occupancy_grid[current];
+	      CellCost& cell=updated_occupancy_grid[current];
 
-	float proxcostupdate=cell.proxcost;
-	bool proxvupdate=cell.proxvisited;
+	      float proxcostupdate=cell.proxcost;
+	      bool proxvupdate=cell.proxvisited;
 		 
         if (!cell.visited && !cell.proxvisited) {  //CHECK HERE
             //update the cost AND mark them as visited to avoid re-iteration of that cell
@@ -198,35 +176,23 @@ if (it == height_map.end()) {
        int min_y = INT_MAX;
        int max_y = INT_MIN;
 
-for (const auto& cell : updated_occupancy_grid) {
-    int xindice = cell.first.first;  // Extract grid x index
-    int yindice = cell.first.second; // Extract grid y index
+    for (const auto& cell : updated_occupancy_grid) {
+        int xindice = cell.first.first;  // Extract grid x index
+        int yindice = cell.first.second; // Extract grid y index
 
-    if (xindice < min_x) min_x =xindice;
-    if (xindice > max_x) max_x =xindice;
-    if (yindice < min_y) min_y =yindice;
-    if (yindice > max_y) max_y =yindice;
+        if (xindice < min_x) min_x =xindice;
+        if (xindice > max_x) max_x =xindice;
+        if (yindice < min_y) min_y =yindice;
+        if (yindice > max_y) max_y =yindice;
+    }
+
+    gridmap.min_x=min_x;
+    gridmap.min_y=min_y;
+    gridmap.max_x=max_x;
+    gridmap.max_y=max_y;
+    gridmap.occupancy_grid=updated_occupancy_grid;
+    }
 }
-
-gridmap.min_x=min_x;
-gridmap.min_y=min_y;
-gridmap.max_x=max_x;
-gridmap.max_y=max_y;
-
-   // std::cout << "Updated occupancy grid size: " << updated_occupancy_grid.size() << std::endl;
- /*   for (const auto& [key, value] : updated_occupancy_grid) 
-    {
-	std::cout << "Grid: (" << key.first << ", " << key.second << ") -> " << value.cost << std::endl;
-    }*/
-   gridmap.occupancy_grid=updated_occupancy_grid;
- //  std::cout << "After assignment: Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
-   //updated_occupancy_grid[current]=CLOSED; //after everything
-
-}
-/////////////////////////
-
-}
-
 
 //color based on cost
 components::Color get_color_for_cost(const CellCost& cell) 
@@ -272,14 +238,13 @@ else
 }	// LIGHT GREEN } 
 }
      
-
-void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, const Pose& roverpose, float grid_resolution, rerun::RecordingStream& rec)
+void draw_gridmap(const Gridmap& gridmap, const Pose& roverpose, float grid_resolution, rerun::RecordingStream& rec)
 {
     float min_x=(roverpose.position.x()-5.0f)/grid_resolution;
     float max_x=(roverpose.position.x()+5.0f)/grid_resolution;
     float min_y=(roverpose.position.y()-5.0f)/grid_resolution;
     float max_y=(roverpose.position.y()+5.0)/grid_resolution;
-    float scale_factor = 1000.0f;  // I have put 1000 so that it is in mm
+    float scale_factor = 1000.0f;  //Put 1000 so that it is in mm
     std::cout << "Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
     if (gridmap.occupancy_grid.empty())
     {
@@ -289,9 +254,9 @@ void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, 
     {
         std::cout << "Occupancy grid has data!" << std::endl;
     }
-    std::vector<rerun::Color> colors;
-    std::vector<rerun::Position3D> roverposition;
-    std::ostringstream table_data;
+    vector<rerun::Color> colors;
+    vector<rerun::Position3D> roverposition;
+    ostringstream table_data;
     //table_data << "Position (x, y) | Color (r, g, b) | Cost\n";
     for (const auto& entry : gridmap.occupancy_grid)
    {
@@ -301,51 +266,41 @@ void draw_gridmap(const Gridmap& gridmap,const vector<Vector3f>& point_vectors, 
 
      rerun::Color color = get_color_for_cost(value);
     
-     std::vector<rerun::Position3D> points = {rerun::Position3D{grid_x, grid_y, 0.0f}};
+     vector<rerun::Position3D> points = {rerun::Position3D{grid_x, grid_y, 0.0f}};
 
       
      colors.push_back(color);
-     //std::string tag = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_"+ std::to_string(value.cost);
-     //rec.log("grid_view/cells", rerun::Points3D(points).with_colors({color}).with_radii({0.5f}));
-     std::string cell_id = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_" + std::to_string(value.cost);
-     std::string tag = "grid_map" + cell_id;
+     string cell_id = "gridcell_(" + std::to_string(grid_x) + "," + std::to_string(grid_y) + ")_" + std::to_string(value.cost);
+     string tag = "grid_map" + cell_id;
      rec.log(tag, rerun::Points3D(points).with_colors({color}).with_radii({0.5f}));
-}
- // Log navigation status
-  /*  std::string status = "Grid Size: " + std::to_string(gridmap.occupancy_grid.size()) + 
-                        "\nRover Position: (" + 
-                        std::to_string(roverpose.position.x()) + ", " +
-                        std::to_string(roverpose.position.y()) + ")";
-    rec.log("nav_status", rerun::TextDocument(status));*/
-colors.clear();
+   }
+  colors.clear();
 }
 
-Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec) {
-	return Eigen::Vector3f(rs2_vec.x, rs2_vec.y, rs2_vec.z);
-}//helper function to convert rs2 to eigen vector3f
+Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec)
+{	return Eigen::Vector3f(rs2_vec.x, rs2_vec.y, rs2_vec.z); }//helper function to convert rs2 to eigen vector3f
 
+//NOTE THAT- this is temporary. The final solution will require SLAM inputs
+//This is just based on motion equations
 void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time) {
     Vector3f gravity(0.0f, 0.0f, -9.81f);
-    Vector3f accel_world = pose.orientation * accel_data;  // ✅ Rotate acceleration into world frame
+    Vector3f accel_world = pose.orientation * accel_data;  
     accel_world -= gravity;
-
     pose.velocity += accel_world * delta_time;
     pose.position += pose.velocity * delta_time + 0.5f * accel_world * delta_time * delta_time;
-    pose.position /= 1000.0f;  // Convert from mm to meters if needed
-
+    pose.position /= 1000.0f; 
     Vector3f angular_velocity = gyro_data * delta_time;
     Quaternionf delta_q = Quaternionf(AngleAxisf(angular_velocity.norm(), angular_velocity.normalized()));
-
     pose.orientation = delta_q * pose.orientation;
-    pose.orientation.normalize();  // ✅ Normalize to prevent drift
+    pose.orientation.normalize();  
 }
 
-//function to update the rover's pose using IMU data
+/*Function to update the rover's pose using IMU data
+update orientation using a small-angle quaternion
+Quaternionf delta_q=Quaternionf(AngleAxisf(angular_velocity.norm(),angular_velocity.normalized()));
+pose.orientation=delta_q*pose.orientation;
+pose.orientation.normalize(); //normalize quaternion to prevent drift*/ 
 
-    //update orientation using a small-angle quaternion
-//    Quaternionf delta_q=Quaternionf(AngleAxisf(angular_velocity.norm(),angular_velocity.normalized()));
-//    pose.orientation=delta_q*pose.orientation;
-//    pose.orientation.normalize(); //normalize quaternion to prevent drift
 //convert the realsense points to pcl point
    pcl::PointCloud<pcl::PointXYZ>::Ptr convert_to_pcl(const std::vector<Eigen::Vector3f>& point_vectors) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
