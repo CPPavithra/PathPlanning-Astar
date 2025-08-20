@@ -34,6 +34,14 @@ class RoverControl {
     void log_camera_frames(const rs2::frameset& frameset);
     void log_views();
     void moveRoverAlongPath(const std::vector<Node>&path);
+    bool getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw, rs2_vector& gyro_raw, float& dt);
+    bool findpath(const Node& start, const Node& goal, std::vector<Node>& dense_path);
+    std::vector<Node> prunepath(const std::vector<Node>& path);
+    void executepath(const std::vector<Node>& path, bool& stuck);
+    void if_stuck(const Node& failed_goal, int& retry_attempts, const int MAX_RETRIES);
+    std::vector<Eigen::Vector3f> processPointCloud(const rs2::frameset& frameset);
+    void updateMaps(const std::vector<Eigen::Vector3f>& points);
+    bool checkPlanningTrigger();
 
     rs2::pipeline pipe;
     rs2::pointcloud pc;

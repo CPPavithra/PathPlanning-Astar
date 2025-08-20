@@ -47,8 +47,9 @@ add_executable(main
     src/ArucoDetect.cpp
     src/main.cpp
     src/astar.cpp
-    src/mainloop.cpp
-    src/pointcloudrerun.cpp
+    src/rovercontrol.cpp
+    src/rovercontrol_functions.cpp
+    src/hashgridmap.cpp
     src/quadtree.cpp
     src/astarquadtree.cpp
     lib/imu.cpp
