@@ -1,4 +1,4 @@
-#include "rovercontrol.h"
+#include "motionplanner.h"
 #include <cwchar>
 #include <iostream>
 #include <cmath>
@@ -14,7 +14,7 @@
 
 using namespace std;
 
-bool RoverControl::getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw, rs2_vector& gyro_raw, float& dt) {
+bool MotionPlanner::getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw, rs2_vector& gyro_raw, float& dt) {
     static auto last_time = std::chrono::high_resolution_clock::now();
     auto current_time = std::chrono::high_resolution_clock::now();
     dt = std::chrono::duration<float>(current_time - last_time).count();
@@ -43,7 +43,7 @@ bool RoverControl::getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw,
 
 
 // Handles all point cloud generation and filtering.
-std::vector<Eigen::Vector3f> RoverControl::processPointCloud(const rs2::frameset& frameset) {
+std::vector<Eigen::Vector3f> MotionPlanner::processPointCloud(const rs2::frameset& frameset) {
     rs2::points points = pc.calculate(frameset.get_depth_frame());
     std::vector<Eigen::Vector3f> raw_points;
     raw_points.reserve(points.size());
@@ -79,7 +79,7 @@ std::vector<Eigen::Vector3f> RoverControl::processPointCloud(const rs2::frameset
 
 
 // Updates the gridmap and quadtrees.
-void RoverControl::updateMaps(const std::vector<Eigen::Vector3f>& points) {
+void MotionPlanner::updateMaps(const std::vector<Eigen::Vector3f>& points) {
     create_gridmap(gridmap, points, rover_pose, grid_resolution);
     updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, points, rover_pose);
     if (gridmap.occupancy_grid.size() >= batch_threshold) {
@@ -90,7 +90,7 @@ void RoverControl::updateMaps(const std::vector<Eigen::Vector3f>& points) {
 
 
 // Checks the condition to switch from mapping to path planning.
-bool RoverControl::checkPlanningTrigger() {
+bool MotionPlanner::checkPlanningTrigger() {
     counter = gridmap.occupancy_grid.size() - adder;
     if (counter >= limit) {
         std::cout << "Mapping paused. Switching to path planning." << std::endl;
@@ -100,7 +100,7 @@ bool RoverControl::checkPlanningTrigger() {
   return pathplanning_flag;
 }
 
-bool RoverControl::findpath(const Node& current_start, const Node& current_goal, std::vector<Node>& dense_path) {
+bool MotionPlanner::findpath(const Node& current_start, const Node& current_goal, std::vector<Node>& dense_path) {
     cout<<"Current Start: ("<<current_start.x<< "," <<current_start.y <<")" <<endl;
     cout<<"Selected Intermediate Goal: (" <<current_goal.x << "," <<current_goal.y <<")" <<endl;
 
@@ -124,7 +124,7 @@ bool RoverControl::findpath(const Node& current_start, const Node& current_goal,
     return !dense_path.empty();
 }
 
-std::vector<Node> RoverControl::prunepath(const std::vector<Node>& path) {
+std::vector<Node> MotionPlanner::prunepath(const std::vector<Node>& path) {
     if (path.empty()) {
         return {};
     }
@@ -138,7 +138,7 @@ std::vector<Node> RoverControl::prunepath(const std::vector<Node>& path) {
     return pruned_path;
 }
 
-void RoverControl::executepath(const std::vector<Node>& path, bool& stuck) {
+void MotionPlanner::executepath(const std::vector<Node>& path, bool& stuck) {
     stuck = true;
     if (path.size() < 2) return;
     Node previous_start=current_start;
@@ -188,7 +188,7 @@ void RoverControl::executepath(const std::vector<Node>& path, bool& stuck) {
     }
 }
 
-void RoverControl::if_stuck(const Node& failed_goal, int& retry_attempts, const int MAX_RETRIES) {
+void MotionPlanner::if_stuck(const Node& failed_goal, int& retry_attempts, const int MAX_RETRIES) {
     std::cout << "Rover is stuck or path failed. Marking goal as failed." << std::endl;
     failed_goals.insert({failed_goal.x, failed_goal.y});
     retry_attempts++;

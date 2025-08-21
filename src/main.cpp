@@ -1,4 +1,4 @@
-#include "rovercontrol.h"
+#include "motionplanner.h"
 #include <rerun.hpp>
 #include <iostream>
 
@@ -6,7 +6,7 @@ int main() {
     try {
         auto rec = rerun::RecordingStream("rover_simulation");
         rec.spawn().exit_on_failure();
-        RoverControl controller(rec);
+        MotionPlanner controller(rec);
         controller.setup();
         //Main loop
         bool needs_planning=false;

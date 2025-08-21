@@ -1,5 +1,5 @@
-#ifndef ROVERCONTROL_H
-#define ROVERCONTROL_H
+#ifndef MOTIONPLANNER_H
+#define MOTIONPLANNER_H
 
 #include <librealsense2/rs.hpp>
 #include <pcl/point_cloud.h>
@@ -19,10 +19,10 @@
 
 class QuadtreeNode;
 
-class RoverControl {
+class MotionPlanner {
   public:
-    RoverControl(rerun::RecordingStream& rec);
-    ~RoverControl();
+    MotionPlanner(rerun::RecordingStream& rec);
+    ~MotionPlanner();
     void setup();
     bool runMapping();
     void runPathPlanning();

@@ -1,4 +1,4 @@
-#include "rovercontrol.h"
+#include "motionplanner.h"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -12,7 +12,7 @@
 
 using namespace std; 
 
-RoverControl::RoverControl(rerun::RecordingStream& rec) : 
+MotionPlanner::MotionPlanner(rerun::RecordingStream& rec) : 
     rec(rec),
     start(0, 0),
     goal(0,0),
@@ -52,7 +52,7 @@ RoverControl::RoverControl(rerun::RecordingStream& rec) :
         "Yellow  | Easy obstacles | 1\n\n";
 }
 
-RoverControl::~RoverControl() {
+MotionPlanner::~MotionPlanner() {
     // Clean up dynamically allocated memory to prevent leaks
     delete lowQuadtree;
     delete midQuadtree;
@@ -61,7 +61,7 @@ RoverControl::~RoverControl() {
 }
 
 //Function to initialize everything and Setting up the variables
-void RoverControl::setup() {
+void MotionPlanner::setup() {
     log_views();
     rover_pose.position = Eigen::Vector3f(0, 0, 0);
     rover_pose.orientation = Eigen::Matrix3f::Identity();
@@ -83,7 +83,7 @@ void RoverControl::setup() {
 }
 
 //Entire mapping workflow
-bool RoverControl::runMapping() {
+bool MotionPlanner::runMapping() {
     rs2::frameset frameset;
     float delta_time;
     rs2_vector accel_raw = {0.0f, 0.0f, 0.0f};
@@ -105,7 +105,7 @@ bool RoverControl::runMapping() {
 }
 
 //Entire mapping workflow
-void RoverControl::runPathPlanning() {
+void MotionPlanner::runPathPlanning() {
    const int MAX_RETRIES = 5;
     int retry_attempts = 0;
     while (pathplanning_flag) {
@@ -129,7 +129,7 @@ void RoverControl::runPathPlanning() {
 }
 // --- Helper Function Implementations ---
 
-void RoverControl::log_views() {
+void MotionPlanner::log_views() {
     rec.log_static("grid_map", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
     rec.log_static("rgb_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
     rec.log_static("heat_camera", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
@@ -137,7 +137,7 @@ void RoverControl::log_views() {
     rec.log_static("cost_table", rerun::ViewCoordinates::RIGHT_HAND_Z_DOWN);
 }
 
-void RoverControl::log_camera_frames(const rs2::frameset& frameset) {
+void MotionPlanner::log_camera_frames(const rs2::frameset& frameset) {
     auto color_frame = frameset.get_color_frame();
     auto ir_frame = frameset.get_infrared_frame();
 
@@ -156,7 +156,7 @@ void RoverControl::log_camera_frames(const rs2::frameset& frameset) {
     }
 }
 
-void RoverControl::moveRoverAlongPath(const std::vector<Node>& path) {//Drive func with grid logic
+void MotionPlanner::moveRoverAlongPath(const std::vector<Node>& path) {//Drive func with grid logic
     if (path.size() < 2) return;
 
     for (size_t i = 1; i < path.size(); i++) {
@@ -182,7 +182,7 @@ void RoverControl::moveRoverAlongPath(const std::vector<Node>& path) {//Drive fu
     }
 }
 
-Node RoverControl::findcurrentgoal() {
+Node MotionPlanner::findcurrentgoal() {
     Node best_node = current_start;
     double best_score = std::numeric_limits<double>::max();
     bool found = false;
