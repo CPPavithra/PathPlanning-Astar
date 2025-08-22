@@ -23,7 +23,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 
-# Include directories
+#Include directories
 include_directories(
     include
     ${PCL_INCLUDE_DIRS}
@@ -35,20 +35,20 @@ include_directories(
     /usr/include/GL
     /usr/local/include/rerun )
 
-# Library directories
+#Library directories
 link_directories(
     ${PCL_LIBRARY_DIRS}
     /usr/lib/x86_64-linux-gnu
     /usr/local/lib
 )
 
-# Add executable
+#Add executable
 add_executable(main
     src/ArucoDetect.cpp
     src/main.cpp
     src/astar.cpp
-    src/rovercontrol.cpp
-    src/rovercontrol_functions.cpp
+    src/motionplanner.cpp
+    src/motionplanner_helper.cpp
     src/hashgridmap.cpp
     src/quadtree.cpp
     src/astarquadtree.cpp
@@ -56,10 +56,10 @@ add_executable(main
     lib/cobs.c
 )
 
-# Set C++ standard again at target level
+#Set C++ standard again at target level
 set_property(TARGET main PROPERTY CXX_STANDARD 17)
 
-# Extra include dirs for rerun components
+#Extra include dirs for rerun components
 target_include_directories(main
     PRIVATE "/usr/local/include/rerun/components"
 )
