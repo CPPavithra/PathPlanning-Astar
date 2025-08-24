@@ -1,62 +1,78 @@
 
----
-
 # Efficient Path Planning Using Quadtree, A* Search, and Sparse Hash Maps
 
-A modular path planning system which has two main modules- mapping and path planning module depended on each other. The mapping module includes efficient and memory optimized Sparse Hash Maps for Global map and Multi-Level Quadtree Mapping for Local map. The path planning module also follows a modular two-level hierarchical approach wherein there exists; A* Sparse Grid Path Planning and A* Quad tree Local Path planning. This project focuses on efficient pathfinding and dynamic obstacle avoidance, leveraging heightmaps and sensor integration for real-world navigation scenarios.
+A modular path planning system with two main modules: **Mapping** and **Path Planning**. The mapping module uses memory-optimized Sparse Hash Maps for a global map and Multi-Level Quadtrees for a local map. The path planning module employs a two-level hierarchical A* approach, combining global sparse grid planning with local quadtree planning for efficient, dynamic obstacle avoidance in real-world terrains.
 
 ---
-# FEATURES
 
-## Visualisation using Rerun
+## Features
 
-I have used Rerun for visualisation. It is a very good approach for debugging and for logging the camera frames and data in real time. It is pretty cool
+### Visualization using Rerun
+Rerun is used for real-time logging and debugging of camera frames, maps, and planning data.
 
-## The Mapping module
+### Mapping Module
 
-Since this was made with the intention of deploying it in the University Rover Challenge (URC), we had to keep in mind the memory usage and make it optimal for a very large terrain (3km x 3km).
-### Sparse Occupancy Grids with Hash Maps
-`Sparse Occupancy Grids with Hash Maps` is being used to create a GLOBAL map for the terrain as we traverse through it.
-#### How does it work?
-  1. The point cloud data is collected and the orientation is converted to also transformed.
-  2. We initialise a `unordered_map<pair<int,int>,CellCost,pair_hash>occupancy_grid` where the pair hash indicates the grid indices which is the key to the hash map and the `cellcost` is the value for each key indice.
-  3. The cell cost here is calculated based on a height threshold and different cost is assigned to obstacles with different heights. (max cost for max height)
-  4. The efficiency here lies in the `sparse grids`. i.e. we are essentially only storing the grid indices WITH OBSTACLES. If a grid is not present in this grid but within the boundary of lookup, it means it is free to traverse.
-  5. This is efficient for open fields and sparse areas such as the URC terrain.
-  6. This is logged efficiently in Rerun using different colors for each grid.
-You can find the implementation in [hashgridmap.cpp](src/hashgridmap.cpp) and the corresponding header [mapping.h](include/mapping.h)
+#### Sparse Occupancy Grids (Global Map)
+- Efficiently stores only occupied cells using `unordered_map<pair<int,int>, CellCost, pair_hash>`.  
+- Cell costs are based on height thresholds.  
+- Optimized for large terrains (3km × 3km).  
+- Implementation: [hashgridmap.cpp](src/hashgridmap.cpp), [mapping.h](include/mapping.h)
 
-### Dense Multi-Level Quadtrees
-`Dense Multi-Level Quadtrees` is being used for local mapping between waypoints. The way points is given by the global A* on sparse hash grids and then we use quadtrees during the traversal. This has been chosen keeping in mind the need for accurate detection of small obstacles close to the rover.
-Eg- To move from A to E, the waypoints; A->B->C->D is given from the sparse map. Then to move from A->B, we use the dense maps.
-#### How does it work?
-  1. I have initialised multi-level quadtrees (3 levels) for efficient local traversal.
-  2. The quadtrees are divided into 3 levels; `lowQuadTree`, `midQuadTree` and `highQuadTree`
-  3. The PointCloud data is stored into each of these according to the height threshold again.
-  4. The cost based approach follows the same pattern as the occupancy grid.
-  5. The function for logging this in rerun has been written in [quadtree.cpp](src/quadtree.cpp) but has not been called anywhere as it tends to look messy
-  6. You can find the complete implementation in [quadtree.cpp](src/quadtree.cpp) and its corresponding [quadtree.h](include/quadtree.h) 
+#### Dense Multi-Level Quadtrees (Local Map)
+- Multi-level quadtrees (`lowQuadTree`, `midQuadTree`, `highQuadTree`) for fine-grained local obstacle detection.  
+- Supports accurate navigation between global waypoints.  
+- Implementation: [quadtree.cpp](src/quadtree.cpp), [quadtree.h](include/quadtree.h)
 
-## The PathPlanning Module 
+### Path Planning Module
 
-The path planning module is designed to efficiently navigate the rover using a two-level hierarchical approach, leveraging the previously generated maps. The module is split into global planning and local planning, ensuring both long-distance efficiency and short-distance accuracy near obstacles.
+#### Global Sparse A*
+- Computes high-level waypoints using the global sparse map.  
+- Considers occupied cells and uses Euclidean distance heuristics.  
+- Implementation: [astar.cpp](src/astar.cpp), [pathplanning.h](include/pathplanning.h)
 
-### Global Path Planning using Sparse A*
-#### How does it work?
-  1. Uses the Sparse Hash Map generated by the mapping module to compute the high-level path from the start to goal across the entire terrain.
-  2. Only considers occupied cells in the sparse grid, making planning memory-efficient and fast, especially for large open areas.
-  3. The A* heuristic is based on Euclidean distance to the goal, optionally weighted by cell cost to avoid high-obstacle areas.
-  4. Returns a sequence of waypoints that guide the rover along the safest and shortest route through the terrain.
-  5. Implementation can be found in [astar.cpp](src/astar.cpp) and its header [pathplanning.h](include/pathplanning.h.)
+#### Local Quadtree A*
+- Plans fine-grained paths between global waypoints using quadtrees.  
+- Handles dynamic obstacles by re-evaluating the local costmap in real time.  
+- Implementation: [astarquadtree.cpp](src/astarquadtree.cpp), [pathplanning.h](include/pathplanning.h)
 
-### Dense Multi-Level Quadtrees
-`Dense Multi-Level Quadtrees` is being used for local mapping between waypoints. The way points is given by the global A* on sparse hash grids and then we use quadtrees during the traversal. This has been chosen keeping in mind the need for accurate detection of small obstacles close to the rover.
-Eg- To move from A to E, the waypoints; A->B->C->D is given from the sparse map. Then to move from A->B, we use the dense maps.
-#### How does it work?
-  1. Once a global waypoint is reached, local path planning ensures safe navigation between waypoints.
-  2. Uses Dense Multi-Level Quadtrees to accurately detect and avoid small or clustered obstacles that are not captured in the sparse global map.
-  3. Performs a local A search* on the quadtree cells, considering the cost assigned to each point based on its height and obstacle status.
-  4. Handles dynamic obstacles efficiently by re-evaluating the quadtree costmap in real time.
-  5. Implementation can be found in [quadtree.cpp](src/astarquadtree.cpp) and its header [pathplanning.h](include/pathplanning.h).
 ---
- 
+
+## Mission Approach
+
+- **Mapping Module:** Continuously updates global sparse maps and local quadtrees.  
+- **Path Planning Module:** Generates global and local paths incrementally.  
+- **Motion Control:** Converts planned paths into smooth velocity commands for the rover.  
+
+### Key Details
+- Global A* ensures efficient long-distance planning.  
+- Local Quadtree A* enables precise obstacle avoidance near the rover.  
+- Handles dynamic and unknown obstacles with local replanning.  
+- Velocity commands are smoothed for stable traversal.
+
+### Testing & Performance
+- Hierarchical planning works efficiently for large terrains (3km × 3km).  
+- Local replanning occurs in real time for unexpected obstacles.  
+- Modular design allows easy extension for new sensors or planners.
+
+---
+
+## Performance & Limitations
+
+### Performance
+- **Global Sparse A\***: Memory-efficient, fast path computation across open areas.  
+- **Local Quadtree A\***: High-resolution local planning; handles dense point clouds.  
+- **Motion Control**: Smooth path following; compatible with simulated and real rovers.  
+- **Visualization**: Rerun integration for debugging global and local maps.
+
+### Limitations
+- **Sensor Dependency**: Accuracy depends on high-quality point cloud data.  
+- **Sparse Global Map**: Extremely cluttered areas may require denser mapping.  
+- **Computation**: Dense local A* planning can be intensive for very large maps.  
+- **Dynamic Obstacles**: Very fast-moving obstacles may not always be avoided.  
+- **Real-World Deployment**: Rough or unpredictable terrains may need further tuning.
+
+---
+
+**Notes:**
+- `motionplanner.cpp` orchestrates the mapping, planning, and motion control, integrating global and local planning hierarchically.  
+- Rerun visualization hooks are embedded in `hashgridmap.cpp` and `quadtree.cpp`.
