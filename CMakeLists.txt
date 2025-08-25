@@ -6,21 +6,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_MAIN "Build the main executable" OFF)
 
-set(CMAKE_PREFIX_PATH
-    "/usr/lib/x86_64-linux-gnu/cmake/realsense2"
-    "/usr/local/lib/cmake/rerun_sdk"
-    CACHE STRING "Paths to dependencies"
-)
+# set(CMAKE_PREFIX_PATH
+#     "/usr/lib/x86_64-linux-gnu/cmake/realsense2"
+#     "/usr/local/lib/cmake/rerun_sdk"
+#     CACHE STRING "Paths to dependencies"
+# )
 
 enable_language(C) # For MPI
 
-find_package(MPI REQUIRED)
 find_package(PCL 1.14 REQUIRED)
-find_package(OpenGL REQUIRED)
 find_package(rerun_sdk REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 add_library(motionplanner
     src/astar.cpp
@@ -36,17 +35,15 @@ add_library(motionplanner
 target_include_directories(motionplanner PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+    PRIVATE
     ${PCL_INCLUDE_DIRS}
-    ${OPENGL_INCLUDE_DIR}
     ${MPI_INCLUDE_PATH}
     ${Boost_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
-    /usr/include/eigen3
-    /usr/include/GL
-    /usr/local/include/rerun
+    ${rerun_sdk_INCLUDE_DIRS}
 )
 
-target_link_libraries(motionplanner PUBLIC
+target_link_libraries(motionplanner PRIVATE
     rerun_sdk
     ${PCL_LIBRARIES}
     ${OPENGL_LIBRARIES}
@@ -54,7 +51,7 @@ target_link_libraries(motionplanner PUBLIC
     ${MPI_LIBRARIES}
     Boost::system
     realsense2
-    pthread
+    Eigen3::Eigen
 )
 
 if(BUILD_MAIN)
@@ -70,42 +67,26 @@ if(BUILD_MAIN)
     )
 endif()
 
+install(TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/ 
+	DESTINATION include)
+
+install(EXPORT ${PROJECT_NAME}
+	FILE ${PROJECT_NAME}.cmake
+	DESTINATION lib/cmake/${PROJECT_NAME})
+
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/motionplannerConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
+    "pathplanningConfigVersion.cmake"
+    VERSION ${yasmin_VERSION}
+    COMPATIBILITY AnyNewerVersion)
 
-configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/motionplannerConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/motionplannerConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/motionplanner
-)
-
-install(TARGETS motionplanner
-    EXPORT motionplannerTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-)
-
-if(BUILD_MAIN)
-    install(TARGETS main
-        RUNTIME DESTINATION bin
-    )
-endif()
-
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/motionplannerConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/motionplannerConfigVersion.cmake"
-    DESTINATION lib/cmake/motionplanner
-)
-
-install(EXPORT motionplannerTargets
-    FILE motionplannerTargets.cmake
-    NAMESPACE motionplanner::
-    DESTINATION lib/cmake/motionplanner
-)
-
+install(FILES "pathplanningConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/pathplanningConfigVersion.cmake"
+    DESTINATION lib/cmake/yasmin)
