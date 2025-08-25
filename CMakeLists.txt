@@ -37,7 +37,6 @@ target_include_directories(motionplanner PUBLIC
     $<INSTALL_INTERFACE:include>
     PRIVATE
     ${PCL_INCLUDE_DIRS}
-    ${MPI_INCLUDE_PATH}
     ${Boost_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
     ${rerun_sdk_INCLUDE_DIRS}
@@ -48,7 +47,6 @@ target_link_libraries(motionplanner PRIVATE
     ${PCL_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${OpenCV_LIBS}
-    ${MPI_LIBRARIES}
     Boost::system
     realsense2
     Eigen3::Eigen
@@ -84,9 +82,9 @@ install(EXPORT ${PROJECT_NAME}
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
-    "pathplanningConfigVersion.cmake"
-    VERSION ${yasmin_VERSION}
+    "motionplannerConfigVersion.cmake"
+    VERSION ${motionplanner_VERSION}
     COMPATIBILITY AnyNewerVersion)
 
-install(FILES "pathplanningConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/pathplanningConfigVersion.cmake"
-    DESTINATION lib/cmake/yasmin)
+install(FILES "motionplannerConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/motionplannerConfigVersion.cmake"
+    DESTINATION lib/cmake/motionplanner)
