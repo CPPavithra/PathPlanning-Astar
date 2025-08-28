@@ -49,7 +49,7 @@ const float alpha_gyro = 0.5;
 float yaw();
 float rot=2.5;
 float speed=-0.3;
-boost::asio::io_service io;
+boost::asio::io_context io;
 boost::asio::serial_port serial(io);// DEFINITION
 /*boost::asio::io_service io;
 boost::asio::serial_port serial(io);*/ //ALREADY INCLUDED IN HEADER
