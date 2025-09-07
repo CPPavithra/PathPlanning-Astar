@@ -24,18 +24,14 @@ MotionPlanner::MotionPlanner(rerun::RecordingStream& rec) :
     //Uncomment and use a bag file for testing if needed
     //cfg.enable_device_from_file("actualgoodvideo.bag");
     cfg.enable_stream(RS2_STREAM_DEPTH);
-    cfg.enable_stream(RS2_STREAM_GYRO);
-    cfg.enable_stream(RS2_STREAM_ACCEL);
+   // cfg.enable_stream(RS2_STREAM_GYRO);
+   // cfg.enable_stream(RS2_STREAM_ACCEL);
     cfg.enable_stream(RS2_STREAM_COLOR);
     cfg.enable_stream(RS2_STREAM_INFRARED, 1);
     pipe.start(cfg);
 
     // Initialize rover pose
-    rover_pose.position = Eigen::Vector3f(0, 0, 0);
-    rover_pose.orientation = Eigen::Matrix3f::Identity();
-    rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
-
-    lowQuadtree = new QuadtreeNode(center, rootSize, 1);
+       lowQuadtree = new QuadtreeNode(center, rootSize, 1);
     midQuadtree = new QuadtreeNode(center, rootSize, 1);
     highQuadtree = new QuadtreeNode(center, rootSize, 1);
 
@@ -63,9 +59,9 @@ MotionPlanner::~MotionPlanner() {
 //Function to initialize everything and Setting up the variables
 void MotionPlanner::setup() {
     log_views();
-    rover_pose.position = Eigen::Vector3f(0, 0, 0);
+    /*rover_pose.position = Eigen::Vector3f(0, 0, 0);
     rover_pose.orientation = Eigen::Matrix3f::Identity();
-    rover_pose.velocity = Eigen::Vector3f(0, 0, 0);
+    rover_pose.velocity = Eigen::Vector3f(0, 0, 0);*/
     rec.log("cost_table", rerun::archetypes::TextDocument(cost_table_text));
     
     cout <<"Setting boundaries...\n";
@@ -95,7 +91,7 @@ bool MotionPlanner::runMapping() {
     // The conversion happens here, where it's needed.
     Eigen::Vector3f accel_eigen = convert_to_eigen_vector(accel_raw);
     Eigen::Vector3f gyro_eigen = convert_to_eigen_vector(gyro_raw);
-    update_rover_pose(rover_pose, accel_eigen, gyro_eigen, delta_time);
+    //NOT NEEDED update_rover_pose(rover_pose, accel_eigen, gyro_eigen, delta_time);
 
     log_camera_frames(frameset);
     std::vector<Eigen::Vector3f> filtered_points = processPointCloud(frameset);

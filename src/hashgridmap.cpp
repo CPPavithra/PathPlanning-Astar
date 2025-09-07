@@ -25,43 +25,46 @@ using namespace rs2;
 using namespace std;
 using namespace Eigen;
 
-void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, const Pose& roverpose,float grid_resolution, float height,float proxfactor)//declare only in rerun.h
+void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors,float grid_resolution, float height,float proxfactor)//declare only in rerun.h
 {
+  //Change slam_pose with the actual implementation
         float boundary_threshold = 0.01f;
-	      if (roverpose.position.x()<gridmap.min_x+boundary_threshold) 
+	      if (slam_pose.x<gridmap.min_x+boundary_threshold) 
 	      {
            gridmap.min_x-=(grid_resolution*50.0f);
         }
-        if (roverpose.position.x()>gridmap.max_x-boundary_threshold) 
+        if (slam_pose.x>gridmap.max_x-boundary_threshold) 
 	      {
            gridmap.max_x+=(grid_resolution*50.0f);
         }
-        if (roverpose.position.y()<gridmap.min_y+boundary_threshold) 
+        if (slam_pose.y<gridmap.min_y+boundary_threshold) 
 	      {
            gridmap.min_y-=(grid_resolution*50.0f);
         }
-        if (roverpose.position.y()>gridmap.max_y-boundary_threshold)
+        if (slam_pose.y>gridmap.max_y-boundary_threshold)
        	{
            gridmap.max_y+=(grid_resolution*50.0f);
         }
 
        unordered_map<pair<int,int>,CellCost, pair_hash>updated_occupancy_grid=gridmap.occupancy_grid;
        int proxradius=3; //proxradius for padding logic
-       float rover_x=roverpose.position.x();
-       float rover_y=roverpose.position.y();
+       //float rover_x=roverpose.position.x();
+       //float rover_y=roverpose.position.y();
+       float rover_x=slam_pose.x;
+       float rover_y=slam_pose.y;
         //ORIENTATION theta
-
+        float yaw= slam_pose.yaw;
        for (const auto& point : point_vectors)
        {
           float dx=point.z();  //forward motion)
           float dy=-point.x(); // X becomes -Y 
           float dz=-point.y();  
-          float theta=atan2(2.0f*(roverpose.orientation.w()*roverpose.orientation.z()+roverpose.orientation.x()*roverpose.orientation.y()),1.0f-2.0f*(roverpose.orientation.y() * roverpose.orientation.y() +
-                                   roverpose.orientation.z() * roverpose.orientation.z()));
-
-          float ned_theta =-(theta -M_PI_2);
-          float rotated_x =cos(ned_theta)* dx - sin(ned_theta) * dy;
-          float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
+          
+          //float ned_theta =-(theta -M_PI_2);
+          //slam is returning yaw-M_PI_2 we have to check if it is oriented correctly
+          //or if we have to put -ve on it!!
+          float rotated_x =cos(yaw)* dx - sin(yaw) * dy;
+          float rotated_y = sin(yaw) * dx + cos(yaw) * dy;
 
           int grid_x = static_cast<int>(rotated_x / 1.0f);  //grid coordinates
           int grid_y = static_cast<int>(rotated_y / 1.0f); 
@@ -69,28 +72,7 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
           //Height remains the same, assuming you're checking for obstacles based on height
           float height_at_point = dz;
 
-          // Debugging output
-          // *********************UNCOMMENT THE PRINT STATEMENTS IF NEEDED******************//
-          // cout << "Mapped grid position: (" << grid_x << ", " << grid_y << ")" << endl;
-          // cout << "Height at (" << grid_x << " , " << grid_y << ") -> " << height_at_point << "\n" << endl;
-          /******************************************/
-
-          //TO UPDATE BASED ON THE HIGHEST POINT DETECTED
-          //	std::map<std::pair<int, int>, std::pair<float, float>> height_map; // {min, max}
-          /*std::unordered_map<std::pair<int, int>, std::pair<float, float>, pair_hash> height_map;  // {min_height, max_height}  
-            std::pair<int, int> grid_cell = {grid_x, grid_y};
-
-
-          auto it = height_map.find(grid_cell);
-          if (it == height_map.end()) {
-          if (height_map.find(grid_cell) == height_map.end()) {
-              height_map.emplace(grid_cell, std::make_pair(height_at_point, height_at_point));
-          } else {
-              it->second.first = std::min(it->second.first, height_at_point);
-              it->second.second = std::max(it->second.second, height_at_point);
-          }
-       }*/
-
+ 
        float adjusted_height = height_at_point+0.; // Adjust by 30 cm (0.3m)
        float cost=0.0f;
        if(adjusted_height>height)
@@ -106,9 +88,6 @@ void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors, cons
            cost=1.0f;
        }
 
-
- 
-    
      // USE BIT MASK ENCODING TO CHECK IF THE NODE IS VISITED OR NOT, I have used visited and proxvisited boolean visited and proxvisited with the cost proxcost.
         pair<int, int> current = {grid_x,grid_y};
          //std::cout << "Before updating: (" << current.first << ", " << current.second << ") -> Cost: " << cost << std::endl;
@@ -238,12 +217,12 @@ else
 }	// LIGHT GREEN } 
 }
      
-void draw_gridmap(const Gridmap& gridmap, const Pose& roverpose, float grid_resolution, rerun::RecordingStream& rec)
+void draw_gridmap(const Gridmap& gridmap, float grid_resolution, rerun::RecordingStream& rec)
 {
-    float min_x=(roverpose.position.x()-5.0f)/grid_resolution;
-    float max_x=(roverpose.position.x()+5.0f)/grid_resolution;
-    float min_y=(roverpose.position.y()-5.0f)/grid_resolution;
-    float max_y=(roverpose.position.y()+5.0)/grid_resolution;
+    float min_x=(slam_pose.x-5.0f)/grid_resolution;
+    float max_x=(slam_pose.x+5.0f)/grid_resolution;
+    float min_y=(slam_pose.y-5.0f)/grid_resolution;
+    float max_y=(slam_pose.y+5.0)/grid_resolution;
     float scale_factor = 1000.0f;  //Put 1000 so that it is in mm
     std::cout << "Occupancy grid size: " << gridmap.occupancy_grid.size() << std::endl;
     if (gridmap.occupancy_grid.empty())
@@ -279,21 +258,6 @@ void draw_gridmap(const Gridmap& gridmap, const Pose& roverpose, float grid_reso
 
 Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec)
 {	return Eigen::Vector3f(rs2_vec.x, rs2_vec.y, rs2_vec.z); }//helper function to convert rs2 to eigen vector3f
-
-//NOTE THAT- this is temporary. The final solution will require SLAM inputs
-//This is just based on motion equations
-void update_rover_pose(Pose& pose, const Vector3f& accel_data, const Vector3f& gyro_data, float delta_time) {
-    Vector3f gravity(0.0f, 0.0f, -9.81f);
-    Vector3f accel_world = pose.orientation * accel_data;  
-    accel_world -= gravity;
-    pose.velocity += accel_world * delta_time;
-    pose.position += pose.velocity * delta_time + 0.5f * accel_world * delta_time * delta_time;
-    pose.position /= 1000.0f; 
-    Vector3f angular_velocity = gyro_data * delta_time;
-    Quaternionf delta_q = Quaternionf(AngleAxisf(angular_velocity.norm(), angular_velocity.normalized()));
-    pose.orientation = delta_q * pose.orientation;
-    pose.orientation.normalize();  
-}
 
 /*Function to update the rover's pose using IMU data
 update orientation using a small-angle quaternion

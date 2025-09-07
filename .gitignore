@@ -1,0 +1,10 @@
+# .gitignore
+*.swo
+build/
+cmake/
+*.log
+*.bag
+*.png
+*.rec/
+myenv/
+backup/

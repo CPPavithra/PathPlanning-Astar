@@ -125,18 +125,13 @@ void updateQuadtreesWithPointCloud(
     QuadtreeNode *lowQuadtree, 
     QuadtreeNode *midQuadtree, 
     QuadtreeNode *highQuadtree, 
-    const std::vector<Vector3f>& point_vectors,
-    const Pose& roverpose) 
+    const std::vector<Vector3f>& point_vectors) 
 {
-    float rover_x = roverpose.position.x();
-    float rover_y = roverpose.position.y();
-
+    float rover_x = slam_pose.x;
+    float rover_y = slam_pose.y;
+    float yaw=slam_pose.yaw;
     // Calculate orientation (same as hashmap version)
-    float theta = atan2(2.0f * (roverpose.orientation.w() * roverpose.orientation.z() +
-                               roverpose.orientation.x() * roverpose.orientation.y()),
-                       1.0f - 2.0f * (roverpose.orientation.y() * roverpose.orientation.y() +
-                                      roverpose.orientation.z() * roverpose.orientation.z()));
-    float ned_theta = -(theta - M_PI_2);
+   float ned_theta = -(theta - M_PI_2);
 
     for (const auto& point : point_vectors) {
         // Same coordinate transformation as hashmap
@@ -144,8 +139,8 @@ void updateQuadtreesWithPointCloud(
         float dy = -point.x();     // x becomes -y
         float height = -point.y(); // y becomes -height (to match hashmap's dz)
 
-        float rotated_x = cos(ned_theta) * dx - sin(ned_theta) * dy;
-        float rotated_y = sin(ned_theta) * dx + cos(ned_theta) * dy;
+        float rotated_x = cos(yaw) * dx - sin(yaw) * dy;
+        float rotated_y = sin(yaw) * dx + cos(yaw) * dy;
 
         // Convert to global coordinates (like hashmap does with grid cells)
         float global_x = rover_x + rotated_x;

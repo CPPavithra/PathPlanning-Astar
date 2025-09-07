@@ -22,14 +22,12 @@ class QuadtreeNode;
 class MotionPlanner {
   public:
     MotionPlanner(rerun::RecordingStream& rec);
-    ~MotionPlanner();
+    ~RoverControl();
     void setup();
     bool runMapping();
     void runPathPlanning();
     //void log_views();
     //void log_camera_frames();
-    
-  private:
     Node findcurrentgoal();
     void log_camera_frames(const rs2::frameset& frameset);
     void log_views();
@@ -43,6 +41,9 @@ class MotionPlanner {
     void updateMaps(const std::vector<Eigen::Vector3f>& points);
     bool checkPlanningTrigger();
 
+
+    
+  private:
     rs2::pipeline pipe;
     rs2::pointcloud pc;
     rerun::RecordingStream &rec;
@@ -74,7 +75,6 @@ class MotionPlanner {
     int adder{0};
     int counter{0};
     bool pathplanning_flag{false};
-
     // Movement state
     int prev_dir{0}; // Formerly 'prev_dir'
     // Static data
