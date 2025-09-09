@@ -125,7 +125,8 @@ void updateQuadtreesWithPointCloud(
     QuadtreeNode *lowQuadtree, 
     QuadtreeNode *midQuadtree, 
     QuadtreeNode *highQuadtree, 
-    const std::vector<Vector3f>& point_vectors) 
+    const std::vector<Vector3f>& point_vectors,
+    const Slam_Pose& slam_pose) 
 {
     float rover_x = slam_pose.x;
     float rover_y = slam_pose.y;

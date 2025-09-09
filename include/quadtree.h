@@ -47,7 +47,7 @@ void updateQuadtreesWithPointCloud(
     QuadtreeNode* midQuadtree,
     QuadtreeNode* highQuadtree,
     const std::vector<Eigen::Vector3f>& point_vectors,
-    const Pose& roverpose
+    const Slam_Pose& slam_pose
 );
 
 // Visualizes the three quadtree layers in Rerun

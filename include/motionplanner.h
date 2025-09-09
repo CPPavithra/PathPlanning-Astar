@@ -48,7 +48,7 @@ class MotionPlanner {
     rs2::pointcloud pc;
     rerun::RecordingStream &rec;
     // Rover State
-    Pose rover_pose;
+    Slam_Pose slam_pose;
     Gridmap gridmap;
     // Path Planning State
     Node start;

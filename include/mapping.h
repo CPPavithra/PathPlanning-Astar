@@ -68,18 +68,18 @@ struct Pose {
 void create_gridmap(
     Gridmap& gridmap,
     const std::vector<Eigen::Vector3f>& points,
-    const Pose& roverpose,
     float grid_resolution= 0.001f,
     float height = 1.5f,
-    float proxfactor = 0.5f
+    float proxfactor = 0.5f,
+    const Slam_Pose& slam_pose
 );
 
 // Draws the current state of the gridmap to the Rerun stream
 void draw_gridmap(
     const Gridmap& gridmap,
-    const Pose& roverpose,
     float grid_resolution, // <-- ADDED: Needed to calculate cell positions
-    rerun::RecordingStream& rec
+    rerun::RecordingStream& rec,
+    const Slam_Pose& slam_pose
 );
 
 // Helper function for draw_gridmap to determine cell color based on cost

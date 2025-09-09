@@ -25,152 +25,134 @@ using namespace rs2;
 using namespace std;
 using namespace Eigen;
 
-void create_gridmap(Gridmap& gridmap,const vector<Vector3f>& point_vectors,float grid_resolution, float height,float proxfactor)//declare only in rerun.h
+void create_gridmap(Gridmap& gridmap, const vector<Vector3f>& point_vectors, float grid_resolution, float height, float proxfactor, const Slam_Pose& slam_pose)
 {
-  //Change slam_pose with the actual implementation
-        float boundary_threshold = 0.01f;
-	      if (slam_pose.x<gridmap.min_x+boundary_threshold) 
-	      {
-           gridmap.min_x-=(grid_resolution*50.0f);
+    // Update grid boundaries based on current SLAM pose
+    float boundary_threshold=0.01f;
+    if (slam_pose.x < gridmap.min_x + boundary_threshold) 
+    {
+      gridmap.min_x-=(grid_resolution*50.0f);
+    }
+    if (slam_pose.x > gridmap.max_x - boundary_threshold) 
+    { 
+      gridmap.max_x+=(grid_resolution*50.0f);
+    }
+    if (slam_pose.y < gridmap.min_y + boundary_threshold)
+    {
+      gridmap.min_y-=(grid_resolution*50.0f);
+    }
+    if (slam_pose.y>gridmap.max_y-boundary_threshold)
+    {
+      gridmap.max_y+=(grid_resolution*50.0f);
+    }
+
+    unordered_map<pair<int,int>,CellCost,pair_hash> updated_occupancy_grid =gridmap.occupancy_grid;
+    
+    int proxradius=3; //for padding. CHANGE IT LATER.
+    float rover_x =slam_pose.x;
+    float rover_y =slam_pose.y;
+    float yaw =slam_pose.yaw;
+
+    //We are estimating the local ground level for rough terrain.
+    //Here, we check for the local ground (near the rover only)
+    float ground_sum =0.0f;
+    int ground_count =0;
+    float ground_window =5.0f; //5m radius around rover for ground estimation
+    for (const auto& point : point_vectors) {
+        float dz = -point.y(); 
+        float dx = point.z();
+        float dy = -point.x(); //forward motion
+        float dist = sqrt(dx*dx + dy*dy); //5x5m
+        if (dist < ground_window && dz < height/4) {//we ignore the tall points
+            ground_sum += dz;
+            ground_count++;
         }
-        if (slam_pose.x>gridmap.max_x-boundary_threshold) 
-	      {
-           gridmap.max_x+=(grid_resolution*50.0f);
+    }
+    //check!!
+    float ground_level = (ground_count > 0) ? (ground_sum / ground_count) : 0.0f;
+
+    for (const auto& point : point_vectors) {
+        float dx =point.z();  
+        float dy =-point.x(); 
+        float dz =-point.y();  
+
+        //float ned_theta =-(theta -M_PI_2); 
+        //slam is returning yaw-M_PI_2 we have to check if it is oriented correctly */
+        //or if we have to put -ve on it!! 
+        float rotated_x =cos(yaw)*dx - sin(yaw)*dy;
+        float rotated_y =sin(yaw)*dx + cos(yaw)*dy;
+
+        int grid_x = static_cast<int>(rotated_x /1.0f); //replace with grid resolution
+        int grid_y = static_cast<int>(rotated_y /1.0f);
+
+        float adjusted_height = dz;
+        float cost = 0.0f;
+
+        // Positive obstacle
+        if (adjusted_height > height) 
+        { 
+          cost = 10.0f;
         }
-        if (slam_pose.y<gridmap.min_y+boundary_threshold) 
-	      {
-           gridmap.min_y-=(grid_resolution*50.0f);
+        else if (adjusted_height > (height/2) && adjusted_height <= height) 
+        {
+          cost = 5.0f;
         }
-        if (slam_pose.y>gridmap.max_y-boundary_threshold)
-       	{
-           gridmap.max_y+=(grid_resolution*50.0f);
+        else if (adjusted_height > (height/4) && adjusted_height <= (height/2))
+        { 
+          cost = 1.0f;
         }
 
-       unordered_map<pair<int,int>,CellCost, pair_hash>updated_occupancy_grid=gridmap.occupancy_grid;
-       int proxradius=3; //proxradius for padding logic
-       //float rover_x=roverpose.position.x();
-       //float rover_y=roverpose.position.y();
-       float rover_x=slam_pose.x;
-       float rover_y=slam_pose.y;
-        //ORIENTATION theta
-        float yaw= slam_pose.yaw;
-       for (const auto& point : point_vectors)
-       {
-          float dx=point.z();  //forward motion)
-          float dy=-point.x(); // X becomes -Y 
-          float dz=-point.y();  
-          
-          //float ned_theta =-(theta -M_PI_2);
-          //slam is returning yaw-M_PI_2 we have to check if it is oriented correctly
-          //or if we have to put -ve on it!!
-          float rotated_x =cos(yaw)* dx - sin(yaw) * dy;
-          float rotated_y = sin(yaw) * dx + cos(yaw) * dy;
+        //NEGATIVE OBSTACLE- CHANGE THRESHOLD IF NEEDED
+        float drop_threshold = 1.0f; // 1m drop considered as ditch
+        if (std::isnan(dz) || std::isinf(dz)) cost = 10.0f;
+        else if ((ground_level - adjusted_height) > drop_threshold) cost = 10.0f;
 
-          int grid_x = static_cast<int>(rotated_x / 1.0f);  //grid coordinates
-          int grid_y = static_cast<int>(rotated_y / 1.0f); 
+        //Update occupancy grid
+        pair<int, int> current = {grid_x, grid_y};
+        CellCost& cell = updated_occupancy_grid[current];
 
-          //Height remains the same, assuming you're checking for obstacles based on height
-          float height_at_point = dz;
+        if (!cell.visited && !cell.proxvisited) {
+            cell.cost += cost;
+            cell.visited = true;
+        } else {
+            if (cost > 0.0f) updated_occupancy_grid[current] = CellCost(cost, cell.proxcost, true, cell.proxvisited);
+        }
 
- 
-       float adjusted_height = height_at_point+0.; // Adjust by 30 cm (0.3m)
-       float cost=0.0f;
-       if(adjusted_height>height)
-       {
-           cost=10.0f; //very high=cant go cost is from range 0 to 10
-       }
-       else if(adjusted_height>(height/2) &&adjusted_height<=(height))
-       {
-           cost=5.0f;
-       }
-       else if(adjusted_height>(height/4) && adjusted_height<=(height/2))
-       {
-           cost=1.0f;
-       }
+        // ----- Optional: Proximity cost padding -----
+        /*int proxradius = 3;
+        for (int dxn = -proxradius; dxn <= proxradius; ++dxn) {
+            for (int dyn = -proxradius; dyn <= proxradius; ++dyn) {
+                if (dxn == 0 && dyn == 0) continue;
 
-     // USE BIT MASK ENCODING TO CHECK IF THE NODE IS VISITED OR NOT, I have used visited and proxvisited boolean visited and proxvisited with the cost proxcost.
-        pair<int, int> current = {grid_x,grid_y};
-         //std::cout << "Before updating: (" << current.first << ", " << current.second << ") -> Cost: " << cost << std::endl;
-	      CellCost& cell=updated_occupancy_grid[current];
+                pair<int,int> neighbor = {grid_x + dxn, grid_y + dyn};
+                CellCost& neighbor_cell = updated_occupancy_grid[neighbor];
+                float dist = sqrt(dxn*dxn + dyn*dyn);
+                float proxcost = (proxfactor * 2.0f) / (0.1f + dist);
 
-	      float proxcostupdate=cell.proxcost;
-	      bool proxvupdate=cell.proxvisited;
-		 
-        if (!cell.visited && !cell.proxvisited) {  //CHECK HERE
-            //update the cost AND mark them as visited to avoid re-iteration of that cell
-            cell.cost += cost;  //adding new cost to the existing cost (the existing cost might be proximity cost= proxcost)
-            cell.visited = true; //mark that cell as visited to avoid reiteration
-            cell.proxvisited = proxvupdate;
-            if (cell.cost == 0.0f) {
-               updated_occupancy_grid.erase(current);
+                if (!neighbor_cell.proxvisited) {
+                    neighbor_cell.proxcost = proxcost;
+                    neighbor_cell.cost += proxcost;
+                    neighbor_cell.proxvisited = true;
+                }
             }
-       }
-       else {
-        //if not found in the occupancy grid then visit that node and then update it
-         if(cost>0.0f) {
-           updated_occupancy_grid[current] = CellCost(cost,proxcostupdate,true,false);
-         }  // CellCost(float c = 0.0f, pc=0.0f, bool v = false, bool p = false) : cost(c),proxcost,(pc), visited(v),proxvisited(p)
-       }
-      // cout<< "After Updating: ("<< current.first<< ", "<< current.second<< ") -> Cost: "<< cost<<endl;
+        }*/
+    }
 
-//////////////////////////////////////////////////
-//NEIGHBOURING COST PADDING
-/*   float prox=1; //edit as needed
-    for (float dx=-prox; dx<=prox;++dx) {
-        for (float dy=-prox; dy <=prox ;++dy) {
-            if (dx == 0 && dy == 0) continue;  // Skip the current cell
-
-            int neighbor_x = grid_x + dx;
-            int neighbor_y = grid_y + dy;
-            pair<int, int> neighbor = {neighbor_x, neighbor_y};
-           //add new neighbor if not already in the grid
-	   if(updated_occupancy_grid[{grid_x,grid_y}].visited)
-	   {
-           if (updated_occupancy_grid.find(neighbor)==updated_occupancy_grid.end()) {
-               updated_occupancy_grid[neighbor]=CellCost{0.0f, 0.0f, false, false};  //set cost as default
-               std::cout<< "Added new neighbor: ("<< neighbor.first<< ", "<< neighbor.second<< ")" << std::endl;
-	   }
-
-        CellCost& neighbor_cell=updated_occupancy_grid[neighbor];
-       
-       
-        //calculate proximity cost
-        float dist = sqrt(dx *dx + dy*dy);  /*grid_resolution*/;//euclidean distance between them. 
-/*       float proxcost = (proxfactor*2.0f)/(0.1f+dist);
-
-        //update proximity cost only if not already updated
-       if (neighbor_cell.proxvisited==false) {
-            neighbor_cell.proxcost = proxcost;
-            neighbor_cell.cost += neighbor_cell.proxcost; //add proximity cost
-            neighbor_cell.proxvisited = true;            //mark it as visited for proximity
-        }
-	}
-	}
-   }
-}*/
-
-// Initialize the boundaries to extreme values
-       int min_x = INT_MAX;
-       int max_x = INT_MIN;
-       int min_y = INT_MAX;
-       int max_y = INT_MIN;
-
+    //Updating the gridmap boundaries
+    int min_x = INT_MAX, max_x = INT_MIN, min_y = INT_MAX, max_y = INT_MIN;
     for (const auto& cell : updated_occupancy_grid) {
-        int xindice = cell.first.first;  // Extract grid x index
-        int yindice = cell.first.second; // Extract grid y index
-
-        if (xindice < min_x) min_x =xindice;
-        if (xindice > max_x) max_x =xindice;
-        if (yindice < min_y) min_y =yindice;
-        if (yindice > max_y) max_y =yindice;
+        int x = cell.first.first;
+        int y = cell.first.second;
+        if (x < min_x) min_x = x;
+        if (x > max_x) max_x = x;
+        if (y < min_y) min_y = y;
+        if (y > max_y) max_y = y;
     }
-
-    gridmap.min_x=min_x;
-    gridmap.min_y=min_y;
-    gridmap.max_x=max_x;
-    gridmap.max_y=max_y;
-    gridmap.occupancy_grid=updated_occupancy_grid;
-    }
+    gridmap.min_x = min_x;
+    gridmap.max_x = max_x;
+    gridmap.min_y = min_y;
+    gridmap.max_y = max_y;
+    gridmap.occupancy_grid = updated_occupancy_grid;
 }
 
 //color based on cost
@@ -217,7 +199,7 @@ else
 }	// LIGHT GREEN } 
 }
      
-void draw_gridmap(const Gridmap& gridmap, float grid_resolution, rerun::RecordingStream& rec)
+void draw_gridmap(const Gridmap& gridmap, float grid_resolution, rerun::RecordingStream& rec, const Slam_Pose& slam_pose)
 {
     float min_x=(slam_pose.x-5.0f)/grid_resolution;
     float max_x=(slam_pose.x+5.0f)/grid_resolution;
