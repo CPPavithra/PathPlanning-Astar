@@ -22,7 +22,7 @@ class QuadtreeNode;
 class MotionPlanner {
   public:
     MotionPlanner(rerun::RecordingStream& rec);
-    ~RoverControl();
+    ~MotionPlanner();
     void setup();
     bool runMapping();
     void runPathPlanning();
@@ -36,8 +36,8 @@ class MotionPlanner {
     bool findpath(const Node& start, const Node& goal, std::vector<Node>& dense_path);
     std::vector<Node> prunepath(const std::vector<Node>& path);
     void executepath(const std::vector<Node>& path, bool& stuck);
-    void if_stuck(const Node& failed_goal, int& retry_attempts, const int MAX_RETRIES);
-    std::vector<Eigen::Vector3f> processPointCloud(const rs2::frameset& frameset);
+    void if_stuck(const Node& failed_goal, int& retry_attempts, const int MAX_RETRIES, bool& pathplanning_flag, std::set<std::pair<int, int>>& failed_goals);
+    std::vector<Eigen::Vector3f> processPointCloud(const rs2::frameset& frameset,const Slam_Pose& slam_pose);
     void updateMaps(const std::vector<Eigen::Vector3f>& points);
     bool checkPlanningTrigger();
 

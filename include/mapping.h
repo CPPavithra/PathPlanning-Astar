@@ -23,7 +23,12 @@ struct pair_hash {
         return h1 ^ (h2 << 1);
     }
 };
-
+struct Slam_Pose
+{
+  int x;
+  int y;
+  float yaw;
+};
 // Represents the cost and state of a single cell in the gridmap
 struct CellCost {
     float cost;
@@ -68,10 +73,10 @@ struct Pose {
 void create_gridmap(
     Gridmap& gridmap,
     const std::vector<Eigen::Vector3f>& points,
+    const Slam_Pose& slam_pose,
     float grid_resolution= 0.001f,
     float height = 1.5f,
-    float proxfactor = 0.5f,
-    const Slam_Pose& slam_pose
+    float proxfactor = 0.5f
 );
 
 // Draws the current state of the gridmap to the Rerun stream

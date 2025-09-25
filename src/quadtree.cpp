@@ -132,7 +132,7 @@ void updateQuadtreesWithPointCloud(
     float rover_y = slam_pose.y;
     float yaw=slam_pose.yaw;
     // Calculate orientation (same as hashmap version)
-   float ned_theta = -(theta - M_PI_2);
+  // float ned_theta = -(theta - M_PI_2);
 
     for (const auto& point : point_vectors) {
         // Same coordinate transformation as hashmap

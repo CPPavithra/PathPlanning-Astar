@@ -43,7 +43,7 @@ bool MotionPlanner::getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw
 
 
 // Handles all point cloud generation and filtering.
-std::vector<Eigen::Vector3f> MotionPlanner::processPointCloud(const rs2::frameset& frameset, const Slam_Pose& slam_pose) {
+std::vector<Eigen::Vector3f> MotionPlanner::processPointCloud(const rs2::frameset& frameset,const Slam_Pose& slam_pose) {
     rs2::points points = pc.calculate(frameset.get_depth_frame());
     std::vector<Eigen::Vector3f> raw_points;
     raw_points.reserve(points.size());
@@ -80,7 +80,7 @@ std::vector<Eigen::Vector3f> MotionPlanner::processPointCloud(const rs2::framese
 
 // Updates the gridmap and quadtrees.
 void MotionPlanner::updateMaps(const std::vector<Eigen::Vector3f>& points) {
-    create_gridmap(gridmap,  points, grid_resolution, slam_pose);
+    create_gridmap(gridmap,  points, slam_pose, grid_resolution);
     updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, points, slam_pose);
     if (gridmap.occupancy_grid.size() >= batch_threshold) {
         draw_gridmap(gridmap, grid_resolution, rec, slam_pose);
@@ -188,7 +188,7 @@ void MotionPlanner::executepath(const std::vector<Node>& path, bool& stuck) {
     }
 }
 
-void RoverControl::if_stuck(const Node& failed_goal, int& retry_attempts, const int MAX_RETRIES) {
+void MotionPlanner::if_stuck(const Node& failed_goal, int& retry_attempts, const int MAX_RETRIES, bool& pathplanning_flag, std::set<std::pair<int, int>> &failed_goals){
     std::cout << "Rover is stuck or path failed. Marking goal as failed." << std::endl;
     failed_goals.insert({failed_goal.x, failed_goal.y});
     retry_attempts++;

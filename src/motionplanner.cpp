@@ -94,7 +94,7 @@ bool MotionPlanner::runMapping() {
     //NOT NEEDED update_rover_pose(rover_pose, accel_eigen, gyro_eigen, delta_time);
 
     log_camera_frames(frameset);
-    std::vector<Eigen::Vector3f> filtered_points = processPointCloud(frameset);
+    std::vector<Eigen::Vector3f> filtered_points = processPointCloud(frameset,slam_pose);
     updateMaps(filtered_points);
     checkPlanningTrigger();
     return true;
@@ -114,12 +114,12 @@ void MotionPlanner::runPathPlanning() {
             executepath(pruned_path, stuck);
   
             if (pathplanning_flag && stuck) {
-                if_stuck(current_goal, retry_attempts, MAX_RETRIES);
+                if_stuck(current_goal, retry_attempts, MAX_RETRIES, pathplanning_flag, failed_goals);
             } else if (pathplanning_flag) {
                 std::cout << "Intermediate goal reached. Planning next segment..." << std::endl;
             }
         } else {
-            if_stuck(current_goal, retry_attempts, MAX_RETRIES);
+            if_stuck(current_goal, retry_attempts, MAX_RETRIES,pathplanning_flag, failed_goals);
         }
     }
 }
