@@ -25,8 +25,8 @@ struct pair_hash {
 };
 struct Slam_Pose
 {
-  int x;
-  int y;
+  float x;
+  float y;
   float yaw;
 };
 // Represents the cost and state of a single cell in the gridmap
