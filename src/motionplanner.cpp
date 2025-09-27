@@ -11,6 +11,8 @@
 #include <pcl/filters/voxel_grid.h>
 
 using namespace std; 
+using namespace mapping;
+using namespace planning;
 
 MotionPlanner::MotionPlanner(rerun::RecordingStream& rec) : 
     rec(rec),
@@ -31,9 +33,9 @@ MotionPlanner::MotionPlanner(rerun::RecordingStream& rec) :
     pipe.start(cfg);
 
     // Initialize rover pose
-       lowQuadtree = new QuadtreeNode(center, rootSize, 1);
-    midQuadtree = new QuadtreeNode(center, rootSize, 1);
-    highQuadtree = new QuadtreeNode(center, rootSize, 1);
+    lowQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
+    midQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
+    highQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
 
     // Initialize cost table text
     cost_table_text =

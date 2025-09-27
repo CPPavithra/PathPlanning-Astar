@@ -11,25 +11,24 @@
 #include <librealsense2/rs.hpp>
 #include <Eigen/Dense>
 
-// --- Core Data Structures (formerly in common.h) ---
+namespace mapping {
 
-// A hash function to allow std::pair to be used as a key in unordered_map
 struct pair_hash {
     template <typename T1, typename T2>
     std::size_t operator () (const std::pair<T1,T2>& p) const {
         auto h1 = std::hash<T1>{}(p.first);
         auto h2 = std::hash<T2>{}(p.second);
-        // A common way to combine hash values
         return h1 ^ (h2 << 1);
     }
 };
+
 struct Slam_Pose
 {
   float x;
   float y;
   float yaw;
 };
-// Represents the cost and state of a single cell in the gridmap
+
 struct CellCost {
     float cost;
     float proxcost;
@@ -40,26 +39,19 @@ struct CellCost {
         : cost(c), proxcost(pc), visited(v), proxvisited(p) {}
 };
 
-// The main gridmap structure
 struct Gridmap {
     std::unordered_map<std::pair<int, int>, CellCost, pair_hash> occupancy_grid;
     float min_x = 0.0f, min_y = 0.0f, max_x = 0.0f, max_y = 0.0f;
-
-    // Default constructor
     Gridmap() = default;
-
-    // Parameterized constructor
     Gridmap(std::unordered_map<std::pair<int, int>, CellCost, pair_hash> grid,
             float p_min_x, float p_min_y, float p_max_x, float p_max_y)
         : occupancy_grid(std::move(grid)), min_x(p_min_x), min_y(p_min_y), max_x(p_max_x), max_y(p_max_y) {}
 };
 
-// A simple 2D point, used by Quadtree and Gridmap
 struct Point {
     float x, y;
 };
 
-// Represents the rover's physical state (position, velocity, orientation)
 struct Pose {
     Eigen::Vector3f position;
     Eigen::Vector3f velocity;
@@ -67,9 +59,6 @@ struct Pose {
 };
 
 
-// --- Function Prototypes for Mapping, Visualization, and Utilities ---
-
-// Creates or updates the gridmap from a point cloud
 void create_gridmap(
     Gridmap& gridmap,
     const std::vector<Eigen::Vector3f>& points,
@@ -102,5 +91,5 @@ void update_rover_pose(
 
 Eigen::Vector3f convert_to_eigen_vector(const rs2_vector& rs2_vec);
 pcl::PointCloud<pcl::PointXYZ>::Ptr convert_to_pcl(const std::vector<Eigen::Vector3f>& point_vectors);
-
+}
 #endif // MAPPING_H

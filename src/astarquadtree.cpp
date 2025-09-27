@@ -28,6 +28,9 @@
 #include "pathplanning.h"
 
 using namespace std;
+using namespace mapping;
+using namespace planning;
+using namespace quadtree;
 
 double heuristic(float x1, float y1, float x2, float y2) {
     return hypot(x2 - x1, y2 - y1);
@@ -67,8 +70,8 @@ vector<Node> astarquad(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, Qua
     unordered_map<pair<int, int>, shared_ptr<Node>, NodeHasher> cameFrom;
     unordered_map<pair<int, int>, bool, NodeHasher> closedSet;
 
-    pair<int, int> startKey = {roundToGrid(start.x, resolution), roundToGrid(start.y, resolution)};
-    shared_ptr<Node> startNode = make_shared<Node>(start.x, start.y, 0, heuristic(start.x, start.y, goal.x, goal.y));
+    pair<int, int> startKey = {planning::roundToGrid(start.x, resolution), planning::roundToGrid(start.y, resolution)};
+    shared_ptr<Node> startNode = make_shared<Node>(start.x, start.y, 0, planning::heuristic(start.x, start.y, goal.x, goal.y));
     openSet.push(startNode);
     gScore[startKey] = 0.0;
 
@@ -79,28 +82,28 @@ vector<Node> astarquad(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, Qua
         shared_ptr<Node> current = openSet.top();
         openSet.pop();
 
-        pair<int, int> currentKey = {roundToGrid(current->x, resolution), roundToGrid(current->y, resolution)};
+        pair<int, int> currentKey = {planning::roundToGrid(current->x, resolution), planning::roundToGrid(current->y, resolution)};
         if (closedSet[currentKey]) continue;
         closedSet[currentKey] = true;
 
-        if (heuristic(current->x, current->y, goal.x, goal.y) < resolution) {
+        if (planning::heuristic(current->x, current->y, goal.x, goal.y) < resolution) {
             return reconstruct_path(current);
         }
 
         for (int dir = 0; dir < 8; dir++) {
             float newX = current->x + dx[dir];
             float newY = current->y + dy[dir];
-            pair<int, int> neighborKey = {roundToGrid(newX, resolution), roundToGrid(newY, resolution)};
+            pair<int, int> neighborKey = {planning::roundToGrid(newX, resolution), planning::roundToGrid(newY, resolution)};
             if (closedSet[neighborKey]) continue;
 
             Point neighborP = {newX, newY};
-            int cost = getCostAtPoint(neighborP, lowQuadtree, midQuadtree, highQuadtree);
+            int cost = planning::getCostAtPoint(neighborP, lowQuadtree, midQuadtree, highQuadtree);
             if (cost >= 10000) continue;
 
             double tentative_g = current->g_cost + resolution * cost;
             if (!gScore.count(neighborKey) || tentative_g < gScore[neighborKey]) {
                 gScore[neighborKey] = tentative_g;
-                auto neighbor = make_shared<Node>(newX, newY, tentative_g, heuristic(newX, newY, goal.x, goal.y), current);
+                auto neighbor = make_shared<Node>(newX, newY, tentative_g, planning::heuristic(newX, newY, goal.x, goal.y), current);
                 openSet.push(neighbor);
                 cameFrom[neighborKey] = neighbor;
             }

@@ -23,6 +23,8 @@
 using namespace rerun;
 using namespace Eigen;
 using namespace std;
+using namespace mapping;
+using namespace quadtree;
 
 Point center = {0.0f, 0.0f};
 float rootSize = 100.0f;

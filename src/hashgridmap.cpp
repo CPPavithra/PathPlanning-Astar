@@ -24,6 +24,7 @@ using namespace rerun;
 using namespace rs2;
 using namespace std;
 using namespace Eigen;
+using namespace mapping;
 
 void create_gridmap(Gridmap& gridmap, const vector<Vector3f>& point_vectors, const Slam_Pose& slam_pose, float grid_resolution, float height, float proxfactor)
 {
@@ -225,7 +226,7 @@ void draw_gridmap(const Gridmap& gridmap, float grid_resolution, rerun::Recordin
     float grid_x = coord.first;
     float grid_y = coord.second;
 
-     rerun::Color color = get_color_for_cost(value);
+     rerun::Color color = mapping::get_color_for_cost(value);
     
      vector<rerun::Position3D> points = {rerun::Position3D{grid_x, grid_y, 0.0f}};
 

@@ -13,6 +13,8 @@
 
 
 using namespace std;
+using namespace mapping;
+using namespace planning;
 
 bool MotionPlanner::getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw, rs2_vector& gyro_raw, float& dt) {
     static auto last_time = std::chrono::high_resolution_clock::now();
@@ -100,7 +102,7 @@ bool MotionPlanner::checkPlanningTrigger() {
   return pathplanning_flag;
 }
 
-bool MotionPlanner::findpath(const Node& current_start, const Node& current_goal, std::vector<Node>& dense_path) {
+bool MotionPlanner::findpath(const planning::Node& current_start, const planning::Node& current_goal, std::vector<planning::Node>& dense_path) {
     cout<<"Current Start: ("<<current_start.x<< "," <<current_start.y <<")" <<endl;
     cout<<"Selected Intermediate Goal: (" <<current_goal.x << "," <<current_goal.y <<")" <<endl;
 

@@ -10,6 +10,7 @@
 #include <memory>
 #include <cmath>
 
+namespace planning {
 //from astar.h
 struct Node {
     float x, y;
@@ -30,7 +31,7 @@ struct comparenode {
 };
 
 double heuristic_astar(int x1, int y1, int x2, int y2);
-std::vector<Node> astarsparse(const Gridmap& gridmap, Node start, Node goal);
+std::vector<Node> astarsparse(const mapping::Gridmap& gridmap, Node start, Node goal);
 
 //this is from astarquadtree.h
 struct NodeHasher {
@@ -42,8 +43,10 @@ struct NodeHasher {
 double heuristic(float x1, float y1, float x2, float y2);
 std::vector<Node> reconstruct_path(Node* current);
 int roundToGrid(float coord, float resolution);
-int getCostAtPoint(Point p, QuadtreeNode* low, QuadtreeNode* mid, QuadtreeNode* high);
-std::vector<Node> astarquad(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree, Node start, Node goal, float resolution = 1.0f);
+int getCostAtPoint(mapping::Point p, quadtree::QuadtreeNode* low, quadtree::QuadtreeNode* mid, quadtree::QuadtreeNode* high);
+std::vector<Node> astarquad(quadtree::QuadtreeNode* lowQuadtree, quadtree::QuadtreeNode* midQuadtree, quadtree::QuadtreeNode* highQuadtree, Node start, Node goal, float resolution = 1.0f);
+
+}
 
 #endif
 

@@ -6,10 +6,11 @@
 #include <Eigen/Dense>
 #include "mapping.h" // Includes Point and Pose definitions
 
+namespace quadtree{
 class QuadtreeNode {
 public:
     // --- Member Variables ---
-    Point center;
+    mapping::Point center;
     float size;
     bool isLeaf;
     bool hasObstacle;
@@ -18,21 +19,21 @@ public:
     QuadtreeNode* children[4];
 
     // --- Constructor & Destructor ---
-    QuadtreeNode(Point c, float s, int co);
+    QuadtreeNode(mapping::Point c, float s, int co);
     ~QuadtreeNode();
 
     // --- Core Quadtree Logic ---
-    void insert(Point p);
+    void insert(mapping::Point p);
     void setObstaclesBasedOnDensity(int threshold);
     void assignCostToObstacles(int assignedCost);
-    int getCostAtPoint(Point p) const;
-    void collectObstaclePoints(std::vector<Point>& obstacles) const;
+    int getCostAtPoint(mapping::Point p) const;
+    void collectObstaclePoints(std::vector<mapping::Point>& obstacles) const;
     bool containsPoint(const Eigen::Vector3f& point) const;
-    bool inBounds(Point p) const;
+    bool inBounds(mapping::Point p) const;
     void subdivide();
     void clear();
     bool isObstacleAtPoint(const Eigen::Vector3f& point) const;
-    void collectObstaclePointsWithColor(std::vector<Point>& points, 
+    void collectObstaclePointsWithColor(std::vector<mapping::Point>& points, 
                                        std::vector<rerun::Color>& colors, 
                                        rerun::Color color) const;
 
@@ -47,7 +48,7 @@ void updateQuadtreesWithPointCloud(
     QuadtreeNode* midQuadtree,
     QuadtreeNode* highQuadtree,
     const std::vector<Eigen::Vector3f>& point_vectors,
-    const Slam_Pose& slam_pose
+    const mapping::Slam_Pose& slam_pose
 );
 
 // Visualizes the three quadtree layers in Rerun
@@ -57,5 +58,5 @@ void rerunvisualisation(
     QuadtreeNode* highQuadtree,
     rerun::RecordingStream& rec
 );
-
+}
 #endif // QUADTREE_H
