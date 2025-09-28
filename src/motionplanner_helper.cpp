@@ -15,6 +15,7 @@
 using namespace std;
 using namespace mapping;
 using namespace planning;
+using namespace quadtree;
 
 bool MotionPlanner::getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw, rs2_vector& gyro_raw, float& dt) {
     static auto last_time = std::chrono::high_resolution_clock::now();

@@ -28,10 +28,8 @@
 #include "pathplanning.h"
 
 using namespace std;
-using namespace mapping;
-using namespace planning;
-using namespace quadtree;
 
+namespace planning {
 double heuristic(float x1, float y1, float x2, float y2) {
     return hypot(x2 - x1, y2 - y1);
 }
@@ -50,7 +48,7 @@ int roundToGrid(float coord, float resolution) {
     return static_cast<int>(round(coord / resolution));
 }
 
-int getCostAtPoint(Point p, QuadtreeNode* low, QuadtreeNode* mid, QuadtreeNode* high) {
+int getCostAtPoint(mapping::Point p, quadtree::QuadtreeNode* low, quadtree::QuadtreeNode* mid, quadtree::QuadtreeNode* high) {
     int cost = 1; // Default cost for free space
     if (low->inBounds(p)) cost = max(cost, low->getCostAtPoint(p));
     if (mid->inBounds(p)) cost = max(cost, mid->getCostAtPoint(p));
@@ -59,7 +57,7 @@ int getCostAtPoint(Point p, QuadtreeNode* low, QuadtreeNode* mid, QuadtreeNode* 
 }
 
 
-vector<Node> astarquad(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, QuadtreeNode* highQuadtree,
+vector<Node> astarquad(quadtree::QuadtreeNode* lowQuadtree, quadtree::QuadtreeNode* midQuadtree, quadtree::QuadtreeNode* highQuadtree,
                        Node start, Node goal, float resolution) {
     auto cmp = [](const shared_ptr<Node>& a, const shared_ptr<Node>& b) {
         return a->f_cost > b->f_cost;
@@ -90,13 +88,14 @@ vector<Node> astarquad(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, Qua
             return reconstruct_path(current);
         }
 
+
         for (int dir = 0; dir < 8; dir++) {
             float newX = current->x + dx[dir];
             float newY = current->y + dy[dir];
             pair<int, int> neighborKey = {planning::roundToGrid(newX, resolution), planning::roundToGrid(newY, resolution)};
             if (closedSet[neighborKey]) continue;
 
-            Point neighborP = {newX, newY};
+            mapping::Point neighborP = {newX, newY};
             int cost = planning::getCostAtPoint(neighborP, lowQuadtree, midQuadtree, highQuadtree);
             if (cost >= 10000) continue;
 
@@ -111,5 +110,6 @@ vector<Node> astarquad(QuadtreeNode* lowQuadtree, QuadtreeNode* midQuadtree, Qua
     }
 
     return {};
+}
 }
 

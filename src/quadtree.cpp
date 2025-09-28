@@ -24,9 +24,11 @@ using namespace rerun;
 using namespace Eigen;
 using namespace std;
 using namespace mapping;
-using namespace quadtree;
 
-Point center = {0.0f, 0.0f};
+
+namespace quadtree {
+
+mapping::Point center = {0.0f, 0.0f};
 float rootSize = 100.0f;
 
 QuadtreeNode* lowQuadtree  = new QuadtreeNode(center, rootSize, 1);
@@ -34,7 +36,7 @@ QuadtreeNode* midQuadtree  = new QuadtreeNode(center, rootSize, 1);
 QuadtreeNode* highQuadtree = new QuadtreeNode(center, rootSize, 1);
 
 
-QuadtreeNode::QuadtreeNode(Point c, float s, int co) : center(c),size(s),isLeaf(true),hasObstacle(false),cost(co) {
+QuadtreeNode::QuadtreeNode(mapping::Point c, float s, int co) : center(c),size(s),isLeaf(true),hasObstacle(false),cost(co) {
     for (int i = 0; i < 4; i++) children[i] = nullptr;
 }
 void QuadtreeNode::subdivide() { 
@@ -47,7 +49,7 @@ void QuadtreeNode::subdivide() {
 }
 
 //minimum leaf size 0.5 is the map resolution
-void QuadtreeNode::insert(Point p) {
+void QuadtreeNode::insert(mapping::Point p) {
     if (!inBounds(p)) return;
     if (size <= 1.0) {
         pointCount++;
@@ -90,7 +92,7 @@ void QuadtreeNode::assignCostToObstacles(int assignedCost) {
     }
 }
 
-int QuadtreeNode::getCostAtPoint(Point p) const {
+int QuadtreeNode::getCostAtPoint(mapping::Point p) const {
     if (!inBounds(p)) return 10000;  // Very high cost for out-of-bounds
 
     if (isLeaf) {
@@ -106,7 +108,7 @@ int QuadtreeNode::getCostAtPoint(Point p) const {
     return cost;  // Fallback, though ideally it should never hit this
 }
 
-void QuadtreeNode::collectObstaclePoints(std::vector<Point>& obstacles) const {
+void QuadtreeNode::collectObstaclePoints(std::vector<mapping::Point>& obstacles) const {
     if (isLeaf) {
         if (hasObstacle) obstacles.push_back(center);
         return;
@@ -128,7 +130,7 @@ void updateQuadtreesWithPointCloud(
     QuadtreeNode *midQuadtree, 
     QuadtreeNode *highQuadtree, 
     const std::vector<Vector3f>& point_vectors,
-    const Slam_Pose& slam_pose) 
+    const mapping::Slam_Pose& slam_pose) 
 {
     float rover_x = slam_pose.x;
     float rover_y = slam_pose.y;
@@ -149,7 +151,7 @@ void updateQuadtreesWithPointCloud(
         float global_x = rover_x + rotated_x;
         float global_y = rover_y + rotated_y;
 
-        Point p = {global_x, global_y};  // Now in global coordinates
+        mapping::Point p = {global_x, global_y};  // Now in global coordinates
 
         // Use same height thresholds as hashmap cost assignments
         if (height < 0.2f) {
@@ -173,7 +175,7 @@ void updateQuadtreesWithPointCloud(
     highQuadtree->assignCostToObstacles(10); // Matches hashmap's 10.0f cost
 }
 
-    bool QuadtreeNode::inBounds(Point p) const{
+    bool QuadtreeNode::inBounds(mapping::Point p) const{
         return (p.x >= center.x - size/2 && p.x <= center.x + size/2 &&
                 p.y >= center.y - size/2 && p.y <= center.y + size/2);
     }
@@ -205,7 +207,7 @@ bool QuadtreeNode::isObstacleAtPoint(const Vector3f& point) const {
 }
 
 
-void QuadtreeNode::collectObstaclePointsWithColor(std::vector<Point>& points, std::vector<rerun::Color>& colors, rerun::Color color) const {
+void QuadtreeNode::collectObstaclePointsWithColor(std::vector<mapping::Point>& points, std::vector<rerun::Color>& colors, rerun::Color color) const {
     if (isLeaf) {
         if (hasObstacle) {
             points.push_back(center);
@@ -258,4 +260,5 @@ QuadtreeNode::~QuadtreeNode() {
     for (int i = 0; i < 4; ++i) {
         delete children[i]; // This calls the destructor for each child node
     }
+}
 }

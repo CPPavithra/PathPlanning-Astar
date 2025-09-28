@@ -25,15 +25,16 @@
 
 using namespace std;
 using namespace mapping;
-using namespace planning;
 using namespace quadtree;
+
+namespace planning {
 // Heuristic function (Euclidean Distance)
 double heuristic_astar(int x1, int y1, int x2, int y2) {
     return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
 
-vector<Node> astarsparse(const Gridmap& gridmap, Node start, Node goal) {
+vector<Node> astarsparse(const mapping::Gridmap& gridmap, Node start, Node goal) {
     priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, comparenode> openList;
     unordered_map<pair<int, int>, shared_ptr<Node>, pair_hash> allNodes;
     unordered_set<pair<int, int>, pair_hash> visited;
@@ -103,4 +104,5 @@ vector<Node> astarsparse(const Gridmap& gridmap, Node start, Node goal) {
     }
 
     return {};  // No path found
+}
 }

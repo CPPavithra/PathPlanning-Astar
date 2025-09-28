@@ -13,6 +13,7 @@
 using namespace std; 
 using namespace mapping;
 using namespace planning;
+using namespace quadtree;
 
 MotionPlanner::MotionPlanner(rerun::RecordingStream& rec) : 
     rec(rec),

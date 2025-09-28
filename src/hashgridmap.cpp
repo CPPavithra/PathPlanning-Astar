@@ -24,7 +24,8 @@ using namespace rerun;
 using namespace rs2;
 using namespace std;
 using namespace Eigen;
-using namespace mapping;
+
+namespace mapping {
 
 void create_gridmap(Gridmap& gridmap, const vector<Vector3f>& point_vectors, const Slam_Pose& slam_pose, float grid_resolution, float height, float proxfactor)
 {
@@ -259,3 +260,4 @@ pose.orientation.normalize(); //normalize quaternion to prevent drift*/
     return cloud;
 }
 
+}
