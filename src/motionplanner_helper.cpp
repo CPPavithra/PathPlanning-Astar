@@ -48,23 +48,39 @@ bool MotionPlanner::getSensorData(rs2::frameset& frameset, rs2_vector& accel_raw
 // Handles all point cloud generation and filtering.
 std::vector<Eigen::Vector3f> MotionPlanner::processPointCloud(const rs2::frameset& frameset,const Slam_Pose& slam_pose) {
     rs2::points points = pc.calculate(frameset.get_depth_frame());
-    std::vector<Eigen::Vector3f> raw_points;
-    raw_points.reserve(points.size());
+    std::vector<Eigen::Vector3f> transformed_points;
+    transformed_points.reserve(points.size());
+    //check if we have to do transformed_points.clear();
     const rs2::vertex* vertices = points.get_vertices();
+
+    Eigen::Matrix3f R;//rotation matrix
+    R = Eigen::AngleAxisf(slam_pose.yaw, Eigen::Vector3f::UnitZ());
+
+    //translation matrix
+    Eigen::Vector3f T(slam_pose.x, slam_pose.y, 0.0f);//assuming flat ground frame- change later if 6DOF
+
     for (size_t i = 0; i < points.size(); ++i) {
         if (vertices[i].z) {
-            // Transform point from camera frame to world frame
-            raw_points.push_back(slam_pose.yaw * Eigen::Vector3f(vertices[i].x, vertices[i].y, vertices[i].z));
+            // Convert RealSense camera coordinates → NED-like local frame
+            float dx = vertices[i].z;//forward
+            float dy = -vertices[i].x;//left-right
+            float dz = -vertices[i].y;//up-down inversion
+
+            Eigen::Vector3f p_cam(dx, dy, dz);
+
+            //Applying rotation and translation together
+            Eigen::Vector3f p_world = R * p_cam + T;
+            transformed_points.push_back(p_world);
         }
-    }
-    // Convert to PCL, filter, and convert back
-    auto pcl_cloud = convert_to_pcl(raw_points);
+    }    
+
+    auto pcl_cloud = convert_to_pcl(transformed_points);
 
     pcl::PassThrough<pcl::PointXYZ> passthrough;
     passthrough.setInputCloud(pcl_cloud);
     passthrough.setFilterFieldName("z");
     passthrough.setFilterLimits(0.5, 5.0);
-    passthrough.filter(*pcl_cloud); // Filter in-place for efficiency
+    passthrough.filter(*pcl_cloud); //filtering in place for efficiency
 
     pcl::VoxelGrid<pcl::PointXYZ> voxel;
     voxel.setInputCloud(pcl_cloud);

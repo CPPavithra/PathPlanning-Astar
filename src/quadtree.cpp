@@ -130,28 +130,35 @@ void updateQuadtreesWithPointCloud(
     QuadtreeNode *midQuadtree, 
     QuadtreeNode *highQuadtree, 
     const std::vector<Vector3f>& point_vectors,
-    const mapping::Slam_Pose& slam_pose) 
+    const mapping::Slam_Pose& slam_pose,
+    float height) 
 {
-    float rover_x = slam_pose.x;
-    float rover_y = slam_pose.y;
-    float yaw=slam_pose.yaw;
-    // Calculate orientation (same as hashmap version)
+  // Calculate orientation (same as hashmap version)
   // float ned_theta = -(theta - M_PI_2);
+   //same logic as the one in grid map code
+    float ground_sum =0.0f;
+    int ground_count =0;
+    float ground_window =5.0f; //5m radius around rover for ground estimation
+    for (const auto& p : point_vectors) {
+        float dx= p.x()-slam_pose.x;
+        float dy= p.y()-slam_pose.y;
+        float dist= std::sqrt(dx*dx+dy*dy);
+        if (dist < ground_window && p.z()<height/4) {
+            ground_sum+=p.z();
+            ground_count++;
+        }
+    }
+    //check!!
+    float ground_level = (ground_count > 0) ? (ground_sum / ground_count) : 0.0f;
 
     for (const auto& point : point_vectors) {
         // Same coordinate transformation as hashmap
-        float dx = point.z();      // forward
-        float dy = -point.x();     // x becomes -y
-        float height = -point.y(); // y becomes -height (to match hashmap's dz)
 
-        float rotated_x = cos(yaw) * dx - sin(yaw) * dy;
-        float rotated_y = sin(yaw) * dx + cos(yaw) * dy;
+        float local_x = point.x()-slam_pose.x;
+        float local_y = point.y()-slam_pose.y;
+        float height = point.z()-ground_level; //check if ground_level needs to be included or not
 
-        // Convert to global coordinates (like hashmap does with grid cells)
-        float global_x = rover_x + rotated_x;
-        float global_y = rover_y + rotated_y;
-
-        mapping::Point p = {global_x, global_y};  // Now in global coordinates
+        mapping::Point p = {local_x, local_y};  // Now in global coordinates
 
         // Use same height thresholds as hashmap cost assignments
         if (height < 0.2f) {

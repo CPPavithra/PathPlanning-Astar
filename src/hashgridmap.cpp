@@ -51,22 +51,17 @@ void create_gridmap(Gridmap& gridmap, const vector<Vector3f>& point_vectors, con
     unordered_map<pair<int,int>,CellCost,pair_hash> updated_occupancy_grid =gridmap.occupancy_grid;
     
     int proxradius=3; //for padding. CHANGE IT LATER.
-    float rover_x =slam_pose.x;
-    float rover_y =slam_pose.y;
-    float yaw =slam_pose.yaw;
-
     //We are estimating the local ground level for rough terrain.
     //Here, we check for the local ground (near the rover only)
     float ground_sum =0.0f;
     int ground_count =0;
     float ground_window =5.0f; //5m radius around rover for ground estimation
-    for (const auto& point : point_vectors) {
-        float dz = -point.y(); 
-        float dx = point.z();
-        float dy = -point.x(); //forward motion
-        float dist = sqrt(dx*dx + dy*dy); //5x5m
-        if (dist < ground_window && dz < height/4) {//we ignore the tall points
-            ground_sum += dz;
+    for (const auto& p : point_vectors) {
+        float dx = p.x() - slam_pose.x;
+        float dy = p.y() - slam_pose.y;
+        float dist = std::sqrt(dx*dx + dy*dy);
+        if (dist < ground_window && p.z() < height/4) {
+            ground_sum += p.z();
             ground_count++;
         }
     }
@@ -74,18 +69,20 @@ void create_gridmap(Gridmap& gridmap, const vector<Vector3f>& point_vectors, con
     float ground_level = (ground_count > 0) ? (ground_sum / ground_count) : 0.0f;
 
     for (const auto& point : point_vectors) {
-        float dx =point.z();  
+        /*float dx =point.z();  
         float dy =-point.x(); 
-        float dz =-point.y();  
+        float dz =-point.y();  */
 
         //float ned_theta =-(theta -M_PI_2); 
         //slam is returning yaw-M_PI_2 we have to check if it is oriented correctly */
         //or if we have to put -ve on it!! 
-        float rotated_x =cos(yaw)*dx - sin(yaw)*dy;
-        float rotated_y =sin(yaw)*dx + cos(yaw)*dy;
+        /*float rotated_x =cos(yaw)*dx - sin(yaw)*dy;
+        float rotated_y =sin(yaw)*dx + cos(yaw)*dy;*/
 
-        int grid_x = static_cast<int>(rotated_x /1.0f); //replace with grid resolution
-        int grid_y = static_cast<int>(rotated_y /1.0f);
+       float dz = point.z() - ground_level;
+       //this is for local map- RELATIVE TO ROVER. THE ROVER WILL ALWAYS BE THE ORIGIN!
+        int grid_x = static_cast<int>((point.x() - slam_pose.x) / grid_resolution);
+        int grid_y = static_cast<int>((point.y() - slam_pose.y) / grid_resolution);
 
         float adjusted_height = dz;
         float cost = 0.0f;
