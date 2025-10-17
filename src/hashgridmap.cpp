@@ -81,8 +81,8 @@ void create_gridmap(Gridmap& gridmap, const vector<Vector3f>& point_vectors, con
 
        float dz = point.z() - ground_level;
        //this is for local map- RELATIVE TO ROVER. THE ROVER WILL ALWAYS BE THE ORIGIN!
-        int grid_x = static_cast<int>((point.x() - slam_pose.x) / grid_resolution);
-        int grid_y = static_cast<int>((point.y() - slam_pose.y) / grid_resolution);
+        int grid_x = static_cast<int>(point.x()/ grid_resolution);
+        int grid_y = static_cast<int>(point.y()/ grid_resolution);
 
         float adjusted_height = dz;
         float cost = 0.0f;
