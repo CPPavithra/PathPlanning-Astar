@@ -31,10 +31,10 @@ namespace quadtree {
 mapping::Point center = {0.0f, 0.0f};
 float rootSize = 100.0f;
 
-QuadtreeNode* lowQuadtree  = new QuadtreeNode(center, rootSize, 1);
-QuadtreeNode* midQuadtree  = new QuadtreeNode(center, rootSize, 1);
-QuadtreeNode* highQuadtree = new QuadtreeNode(center, rootSize, 1);
-
+/* QuadtreeNode* lowQuadtree  = new QuadtreeNode(center, rootSize, 1); */
+/* QuadtreeNode* midQuadtree  = new QuadtreeNode(center, rootSize, 1); */
+/* QuadtreeNode* highQuadtree = new QuadtreeNode(center, rootSize, 1); */
+/**/ 
 
 QuadtreeNode::QuadtreeNode(mapping::Point c, float s, int co) : center(c),size(s),isLeaf(true),hasObstacle(false),cost(co) {
     for (int i = 0; i < 4; i++) children[i] = nullptr;

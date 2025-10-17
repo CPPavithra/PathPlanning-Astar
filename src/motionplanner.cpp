@@ -34,10 +34,10 @@ MotionPlanner::MotionPlanner(rerun::RecordingStream& rec) :
     pipe.start(cfg);
 
     // Initialize rover pose
-    lowQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
-    midQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
-    highQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
-
+    /* lowQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1); */
+    /* midQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1); */
+    /* highQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1); */
+    /**/
     // Initialize cost table text
     cost_table_text =
         "Color   | Signifies      | Cost\n\n"
@@ -53,10 +53,10 @@ MotionPlanner::MotionPlanner(rerun::RecordingStream& rec) :
 
 MotionPlanner::~MotionPlanner() {
     // Clean up dynamically allocated memory to prevent leaks
-    delete lowQuadtree;
-    delete midQuadtree;
-    delete highQuadtree;
-    lowQuadtree = midQuadtree = highQuadtree = nullptr;
+    /* delete lowQuadtree; */
+    /* delete midQuadtree; */
+    /* delete highQuadtree; */
+    // lowQuadtree = midQuadtree = highQuadtree = nullptr; 
 }
 
 //Function to initialize everything and Setting up the variables
@@ -218,13 +218,13 @@ Node MotionPlanner::findcurrentgoal() {
     }
 
     if (found) {
-        auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, best_node, 1.0f);
-        if (!dry_path.empty()) {
+        //auto dry_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, best_node, 1.0f);
+       // if (!dry_path.empty()) {
             std::cout << "Best reachable intermediate goal: (" << best_node.x << "," << best_node.y << ")\n";
             recent_goals.push_back(best_node);
             if (recent_goals.size() > 10) recent_goals.pop_front();
             return best_node;
-        }
+       // }
     }
 
     std::cout << "No good intermediate goal found.\n";

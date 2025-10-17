@@ -61,11 +61,12 @@ class MotionPlanner {
     std::deque<planning::Node> recent_goals;
     std::set<std::pair<int, int>> tried_goals;
     std::vector<rerun::Position3D> full_path_points;
+    std::vector<Eigen::Vector3f> latest_points;
     // Quadtree for spatial partitioning
-    quadtree::QuadtreeNode* lowQuadtree{nullptr};
-    quadtree::QuadtreeNode* midQuadtree{nullptr};
-    quadtree::QuadtreeNode* highQuadtree{nullptr};
-    // Configuration & Control Flags
+    /* quadtree::QuadtreeNode* lowQuadtree{nullptr}; */
+    /* quadtree::QuadtreeNode* midQuadtree{nullptr}; */
+    /* quadtree::QuadtreeNode* highQuadtree{nullptr}; */
+    /* // Configuration & Control Flags */
     float grid_resolution{0.001f};
     int batch_threshold{1};
     int limit{20}; 

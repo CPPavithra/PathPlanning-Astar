@@ -93,6 +93,7 @@ std::vector<Eigen::Vector3f> MotionPlanner::processPointCloud(const rs2::framese
     for (const auto& point : pcl_cloud->points) {
         filtered_points.emplace_back(point.x, point.y, point.z);
     }
+    this->latest_points = filtered_points;
     return filtered_points;
 }
 
@@ -100,7 +101,7 @@ std::vector<Eigen::Vector3f> MotionPlanner::processPointCloud(const rs2::framese
 // Updates the gridmap and quadtrees.
 void MotionPlanner::updateMaps(const std::vector<Eigen::Vector3f>& points) {
     create_gridmap(gridmap,  points, slam_pose, grid_resolution);
-    updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, points, slam_pose);
+    //updateQuadtreesWithPointCloud(lowQuadtree, midQuadtree, highQuadtree, points, slam_pose);
     if (gridmap.occupancy_grid.size() >= batch_threshold) {
         draw_gridmap(gridmap, grid_resolution, rec, slam_pose);
         batch_threshold += gridmap.occupancy_grid.size();
@@ -122,17 +123,23 @@ bool MotionPlanner::checkPlanningTrigger() {
 bool MotionPlanner::findpath(const planning::Node& current_start, const planning::Node& current_goal, std::vector<planning::Node>& dense_path) {
     cout<<"Current Start: ("<<current_start.x<< "," <<current_start.y <<")" <<endl;
     cout<<"Selected Intermediate Goal: (" <<current_goal.x << "," <<current_goal.y <<")" <<endl;
-
+    
+    //CHANGE- creating local quadtrees and update it here
+    auto local_lowQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
+    auto local_midQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
+    auto local_highQuadtree = new quadtree::QuadtreeNode(center, rootSize, 1);
+    updateQuadtreesWithPointCloud(local_lowQuadtree, local_midQuadtree, local_highQuadtree, this->latest_points, this->slam_pose);
+    
     vector<Node> sparse_path = astarsparse(gridmap, current_start, current_goal);
 
     if (sparse_path.empty()) {
             std::cout << "Sparse A* failed. Attempting Dense A*..." << std::endl;
-            dense_path = astarquad(lowQuadtree, midQuadtree, highQuadtree, current_start, current_goal, 1.0f);
+            dense_path = astarquad(local_lowQuadtree,local_midQuadtree,local_highQuadtree, current_start, current_goal, 1.0f);
     } else {
         cout << "Sparse A* succeeded. Refining path with Dense A*..." << endl;
         dense_path.push_back(sparse_path[0]); // Start with the first node
         for (size_t i = 1; i < sparse_path.size(); ++i) {
-            std::vector<Node> segment=astarquad(lowQuadtree, midQuadtree, highQuadtree, sparse_path[i - 1],sparse_path[i], 1.0f);
+            std::vector<Node> segment=astarquad(local_lowQuadtree, local_midQuadtree, local_highQuadtree, sparse_path[i - 1],sparse_path[i], 1.0f);
             if (!segment.empty()) {
                 dense_path.insert(dense_path.end(), segment.begin() + 1, segment.end());
             } else {
@@ -140,6 +147,10 @@ bool MotionPlanner::findpath(const planning::Node& current_start, const planning
             }
         }
     }
+    delete local_lowQuadtree;
+    delete local_midQuadtree;
+    delete local_highQuadtree;
+
     return !dense_path.empty();
 }
 
