@@ -26,6 +26,7 @@ struct Slam_Pose
 {
   float x;
   float y;
+  float z;
   float yaw;
 };
 
